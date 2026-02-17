@@ -113,7 +113,7 @@ TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
 all: $(RAYLIB_SRC_DIR)/libraylib.a $(NAME)
 
 game: re
-	./rosario 16 16
+	./rosario 30 30
 
 check_gtest:
 	@if [ ! -f "$(GTEST_LIB)" ]; then \

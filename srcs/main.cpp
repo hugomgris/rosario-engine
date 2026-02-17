@@ -231,9 +231,9 @@ int main(int argc, char **argv) {
 						break;
 				}
 				
-				if (state.isPaused) {
+				/* if (state.isPaused) {
 					DrawText("PAUSED", screenWidth / 2 - 60, screenHeight / 2, 40, customBlack);
-				}
+				} */
 				break;
 			}			
 		

@@ -16,7 +16,7 @@ Renderer::Renderer() :
 	cameraSize(0.0f),
 	menuFov(50.0f),
 	customFov(0.0f),
-	squareSize(50),
+	squareSize(32),
 	separator(0.0f),
 	gridWidth(0),
 	gridHeight(0),
