@@ -2,6 +2,8 @@
 #include "DataStructs.hpp"
 #include "Utils.hpp"
 
+class Arena;
+
 class Food {
 	private:
 		Vec2		_position;

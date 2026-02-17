@@ -1,4 +1,5 @@
 #include "../incs/Food.hpp"
+#include "../incs/Arena.hpp"
 #include "../incs/Snake.hpp"
 #include <iostream>
 
@@ -23,6 +24,8 @@ Food &Food::operator=(const Food & other)
 
 bool Food::replaceInFreeSpace(GameState *gameState)
 {
+	Vector2 originalPosition = gameState->arena->getFoodPosition();
+	
 	std::vector<Vec2> snakeASegments;
 	std::vector<Vec2> snakeBSegments;
 	for (int i = 0; i < gameState->snake_A->getLength(); i++) {
@@ -77,6 +80,11 @@ bool Food::replaceInFreeSpace(GameState *gameState)
 	int randomIndex = Utils::getRandomInt(availableCells.size() - 1);
 	_position = availableCells[randomIndex];
 	_foodChar = Utils::getFoodChar(Utils::getRandomInt(5));
+
+	// update arena food tracking
+	gameState->arena->clearCell(originalPosition.x, originalPosition.y);
+	gameState->arena->setFoodCell(_position.x, _position.y);
+	
 
 	return true;
 }

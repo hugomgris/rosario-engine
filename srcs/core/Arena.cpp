@@ -32,9 +32,29 @@ bool Arena::isWalkable(int x, int y) const {
 	return true;
 }
 
-void Arena::markAsFood(int x, int y) { 
+void Arena::setFoodCell(int x, int y) { 
 	foodPosition.x = x;
 	foodPosition.y = y;
+	setCell(x, y, CellType::Food);
+
+	//DEBUG output
+	/* std::cout << "Food set at (" << x << ", " << y << ")" << std::endl;
+
+	int foodAmount = 0;
+	for (int i = 0; i < gridHeight; i++) {
+		for (int j = 0; j < gridWidth; j++) {
+			if (grid[i][j] == CellType::Food) {
+				foodAmount++;
+				std::cout << "Food found at grid[" << i << "][" << j << "]" << std::endl;
+			}
+		}
+	}
+
+	std::cout << "Total food in arena: " << foodAmount << std::endl; */
+}
+
+Vector2 Arena::getFoodPosition() const {
+	return foodPosition;
 }
 
 //obstacle management

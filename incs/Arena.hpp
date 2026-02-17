@@ -34,7 +34,8 @@ class Arena {
 		void setCell(int x, int y, CellType type);
 		CellType getCell(int x, int y) const;
 		bool isWalkable(int x, int y) const;
-		void markAsFood(int x, int y);
+		void setFoodCell(int x, int y);
+		Vector2 getFoodPosition() const;
 
 		// obstacle management
 		void spawnObstacle(int x, int y, int width, int height);

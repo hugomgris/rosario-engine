@@ -403,7 +403,7 @@ void Renderer::drawFood2D(const Food* food, ParticleSystem& particles) {
 	Vec2 foodPos = food->getPosition();
 	Vector2 screenPos = gridToScreen2D(foodPos.x, foodPos.y);
 	
-	// Check if food position changed and spawn explosion at OLD position
+	// if food position changed, particle explosion! (at old pos)
 	if (lastFoodX != -1 && (lastFoodX != foodPos.x || lastFoodY != foodPos.y)) {
 		// Convert OLD food position to screen coordinates
 		Vector2 oldScreenPos = gridToScreen2D(lastFoodX, lastFoodY);

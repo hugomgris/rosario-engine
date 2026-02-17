@@ -325,7 +325,7 @@ void MenuSystem::startGame() {
 	
 	// Create new AI if needed
 	if (state.config.mode == GameMode::AI) {
-		state.aiController = std::make_unique<SnakeAI>(AIConfig::medium());
+		state.aiController = std::make_unique<SnakeAI>(AIConfig::easy());
 		gameController.setAIController(state.aiController.get()); 
 	}
 	

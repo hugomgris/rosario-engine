@@ -31,37 +31,38 @@ class Renderer {
 		float 		menuFov;
 		float		customFov;
 
-	// 2D pipleine
-	Camera2D	camera2D;
-	float		squareSize;
-	float		separator;
-	int			gridWidth;
-	int			gridHeight;
-	
-	// 2D layout calculations
-	int			borderThickness;
-	int			arenaWidth;    // Total arena including borders
-	int			arenaHeight;
-	int			arenaOffsetX;  // Center offset in screen
-	int			arenaOffsetY;
-	int			gameAreaX;     // Where game grid starts (after border)
-	int			gameAreaY;
-	
-	// 2D tail tracking (for particle trails)
-	struct TailState {
-		float lastX = 0.0f;
-		float lastY = 0.0f;
-		bool isFirstFrame = true;
-	};
-	TailState snakeA_tailState;
-	TailState snakeB_tailState;
-	
-	// Food tracking (for explosion particles)
-	int lastFoodX = -1;
-	int lastFoodY = -1;
-	
-	void calculate2DLayout();  // Helper to compute arena positioning
-	Vector2 gridToScreen2D(int gridX, int gridY) const;  // Convert grid coords to screen coords
+		// 2D pipleine
+		Camera2D	camera2D;
+		float		squareSize;
+		float		separator;
+		int			gridWidth;
+		int			gridHeight;
+		
+		// 2D layout calculations
+		int			borderThickness;
+		int			arenaWidth;    // Total arena including borders
+		int			arenaHeight;
+		int			arenaOffsetX;  // Center offset in screen
+		int			arenaOffsetY;
+		int			gameAreaX;     // Where game grid starts (after border)
+		int			gameAreaY;
+		
+		// 2D tail tracking (for particle trails)
+		struct TailState {
+			float lastX = 0.0f;
+			float lastY = 0.0f;
+			bool isFirstFrame = true;
+		};
+		
+		TailState snakeA_tailState;
+		TailState snakeB_tailState;
+		
+		// Food tracking (for explosion particles)
+		int lastFoodX = -1;
+		int lastFoodY = -1;
+		
+		void calculate2DLayout();  // Helper to compute arena positioning
+		Vector2 gridToScreen2D(int gridX, int gridY) const;  // Convert grid coords to screen coords
 	
 		float	accumulatedTime;
 		
