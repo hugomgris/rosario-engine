@@ -1,6 +1,6 @@
 #include "../incs/GameController.hpp"
 
-GameController::GameController(GameState *state) : _state(state) {}
+GameController::GameController(GameState *state) : _state(state), _foodTracker(0) {}
 
 void GameController::update()  {
 	// If AI mode → generate AI decision each frame
@@ -28,6 +28,13 @@ void GameController::update()  {
 		_state->snake_B->move();
 	
 	checkHeadFoodCollision();
+
+	// DEBUG AND TEST
+	if (_foodTracker > 0 && _foodTracker % 3 == 0) {
+		_state->arena->spawnObstacle(10, 10, 5, 5);	
+	} else if (_foodTracker > 0 && _foodTracker % 5 == 0) {
+		_state->arena->clearArena();
+	}
 }
 
 void GameController::bufferInput(Input input) {
@@ -116,6 +123,7 @@ void GameController::checkHeadFoodCollision() {
 			
 		_state->snake_A->grow();
 		_state->score++;  // Increment score when food is eaten
+		_foodTracker++;
 		
 		if (!_state->food->replaceInFreeSpace(_state)) {
 			_state->isRunning = false;
@@ -147,10 +155,11 @@ bool GameController::checkGameOverCollision()
 	Vec2 head_A = _state->snake_A->getSegments()[0];
 	Vec2 nextPos_A = _state->snake_A->getNextHeadPosition();
 	
-	// Check if next position is a wall
-	if (_state->arena->getCell(nextPos_A.x, nextPos_A.y) == CellType::Wall) {
+	// Check if next position is a wall or obstacle
+	if (_state->arena->getCell(nextPos_A.x, nextPos_A.y) == CellType::Wall ||
+			_state->arena->getCell(nextPos_A.x, nextPos_A.y) == CellType::Obstacle) {
 		_state->snake_A->setAsDead(true);
-		std::cout << "Snake A DIED against a wall" << std::endl;
+		std::cout << "Snake A DIED against a wall or obstacle" << std::endl;
 		return false;
 	}
 	

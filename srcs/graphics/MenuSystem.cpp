@@ -369,6 +369,7 @@ void MenuSystem::restartGame() {
 	state.isPaused = false;
 	state.timing.accumulator = 0.0;
 	gameController.clearInputBuffer();
+	state.arena->clearArena();
 	state.currentState = GameStateType::Menu;
 
 	resetButtonIndex();

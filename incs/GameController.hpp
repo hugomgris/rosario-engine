@@ -20,6 +20,8 @@ class GameController {
 		SnakeAI *aiController;
 		int aiThinkCounter;
 
+		int _foodTracker;
+
 		using time = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 		void processNextInput();
