@@ -1,0 +1,13 @@
+# Test artifacts
+run_tests
+.test_obj/
+.test_dep/
+
+# Existing entries
+.obj/
+.dep/
+*.o
+*.so
+nibbler
+libs/googletest/libs/
+libs/
