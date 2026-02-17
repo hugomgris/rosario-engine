@@ -1,4 +1,5 @@
 #include "../../incs/Renderer.hpp"
+#include "../../incs/Arena.hpp"
 #include "../../incs/Snake.hpp"
 #include "../../incs/Food.hpp"
 #include "../../incs/colors.h"
@@ -20,7 +21,7 @@ Renderer::Renderer() :
 	separator(0.0f),
 	gridWidth(0),
 	gridHeight(0),
-	borderThickness(25),
+	borderThickness(32),
 	arenaWidth(0),
 	arenaHeight(0),
 	arenaOffsetX(0),
@@ -44,7 +45,7 @@ void Renderer::init(int width, int height) {
 	SetConfigFlags(FLAG_VSYNC_HINT);
 	
 	InitWindow(screenWidth, screenHeight, "Nibbler 3D - Raylib");
-	ToggleFullscreen();
+	//ToggleFullscreen();
 	SetTargetFPS(60);  // Lock to 60 FPS
 	
 	setupCamera3D();
@@ -332,7 +333,10 @@ void Renderer::render2D(const GameState& state, float deltaTime, ParticleSystem&
 	drawFood2D(state.food, particles);
 
 	// Draw centered border for 2D game
-	drawBorderCentered(borderThickness);
+	/* drawBorderCentered(borderThickness);
+	drawBorderModular(); */
+
+	state.arena->render(*this);
 }
 
 void Renderer::drawSnake2D(const Snake* snake, Color color, ParticleSystem& particles, TailState& tailState) {
@@ -478,4 +482,52 @@ void Renderer::drawBorderFullscreen(int thickness) {
 	
 	// Right border
 	DrawRectangle(screenWidth - thickness, 0, thickness, screenHeight, customWhite);
+}
+
+void Renderer::drawBorderModular() {
+	for (int i = 0; i < gridHeight + 2; i++) {
+		DrawRectangle(
+			static_cast<int>(arenaOffsetX),
+			static_cast<int>(arenaOffsetY + (i * squareSize)),
+			squareSize,
+			squareSize,
+			wallColor
+		);
+
+		DrawRectangle(
+			static_cast<int>(arenaOffsetX + arenaWidth - squareSize),
+			static_cast<int>(arenaOffsetY + (i * squareSize)),
+			squareSize,
+			squareSize,
+			snakeBLightTop
+		);
+	}
+
+	for (int i = 0; i < gridWidth + 2; i++) {
+		DrawRectangle(
+			static_cast<int>(arenaOffsetX + (i * squareSize)),
+			static_cast<int>(arenaOffsetY),
+			squareSize,
+			squareSize,
+			wallColor
+		);
+
+		DrawRectangle(
+			static_cast<int>(arenaOffsetX + (i * squareSize)),
+			static_cast<int>(arenaOffsetY + arenaWidth - squareSize),
+			squareSize,
+			squareSize,
+			snakeBLightTop
+		);
+	}
+}
+
+void Renderer::drawBorderBrick(int x, int y, Color color) const {
+	DrawRectangle(
+			static_cast<int>(arenaOffsetX + (x * squareSize)),
+			static_cast<int>(arenaOffsetY + (y * squareSize)),
+			squareSize,
+			squareSize,
+			color
+		);
 }

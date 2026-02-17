@@ -1,4 +1,5 @@
 #include "../../incs/SnakeAI.hpp"
+#include "../../incs/Arena.hpp"
 #include "../../incs/Food.hpp"
 #include <cstdlib>
 #include <ctime>
@@ -58,6 +59,8 @@ Input SnakeAI::goToFood(const GameState& state) {
 
 Input SnakeAI::survivalMode(const GameState& state) {
 	if (!state.snake_B) return Input::None;
+
+	std::cout << "Snake B went into SURVIVAL MODE" << std::endl;
 	
 	Vec2 head = state.snake_B->getSegments()[0];
 	const Vec2* segments = state.snake_B->getSegments();
@@ -105,9 +108,8 @@ Input SnakeAI::maximizeSpace(const GameState& state) {
 }
 
 bool SnakeAI::isSafeMove(const GameState& state, Vec2 nextPos) {
-	// Bounds check
-	if (nextPos.x < 0 || nextPos.y < 0 || 
-		nextPos.x >= state.width || nextPos.y >= state.height) {
+	// Check arena walls (includes bounds checking)
+	if (state.arena && state.arena->getCell(nextPos.x, nextPos.y) == CellType::Wall) {
 		return false;
 	}
 	

@@ -5,6 +5,7 @@
 #include "../incs/AnimationSystem.hpp"
 #include "../incs/MenuSystem.hpp"
 #include "../incs/PostProcessingSystem.hpp"
+#include "../incs/Arena.hpp"
 #include "../incs/Snake.hpp"
 #include "../incs/SnakeAI.hpp"
 #include "../incs/Food.hpp"
@@ -52,6 +53,7 @@ int main(int argc, char **argv) {
 	}
 
 	// ENTITIES
+	Arena arena(width, height, 32);
 	Snake snake_A(width, height);
 	Snake snake_B(snake_A, width, height);
 	Food food(Vec2{0, 0}, width, height);
@@ -60,6 +62,7 @@ int main(int argc, char **argv) {
 	GameState state;
 	state.width = width;
 	state.height = height;
+	state.arena = &arena;
 	state.snake_A = &snake_A;
 	state.snake_B = &snake_B;
 	state.food = &food;
@@ -175,6 +178,7 @@ int main(int argc, char **argv) {
 				
 				if (input == Input::Pause)
 					inputManager.processInput(input, state);
+				break;  // Add missing break
 			}
 				
 			case GameStateType::GameOver: {

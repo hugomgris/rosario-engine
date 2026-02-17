@@ -151,6 +151,27 @@ const Vec2 *Snake::getSegments() const { return _segments; }
 
 Direction Snake::getDirection() const { return _direction; }
 
+Vec2 Snake::getNextHeadPosition() const {
+	Vec2 nextPos = _segments[0];
+	
+	switch (_direction) {
+		case Direction::Left:
+			nextPos.x--;
+			break;
+		case Direction::Right:
+			nextPos.x++;
+			break;
+		case Direction::Up:
+			nextPos.y--;
+			break;
+		case Direction::Down:
+			nextPos.y++;
+			break;
+	}
+	
+	return nextPos;
+}
+
 void Snake::move(){
 	auto head = _segments[0];
 	Vec2 previousPositions[_length];

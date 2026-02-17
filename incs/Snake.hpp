@@ -32,10 +32,11 @@ class Snake {
 		void setAsDead(bool dead);
 		bool isDead() const;
 
-		int getLength() const;
-		const Vec2 *getSegments() const;
-		Direction getDirection() const;  //for testing
-
+	int getLength() const;
+	const Vec2 *getSegments() const;
+	Direction getDirection() const;  //for testing
+	Vec2 getNextHeadPosition() const;  // Predict next position without moving
+	
 	void move();
 	void changeDirection(Direction dir);
 	void grow();

@@ -1,6 +1,7 @@
 #pragma once
 #include "DataStructs.hpp"
 #include "Input.hpp"
+#include "Arena.hpp"
 #include "Snake.hpp"
 #include "SnakeAI.hpp"
 #include "Food.hpp"

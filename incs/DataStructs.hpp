@@ -9,6 +9,7 @@ struct Vec2 {
 };
 
 // Forward declarations
+class Arena;
 class Snake;
 class Food;
 class SnakeAI;
@@ -45,6 +46,7 @@ struct GameTiming {
 struct GameState {
 	int							width;
 	int							height;
+	Arena*						arena;
 	Snake*						snake_A;
 	Snake*						snake_B;
 	Food*						food;

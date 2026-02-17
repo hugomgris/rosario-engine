@@ -42,3 +42,8 @@ From here, the porting of these mechanics needs to take into account how the ren
 
 Let's get to work!
 
+The first and instantaneous instict is a realization: I have to move from whole, basic rectangle-draw-called walls to modular ones. But that's (obviously) not all, I'm going to have to (re)build a way to track the state of the walls, extensible to non-wall obstacles, so that the engine knows how to draw every state, as well as track said states to know were the snakes are allowed to move and what means death. Its complexity on complexity, so my best idea right know is to write some kind of `arena` class that tracks the state of the game field in a 2D collection of squares, useful both for rendering and for collision checking.
+
+> This is going to be *some* work, but the core of my immediate fear lies on how this new way of tracking the game space is going to affect my AI pipeline. Bracing for impact Y_Y
+
+

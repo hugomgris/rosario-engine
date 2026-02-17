@@ -14,6 +14,7 @@
 #include <chrono>
 
 // Forward declarations
+class Arena;
 class ParticleSystem;
 class AnimationSystem;
 class MenuSystem;
@@ -89,11 +90,14 @@ class Renderer {
 								Color front, Color back, Color top, Color bottom, Color right, Color left);
 		
 	
-	// 2D pipeline
-	void drawSnake2D(const Snake* snake, Color color, ParticleSystem& particles, TailState& tailState);
-	void drawFood2D(const Food* food, ParticleSystem& particles);
-	void drawBorderFullscreen(int thickness);  // Full-screen border (menu/game over)
-	void drawBorderCentered(int thickness);     // Centered arena border (2D game)
+		// 2D pipeline
+		void drawSnake2D(const Snake* snake, Color color, ParticleSystem& particles, TailState& tailState);
+		void drawFood2D(const Food* food, ParticleSystem& particles);
+		void drawBorderFullscreen(int thickness);	// Full-screen border (menu/game over)
+		void drawBorderCentered(int thickness);     // Centered arena border (2D game)
+		void drawBorderModular();					// "brick" based borders for growth implementation
+		void drawBorderBrick(int x, int y, Color color) const;
+
 	public:
 		void init(int width, int height);
 		void render3D(const GameState& state, float deltaTime);

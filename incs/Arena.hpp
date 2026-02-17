@@ -1,0 +1,47 @@
+#pragma once
+#include "Renderer.hpp"
+#include <vector>
+
+enum class CellType {
+	Empty,
+	Wall,
+	Obstacle,
+	Snake,
+	Food
+};
+
+enum class GrowthDirection {
+	UP,
+	DOWN,
+	LEFT,
+	RIGHT
+};
+
+class Arena {
+	private:
+		std::vector<std::vector<CellType>> grid;
+		int gridWidth;
+		int gridHeight;
+		int squareSize;
+
+		Vector2 foodPosition;
+
+	public:
+		Arena(int width, int height, int squareSize); // W and H are in amount-of-squares magnitude
+		~Arena() = default;
+
+		// Grid manipulation (uses game coordinates: 0 to width-1, 0 to height-1)
+		void setCell(int x, int y, CellType type);
+		CellType getCell(int x, int y) const;
+		bool isWalkable(int x, int y) const;
+		void markAsFood(int x, int y);
+
+		// obstacle management
+		void spawnObstacle(int x, int y, int width, int height);
+		void growWall(int x, int y, int width, int height);
+		void clearCell(int x, int y);
+		void clearArena();
+
+		// rendering
+		void render(const Renderer& renderer) const;
+};
