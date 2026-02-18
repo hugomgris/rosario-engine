@@ -82,7 +82,10 @@ bool Food::replaceInFreeSpace(GameState *gameState)
 	_foodChar = Utils::getFoodChar(Utils::getRandomInt(5));
 
 	// update arena food tracking
-	gameState->arena->clearCell(originalPosition.x, originalPosition.y);
+	// Only clear if there was a valid previous position
+	if (originalPosition.x >= 0 && originalPosition.y >= 0) {
+		gameState->arena->clearCell(originalPosition.x, originalPosition.y);
+	}
 	gameState->arena->setFoodCell(_position.x, _position.y);
 	
 

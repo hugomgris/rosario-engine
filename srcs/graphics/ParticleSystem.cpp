@@ -133,8 +133,6 @@ void ParticleSystem::spawnExplosion(float x, float y, int count) {
 		float vx = cosf(angle) * speed;
 		float vy = sinf(angle) * speed;
 		
-		Color explosionColor = {254, 74, 81, 255};	// lightRed
-		
 		particles.emplace_back(x, y, explosionMinSize, explosionMaxSize, 0.5f, 1.0f, vx, vy, explosionColor);
 	}
 }

@@ -428,7 +428,7 @@ void Renderer::drawFood2D(const Food* food, ParticleSystem& particles) {
 		static_cast<int>(screenPos.y) + offset,
 		pulseSize,
 		pulseSize,
-		foodFront
+		explosionColor
 	);
 }
 

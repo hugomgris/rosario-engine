@@ -1,7 +1,7 @@
 #include "../../incs/Arena.hpp"
 
 Arena::Arena(int width, int height, int squareSize):
-		gridWidth(width + 2), gridHeight(height + 2), squareSize(squareSize), foodPosition(Vector2{0,0}) {
+		gridWidth(width + 2), gridHeight(height + 2), squareSize(squareSize), foodPosition(Vector2{-1,-1}) {
 	clearArena();
 }
 
@@ -94,7 +94,7 @@ void Arena::growWall(int x, int y, int width, int height) {
 }
 
 void Arena::clearCell(int x, int y) { 
-	grid[y + 1][x + 1] = CellType::Empty; 
+	grid[y + 1][x + 1] = CellType::Empty;
 }
 
 void Arena::clearArena() {
@@ -109,6 +109,26 @@ void Arena::clearArena() {
 				grid[y][x] = CellType::Empty;
 		}
 	}
+
+	for (int i = 1; i < 15; i++) {
+		grid[5][i] = CellType::Wall;
+		grid[6][i] = CellType::Wall;
+
+		grid[15][i] = CellType::Wall;
+		grid[16][i] = CellType::Wall;
+
+		grid[25][i] = CellType::Wall;
+		grid[26][i] = CellType::Wall;
+	}
+
+	for (int i = 0; i < 15; i++) {
+		grid[10][40 - i] = CellType::Wall;
+		grid[11][40 - i] = CellType::Wall;
+
+		grid[20][40 - i] = CellType::Wall;
+		grid[21][40 - i] = CellType::Wall;
+	}
+
 }
 
 void Arena::render(const Renderer& renderer) const {
@@ -122,4 +142,85 @@ void Arena::render(const Renderer& renderer) const {
 			}
 		}
 	}
+}
+
+// outline extraction
+// the points returned need to be in screen coords!!
+std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
+    struct IVec2 {
+        int x, y;
+        bool operator<(const IVec2& o) const { return x < o.x || (x == o.x && y < o.y); }
+        bool operator==(const IVec2& o) const { return x == o.x && y == o.y; }
+    };
+
+    auto isWall = [&](int c, int r) -> bool {
+        if (r < 0 || r >= gridHeight || c < 0 || c >= gridWidth) return true;
+        return grid[r][c] != CellType::Empty &&
+               grid[r][c] != CellType::Food  &&
+               grid[r][c] != CellType::Snake;
+    };
+
+    // Build directed edge map, cancelling edges that are written twice
+    // (two adjacent empty cells sharing a boundary = interior edge, not outline)
+    std::map<IVec2, IVec2> next;
+    std::set<IVec2> cancelled;
+
+    auto addEdge = [&](IVec2 a, IVec2 b) {
+        if (cancelled.count(a)) return;
+        if (next.count(a)) {
+            // Conflict: two cells want to write this edge — it's an interior edge, cancel it
+            next.erase(a);
+            cancelled.insert(a);
+        } else {
+            next[a] = b;
+        }
+    };
+
+    for (int r = 0; r < gridHeight; r++) {
+        for (int c = 0; c < gridWidth; c++) {
+            if (isWall(c, r)) continue;
+            if (isWall(c,   r-1)) addEdge({c,   r  }, {c+1, r  });
+            if (isWall(c+1, r  )) addEdge({c+1, r  }, {c+1, r+1});
+            if (isWall(c,   r+1)) addEdge({c+1, r+1}, {c,   r+1});
+            if (isWall(c-1, r  )) addEdge({c,   r+1}, {c,   r  });
+        }
+    }
+
+    if (next.empty()) return {};
+
+    IVec2 start = next.begin()->first;
+    for (auto& kv : next)
+        if (kv.first < start) start = kv.first;
+
+    std::vector<Vector2> outline;
+    IVec2 prev = start;
+    IVec2 cur  = next[start];
+    int limit  = (int)next.size() + 2;
+
+    while (!(cur == start) && --limit > 0) {
+        IVec2 nxt = next[cur];
+        int dx1 = cur.x - prev.x, dy1 = cur.y - prev.y;
+        int dx2 = nxt.x - cur.x,  dy2 = nxt.y - cur.y;
+        if (dx1 != dx2 || dy1 != dy2) {
+            outline.push_back({
+                static_cast<float>(offsetX + cur.x * squareSize),
+                static_cast<float>(offsetY + cur.y * squareSize)
+            });
+        }
+        prev = cur;
+        cur  = nxt;
+    }
+    // Check start corner
+    if (!outline.empty()) {
+        IVec2 nxt = next[start];
+        int dx1 = cur.x - prev.x,   dy1 = cur.y - prev.y;
+        int dx2 = start.x - cur.x,  dy2 = start.y - cur.y;
+        if (dx1 != dx2 || dy1 != dy2)
+            outline.push_back({
+                static_cast<float>(offsetX + start.x * squareSize),
+                static_cast<float>(offsetY + start.y * squareSize)
+            });
+    }
+
+    return outline;
 }

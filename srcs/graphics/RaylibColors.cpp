@@ -71,3 +71,5 @@
 	const Color foodFront = { 180, 52, 58, 255 };					// Ground dark red (darker)
 	const Color foodSide = { 254, 74, 81, 255 };					// Ground red (lighter than front)
 	const Color foodHidden = customBlack; 
+
+	const Color explosionColor = {254, 74, 81, 255};

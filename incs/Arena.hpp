@@ -1,6 +1,8 @@
 #pragma once
 #include "Renderer.hpp"
 #include <vector>
+#include <map>
+#include <set>
 
 enum class CellType {
 	Empty,
@@ -42,6 +44,9 @@ class Arena {
 		void growWall(int x, int y, int width, int height);
 		void clearCell(int x, int y);
 		void clearArena();
+
+		// outline extraction for tunnel lines
+		std::vector<Vector2> getArenaOutline(int offsetX, int offsetY);
 
 		// rendering
 		void render(const Renderer& renderer) const;

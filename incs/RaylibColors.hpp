@@ -44,3 +44,5 @@ extern const Color foodHidden;
 
 extern const Color wallColor;
 extern const Color wallColorFade;
+
+extern const Color explosionColor;

@@ -53,7 +53,8 @@ int main(int argc, char **argv) {
 	}
 
 	// ENTITIES
-	Arena arena(width, height, 32);
+	int squareSize2D = 32;
+	Arena arena(width, height, squareSize2D);
 	Snake snake_A(width, height);
 	Snake snake_B(snake_A, width, height);
 	Food food(Vec2{0, 0}, width, height);
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
 	textSystem.init();
 
 	AnimationSystem animations;
-	animations.init(1920, 1080);
+	animations.init(&state, 1920, 1080);
 	animations.enableTunnelEffect(true, TunnelConfig::menu());
 
 	MenuSystem menu(gameController);
