@@ -162,6 +162,9 @@ void MenuSystem::render(Renderer& renderer, TextSystem& textSystem,
 	int square = 30;
 	int sep = 15;
 
+	// Render tunnel effect
+	animations.renderTunnelEffect();
+
 	// Render particles
 	particles.render();
 	
@@ -193,9 +196,6 @@ void MenuSystem::render(Renderer& renderer, TextSystem& textSystem,
 		bool hovered = buttons[i].isHovered(mousePos) || (i == static_cast<size_t>(selectedButtonIndex));
 		buttons[i].render(hovered);
 	}
-	
-	// Render tunnel effect
-	animations.renderTunnelEffect();
 	
 	// Render fullscreen border
 	renderer.drawBorderFullscreen(25);

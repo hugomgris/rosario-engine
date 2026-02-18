@@ -50,9 +50,39 @@ void AnimationSystem::updateTunnelEffect(float deltaTime) {
 	
 	if (elapsed.count() >= currentTunnelConfig.spawnInterval) {
 		if (static_cast<int>(tunnelLines.size()) < currentTunnelConfig.maxLines) {
-			tunnelLines.push_back(TunnelLine());
+			TunnelLine newLine;
+			// Points will be set during rendering based on context
+			// For now, leave empty - rendering functions will handle it
+			tunnelLines.push_back(newLine);
 		}
 		lastTunnelSpawn = now;
+	}
+}
+
+void AnimationSystem::renderTunnelLine(const TunnelLine& line,
+										const std::vector<Vector2>& outerShape,
+										const Vector2& center,
+										float maxInset) const {
+	if (outerShape.empty()) return;
+
+	// Progress: 0 = inset from edge, 1 = at edge
+	float easedProgress = easeInQuad(line.progress);
+	
+	// Inset ratio: starts at 1.0 (fully inset), ends at 0.0 (at edge)
+	float insetRatio = 1.0f - easedProgress;
+
+	// Calculate inset shape maintaining proper polygon offset
+	std::vector<Vector2> currentShape = calculateInsetShape(outerShape, center, insetRatio, maxInset);
+
+	// Apply fade-in effect
+	unsigned char alpha = static_cast<unsigned char>(line.progress * 255);
+	Color fadedColor = currentTunnelConfig.lineColor;
+	fadedColor.a = alpha;
+
+	// Draw lines between consecutive points (forming a closed polygon)
+	for (size_t i = 0; i < currentShape.size(); i++) {
+		size_t nextIndex = (i + 1) % currentShape.size(); // Wrap around to close the shape
+		DrawLineEx(currentShape[i], currentShape[nextIndex], tunnelLineThickness, fadedColor);
 	}
 }
 
@@ -67,85 +97,42 @@ void AnimationSystem::renderTunnelEffect() const {
 	int startRight = screenWidth - borderThickness - contentInset;
 	int startBottom = screenHeight - borderThickness - contentInset;
 
-	int maxTravelX = contentInset;
-	int maxTravelY = contentInset;
+	// Calculate center for inset calculations
+	Vector2 center = {
+		static_cast<float>(screenWidth / 2),
+		static_cast<float>(screenHeight / 2)
+	};
+
+	// Define outer shape (end positions)
+	std::vector<Vector2> outerShape = createRectangularShape(
+		borderThickness, borderThickness,
+		screenWidth - borderThickness, screenHeight - borderThickness
+	);
 
 	for (const auto& line : tunnelLines) {
-		float easedProgress = easeInQuad(line.progress);
-		int travelX = static_cast<int>(easedProgress * maxTravelX);
-		int travelY = static_cast<int>(easedProgress * maxTravelY);
-
-		int left = startLeft - travelX;
-		int top = startTop - travelY;
-		int right = startRight + travelX;
-		int bottom = startBottom + travelY;
-
-		// Apply fade-in effect based on progress
-		unsigned char alpha = static_cast<unsigned char>(line.progress * 255);
-		Color fadedColor = currentTunnelConfig.lineColor;
-		fadedColor.a = alpha;
-
-		Vector2 topLeftCorner{static_cast<float>(left), static_cast<float>(top)};
-		Vector2 topRightCorner{static_cast<float>(right), static_cast<float>(top)};
-		Vector2 bottomLeftCorner{static_cast<float>(left), static_cast<float>(bottom)};
-		Vector2 bottomRightCorner{static_cast<float>(right), static_cast<float>(bottom)};
-
-		// Top line
-		//DrawLine(left, top, right, top, fadedColor);
-		DrawLineEx(topLeftCorner, topRightCorner, tunnelLineThickness, fadedColor);
-		// Bottom line
-		//DrawLine(left, bottom, right, bottom, fadedColor);
-		DrawLineEx(bottomLeftCorner, bottomRightCorner, tunnelLineThickness, fadedColor);
-		// Left line
-		DrawLineEx(topLeftCorner, bottomLeftCorner, tunnelLineThickness, fadedColor);
-		// Right line
-		DrawLineEx(topRightCorner, bottomRightCorner, tunnelLineThickness, fadedColor);
+		renderTunnelLine(line, outerShape, center, contentInset);
 	}
 }
 
-void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop, int borderRight, int borderBottom) const {
+void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop, 
+												int borderRight, int borderBottom) const {
 	if (!tunnelEffectEnabled || tunnelLines.empty()) return;
 
 	int contentInset = currentTunnelConfig.contentInset;
-	
-	int startLeft = borderLeft + contentInset;
-	int startTop = borderTop + contentInset;
-	int startRight = borderRight - contentInset;
-	int startBottom = borderBottom - contentInset;
 
-	int maxTravelX = contentInset;
-	int maxTravelY = contentInset;
+	// Calculate center of custom area
+	Vector2 center = {
+		static_cast<float>((borderLeft + borderRight) / 2),
+		static_cast<float>((borderTop + borderBottom) / 2)
+	};
+
+	// Define outer shape (end positions)
+	std::vector<Vector2> outerShape = createRectangularShape(
+		borderLeft, borderTop, borderRight, borderBottom
+	);
 
 	for (const auto& line : tunnelLines) {
-		float easedProgress = easeInQuad(line.progress);
-		int travelX = static_cast<int>(easedProgress * maxTravelX);
-		int travelY = static_cast<int>(easedProgress * maxTravelY);
-
-		int left = startLeft - travelX;
-		int top = startTop - travelY;
-		int right = startRight + travelX;
-		int bottom = startBottom + travelY;
-
-		// Apply fade-in effect based on progress
-		unsigned char alpha = static_cast<unsigned char>(line.progress * 255);
-		Color fadedColor = currentTunnelConfig.lineColor;
-		fadedColor.a = alpha;
-
-		Vector2 topLeftCorner{static_cast<float>(left), static_cast<float>(top)};
-		Vector2 topRightCorner{static_cast<float>(right), static_cast<float>(top)};
-		Vector2 bottomLeftCorner{static_cast<float>(left), static_cast<float>(bottom)};
-		Vector2 bottomRightCorner{static_cast<float>(right), static_cast<float>(bottom)};
-
-		// Top line
-		//DrawLine(left, top, right, top, fadedColor);
-		DrawLineEx(topLeftCorner, topRightCorner, tunnelLineThickness, fadedColor);
-		// Bottom line
-		//DrawLine(left, bottom, right, bottom, fadedColor);
-		DrawLineEx(bottomLeftCorner, bottomRightCorner, tunnelLineThickness, fadedColor);
-		// Left line
-		DrawLineEx(topLeftCorner, bottomLeftCorner, tunnelLineThickness, fadedColor);
-		// Right line
-		DrawLineEx(topRightCorner, bottomRightCorner, tunnelLineThickness, fadedColor);
+		renderTunnelLine(line, outerShape, center, contentInset);
 	}
 }
 
