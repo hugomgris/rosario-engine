@@ -1,13 +1,25 @@
 #include "../../incs/Arena.hpp"
 
+// NOTE:
+// grid is stored with a 1-cell thick WALL border on all sides.
+// Game coordinates are translated via +1 offset.
+// Direct grid[y][x] access must only be used for full-grid operations.
+
 Arena::Arena(int width, int height, int squareSize):
 		gridWidth(width + 2), gridHeight(height + 2), squareSize(squareSize), foodPosition(Vector2{-1,-1}) {
 	clearArena();
 }
 
 // grid manipulation
-void Arena::setCell(int x, int y, CellType type) { 
-	grid[y + 1][x + 1] = type; 
+void Arena::setCell(int x, int y, CellType type) {
+	int gx = x + 1;
+	int gy = y + 1;
+
+	if (gy < 0 || gy >= gridHeight ||
+		gx < 0 || gx >= gridWidth)
+		return;
+
+	grid[gy][gx] = type;
 }
 
 CellType Arena::getCell(int x, int y) const { 
@@ -93,42 +105,45 @@ void Arena::growWall(int x, int y, int width, int height) {
 	}
 }
 
-void Arena::clearCell(int x, int y) { 
-	grid[y + 1][x + 1] = CellType::Empty;
+void Arena::clearCell(int x, int y) {
+	setCell(x, y, CellType::Empty);
 }
 
 void Arena::clearArena() {
+	// Clear everything
 	grid.assign(gridHeight, std::vector<CellType>(gridWidth, CellType::Empty));
 
-	// Set up border walls
+	// Border walls (still direct access, but guaranteed safe)
 	for (int y = 0; y < gridHeight; y++) {
 		for (int x = 0; x < gridWidth; x++) {
-			if (x == 0 || x == gridWidth - 1 || y == 0 || y == gridHeight - 1)
+			if (x == 0 || x == gridWidth - 1 ||
+				y == 0 || y == gridHeight - 1)
+			{
 				grid[y][x] = CellType::Wall;
-			else
-				grid[y][x] = CellType::Empty;
+			}
 		}
 	}
 
-	for (int i = 1; i < 15; i++) {
-		grid[5][i] = CellType::Wall;
-		grid[6][i] = CellType::Wall;
-
-		grid[15][i] = CellType::Wall;
-		grid[16][i] = CellType::Wall;
-
-		grid[25][i] = CellType::Wall;
-		grid[26][i] = CellType::Wall;
-	}
-
+	// Left-side horizontal walls
 	for (int i = 0; i < 15; i++) {
-		grid[10][40 - i] = CellType::Wall;
-		grid[11][40 - i] = CellType::Wall;
+		setCell(i, 4, CellType::Wall);
+		setCell(i, 5, CellType::Wall);
 
-		grid[20][40 - i] = CellType::Wall;
-		grid[21][40 - i] = CellType::Wall;
+		setCell(i, 14, CellType::Wall);
+		setCell(i, 15, CellType::Wall);
+
+		setCell(i, 24, CellType::Wall);
+		setCell(i, 25, CellType::Wall);
 	}
 
+	// Right-side horizontal walls
+	for (int i = 0; i < 15; i++) {
+		setCell(39 - i, 9, CellType::Wall);
+		setCell(39 - i, 10, CellType::Wall);
+
+		setCell(39 - i, 19, CellType::Wall);
+		setCell(39 - i, 20, CellType::Wall);
+	}
 }
 
 void Arena::render(const Renderer& renderer) const {
