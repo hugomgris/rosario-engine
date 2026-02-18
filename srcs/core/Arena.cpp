@@ -1,7 +1,7 @@
 #include "../../incs/Arena.hpp"
 
 Arena::Arena(int width, int height, int squareSize):
-		gridWidth(width + 2), gridHeight(height + 2), squareSize(squareSize) {
+		gridWidth(width + 2), gridHeight(height + 2), squareSize(squareSize), foodPosition(Vector2{0,0}) {
 	clearArena();
 }
 

@@ -149,6 +149,7 @@ void GameController::checkHeadFoodCollision() {
 	}
 }
 
+// TODO: handle snake B collision with obstacles and growths
 bool GameController::checkGameOverCollision()
 {
 	// Get next positions based on current direction

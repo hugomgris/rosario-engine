@@ -113,8 +113,14 @@ TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
 
 all: $(RAYLIB_SRC_DIR)/libraylib.a $(NAME)
 
-game: re
+game: all
 	./rosario 30 30
+
+gamere: re
+	./rosario 30 30
+
+gamecheck: re
+	valgrind --leak-check=full --track-origins=yes --show-leak-kinds=all ./rosario 30 30
 
 check_gtest:
 	@if [ ! -f "$(GTEST_LIB)" ]; then \
