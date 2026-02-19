@@ -71,6 +71,9 @@ bool Food::replaceInFreeSpace(GameState *gameState)
 		}
 	}
 
+	// DEBUG
+	std::cout << "available:" << availableCells.size() << std::endl;
+
 	if (availableCells.empty())
 	{
 		std::cout << "No available cells! aka you Won, bb" << std::endl;

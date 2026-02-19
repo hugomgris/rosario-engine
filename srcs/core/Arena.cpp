@@ -11,6 +11,8 @@ Arena::Arena(int width, int height, int squareSize):
 }
 
 // grid manipulation
+std::vector<std::vector<CellType>> Arena::getGrid() const { return grid; }
+
 void Arena::setCell(int x, int y, CellType type) {
 	int gx = x + 1;
 	int gy = y + 1;
@@ -172,7 +174,8 @@ std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
         if (r < 0 || r >= gridHeight || c < 0 || c >= gridWidth) return true;
         return grid[r][c] != CellType::Empty &&
                grid[r][c] != CellType::Food  &&
-               grid[r][c] != CellType::Snake;
+               grid[r][c] != CellType::Snake_A &&
+			   grid[r][c] != CellType::Snake_B;
     };
 
     // Build directed edge map, cancelling edges that are written twice

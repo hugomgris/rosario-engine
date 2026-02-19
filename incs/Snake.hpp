@@ -16,6 +16,7 @@ class Snake {
 		Vec2		*_segments;
 		Direction	_direction;
 		bool		_isDead = false;
+		bool		_isGrowing = false;
 
 
 	public:
@@ -32,16 +33,20 @@ class Snake {
 		void setAsDead(bool dead);
 		bool isDead() const;
 
-	int getLength() const;
-	const Vec2 *getSegments() const;
-	Direction getDirection() const;  //for testing
-	Vec2 getNextHeadPosition() const;  // Predict next position without moving
-	
-	void move();
-	void changeDirection(Direction dir);
-	void grow();
-	void reset(int width, int height);  // Reinitialize snake at new position
-	void resetAsMirrored(const Snake& otherSnake, int width, int height);  // Reset as mirrored opponent
+		int getLength() const;
+		const Vec2* getSegments() const;
+		const Vec2& getHead() const;
+		const Vec2& getLastTailPosition() const;
+		Direction getDirection() const;  //for testing
+		Vec2 getNextHeadPosition() const;  // Predict next position without moving
+		bool getIsGrowing() const;
+		void setIsGrowing(bool growing);
+		
+		void move();
+		void changeDirection(Direction dir);
+		void grow();
+		void reset(int width, int height);  // Reinitialize snake at new position
+		void resetAsMirrored(const Snake& otherSnake, int width, int height);  // Reset as mirrored opponent
 
 private:
 	void initializeAtRandomPosition(int width, int height);  // Common spawn logic

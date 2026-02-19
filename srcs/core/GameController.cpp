@@ -23,9 +23,15 @@ void GameController::update()  {
 	// Safe to move
 	_state->snake_A->move();
 	if (_state->config.mode == GameMode::MULTI && _state->snake_B)
+	{
 		_state->snake_B->move();
-	if (_state->config.mode == GameMode::AI && _state->snake_B)
+		registerSnakePositions(CellType::Snake_A);
+	}
+
+	if (_state->config.mode == GameMode::AI && _state->snake_B) {
 		_state->snake_B->move();
+		registerSnakePositions(CellType::Snake_B);
+	}
 	
 	checkHeadFoodCollision();
 
@@ -111,43 +117,43 @@ void GameController::processNextInput() {
 	}
 }
 
-void GameController::checkHeadFoodCollision() {
-	Vec2	head_A = _state->snake_A->getSegments()[0];
-	//
-	Vec2	foodPos = _state->food->getPosition();
+	void GameController::checkHeadFoodCollision() {
+		Vec2	head_A = _state->snake_A->getSegments()[0];
+		//
+		Vec2	foodPos = _state->food->getPosition();
 
-	if (head_A.x == foodPos.x && head_A.y == foodPos.y)
-	{
-		/* if (_state->audio)
-			_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
-			
-		_state->snake_A->grow();
-		_state->score++;  // Increment score when food is eaten
-		_foodTracker++;
-		
-		if (!_state->food->replaceInFreeSpace(_state)) {
-			_state->isRunning = false;
-			std::cout << "YOU WIN" << std::endl;
-		}
-	}
-
-	if (_state->config.mode != GameMode::SINGLE && _state->snake_B) {
-		Vec2	head_B = _state->snake_B->getSegments()[0];
-
-		if (head_B.x == foodPos.x && head_B.y == foodPos.y) {
+		if (head_A.x == foodPos.x && head_A.y == foodPos.y)
+		{
 			/* if (_state->audio)
 				_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
 				
-			_state->snake_B->grow();
-			_state->scoreB++;  // Increment score when food is eaten
+			_state->snake_A->grow();
+			_state->score++;  // Increment score when food is eaten
+			_foodTracker++;
 			
 			if (!_state->food->replaceInFreeSpace(_state)) {
 				_state->isRunning = false;
 				std::cout << "YOU WIN" << std::endl;
 			}
 		}
+
+		if (_state->config.mode != GameMode::SINGLE && _state->snake_B) {
+			Vec2	head_B = _state->snake_B->getSegments()[0];
+
+			if (head_B.x == foodPos.x && head_B.y == foodPos.y) {
+				/* if (_state->audio)
+					_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
+					
+				_state->snake_B->grow();
+				_state->scoreB++;  // Increment score when food is eaten
+				
+				if (!_state->food->replaceInFreeSpace(_state)) {
+					_state->isRunning = false;
+					std::cout << "YOU WIN" << std::endl;
+				}
+			}
+		}
 	}
-}
 
 // TODO: handle snake B collision with obstacles and growths
 bool GameController::checkGameOverCollision()
@@ -242,4 +248,38 @@ void GameController::clearInputBuffer() {
 
 void GameController::setAIController(SnakeAI *ai) {
 	aiController = ai;
+}
+
+void GameController::registerSnakePositions(CellType type) {
+	if (type != CellType::Snake_A && type != CellType::Snake_B) return;
+
+	auto& arena = *_state->arena;
+
+	if (type == CellType::Snake_A) {
+		auto& head = _state->snake_A->getHead();
+		arena.setCell(head.x, head.y, CellType::Snake_A);
+
+		if (!_state->snake_A->getIsGrowing()) {
+			const Vec2& lastTail = _state->snake_A->getLastTailPosition();
+			arena.clearCell(lastTail.x, lastTail.y);
+		}
+		else
+			_state->snake_A->setIsGrowing(false);
+
+		return;
+	}
+
+	if (_state->snake_B != nullptr && type == CellType::Snake_B) {
+		auto& head = _state->snake_B->getHead();
+		arena.setCell(head.x, head.y, CellType::Snake_B);
+
+		if (!_state->snake_B->getIsGrowing()) {
+			const Vec2& lastTail = _state->snake_B->getLastTailPosition();
+			arena.clearCell(lastTail.x, lastTail.y);
+		}
+		else
+			_state->snake_B->setIsGrowing(false);
+
+		return;
+	}
 }

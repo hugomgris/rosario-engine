@@ -57,6 +57,8 @@ void Snake::initializeAtRandomPosition(int width, int height) {
 			_segments[3] = { headPosition.x - 3, headPosition.y };
 			break;
 	}
+
+	std::cout << "head snake coords:" << _segments[0].x << "-" << _segments[0].y << std::endl;
 }
 
 Snake::Snake(const Snake &otherSnake, int width, int height) : _length(otherSnake._length), _maxLength(otherSnake._maxLength) {
@@ -149,7 +151,31 @@ int Snake::getLength() const { return _length; }
 
 const Vec2 *Snake::getSegments() const { return _segments; }
 
+const Vec2& Snake::getHead() const { return _segments[0]; }
+
+const Vec2& Snake::getLastTailPosition() const {
+	Vec2 currentTail = _segments[_length - 1];
+
+	switch (_direction) {
+		case Direction::Up:
+			return Vec2{currentTail.x, currentTail.y + 1};
+
+		case Direction::Down:
+			return Vec2{currentTail.x, currentTail.y - 1};
+
+		case Direction::Left:
+			return Vec2{currentTail.x + 1, currentTail.y};
+
+		case Direction::Right:
+			return Vec2{currentTail.x - 1, currentTail.y};
+	}
+}
+
 Direction Snake::getDirection() const { return _direction; }
+
+bool Snake::getIsGrowing() const { return _isGrowing; };
+
+void Snake::setIsGrowing(bool growing) { _isGrowing = growing; };
 
 Vec2 Snake::getNextHeadPosition() const {
 	Vec2 nextPos = _segments[0];
@@ -228,6 +254,7 @@ void Snake::grow() {
 	}
 	_segments[_length] = Vec2{ _segments[_length - 1].x, _segments[_length - 1].y };
 	_length++;
+	_isGrowing = true;
 }
 
 void Snake::reset(int width, int height) {

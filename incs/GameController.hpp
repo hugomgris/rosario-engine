@@ -44,4 +44,6 @@ class GameController {
 
 		void checkHeadFoodCollision();
 		bool checkGameOverCollision();
+
+		void registerSnakePositions(CellType type);
 };

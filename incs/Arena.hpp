@@ -8,7 +8,8 @@ enum class CellType {
 	Empty,
 	Wall,
 	Obstacle,
-	Snake,
+	Snake_A,
+	Snake_B,
 	Food
 };
 
@@ -33,6 +34,7 @@ class Arena {
 		~Arena() = default;
 
 		// Grid manipulation (uses game coordinates: 0 to width-1, 0 to height-1)
+		std::vector<std::vector<CellType>> getGrid() const;
 		void setCell(int x, int y, CellType type);
 		CellType getCell(int x, int y) const;
 		bool isWalkable(int x, int y) const;

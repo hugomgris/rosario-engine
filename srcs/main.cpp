@@ -46,7 +46,8 @@ int main(int argc, char **argv) {
 	int width = std::stoi(argv[1]);
 	int height = std::stoi(argv[2]);
 
-	if (width < 16 || height < 16 || width > 41 || height > 41)
+	// right now, 58x32 is the size of the full 1920x1080 screen
+	if (width < 16 || height < 16 || width > 58 || height > 32)
 	{
 		std::cerr << "Minimal arena width and height values are 16 units! Try running again with those or higher values!" << std::endl;
 		return 1;
@@ -81,6 +82,7 @@ int main(int argc, char **argv) {
 	// SYSTEMS
 	GameController gameController(&state);
 	gameController.setAIController(nullptr);
+	gameController.registerSnakePositions(CellType::Snake_A);
 
 	Renderer renderer;
 	renderer.init(width, height);
