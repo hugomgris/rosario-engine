@@ -326,7 +326,7 @@ void MenuSystem::startGame() {
 	
 	// Create new AI if needed
 	if (state.config.mode == GameMode::AI) {
-		state.aiController = std::make_unique<SnakeAI>(AIConfig::easy());
+		state.aiController = std::make_unique<SnakeAI>(AIConfig::hard());
 		gameController.setAIController(state.aiController.get()); 
 	}
 	
@@ -370,6 +370,7 @@ void MenuSystem::restartGame() {
 	state.isPaused = false;
 	state.timing.accumulator = 0.0;
 	gameController.clearInputBuffer();
+	gameController.resetFoodTracker();
 	state.arena->clearArena();
 	state.currentState = GameStateType::Menu;
 

@@ -22,7 +22,36 @@ Food &Food::operator=(const Food & other)
 	return *this;
 }
 
-bool Food::replaceInFreeSpace(GameState *gameState)
+bool Food::replaceInFreeSpace(GameState *gameState) {
+	Vector2 originalPosition = gameState->arena->getFoodPosition();
+
+	const std::vector<Vec2>& availableCells = gameState->arena->getAvailableCells();
+
+	if (availableCells.empty())
+	{
+		std::cout << "No available cells! aka you Won, bb" << std::endl;
+		return false;
+	}
+
+	int randomIndex = Utils::getRandomInt(availableCells.size() - 1);
+	_position = availableCells[randomIndex];
+	_foodChar = Utils::getFoodChar(Utils::getRandomInt(5));
+	
+	//DEBUG
+	std::cout << "new food pos:" << _position.x << "-" << _position.y << " which has type:" << static_cast<int>(gameState->arena->getGrid()[_position.x][_position.y]) << std::endl;
+
+	// update arena food tracking
+	// Only clear if there was a valid previous position
+	if (originalPosition.x >= 0 && originalPosition.y >= 0) {
+		gameState->arena->clearCell(originalPosition.x, originalPosition.y);
+	}
+	gameState->arena->setFoodCell(_position.x, _position.y);
+	
+
+	return true; 
+}
+
+/* bool Food::replaceInFreeSpace(GameState *gameState)
 {
 	Vector2 originalPosition = gameState->arena->getFoodPosition();
 	
@@ -93,7 +122,7 @@ bool Food::replaceInFreeSpace(GameState *gameState)
 	
 
 	return true;
-}
+} */
 
 Vec2 Food::getPosition() const { return _position; }
 

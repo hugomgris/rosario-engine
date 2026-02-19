@@ -11,7 +11,8 @@ bool GridHelper::isWalkable(const GameState& state, Vec2 pos,
 	int y = pos.y;
 
 	// Check arena walls (includes bounds checking)
-	if (state.arena && state.arena->getCell(x, y) == CellType::Wall) {
+	if (state.arena && state.arena->getCell(x, y) == CellType::Wall ||
+			state.arena && state.arena->getCell(x, y) == CellType::Obstacle) {
 		return false;
 	}
 

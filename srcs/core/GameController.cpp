@@ -22,25 +22,28 @@ void GameController::update()  {
 	
 	// Safe to move
 	_state->snake_A->move();
+	updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
 	if (_state->config.mode == GameMode::MULTI && _state->snake_B)
 	{
 		_state->snake_B->move();
-		registerSnakePositions(CellType::Snake_A);
+		updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
 	}
-
 	if (_state->config.mode == GameMode::AI && _state->snake_B) {
 		_state->snake_B->move();
-		registerSnakePositions(CellType::Snake_B);
+		updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
 	}
 	
 	checkHeadFoodCollision();
 
-	// DEBUG AND TEST
-	if (_foodTracker > 0 && _foodTracker % 3 == 0) {
-		_state->arena->spawnObstacle(10, 10, 5, 5);	
-	} else if (_foodTracker > 0 && _foodTracker % 5 == 0) {
+	/* // DEBUG AND TEST
+	if (_foodTracker >= 5 && _foodTracker < 10) {
+		//_state->arena->spawnObstacle(10, 10, 5, 5);	
+		_state->arena->transformWallWithPreset(WallPreset::InterLock1); 
+	} else if (_foodTracker >= 10) {
 		_state->arena->clearArena();
-	}
+		_foodTracker = 0;
+	} */
+
 }
 
 void GameController::bufferInput(Input input) {
@@ -130,6 +133,15 @@ void GameController::processNextInput() {
 			_state->snake_A->grow();
 			_state->score++;  // Increment score when food is eaten
 			_foodTracker++;
+
+			// TODO: properly write the preset based wall transformations
+			if (_foodTracker >= 5 && _foodTracker < 10) {
+				//_state->arena->spawnObstacle(10, 10, 5, 5);	
+				_state->arena->transformWallWithPreset(WallPreset::InterLock1); 
+			} else if (_foodTracker >= 10) {
+				_state->arena->clearArena();
+				_foodTracker = 0;
+			}
 			
 			if (!_state->food->replaceInFreeSpace(_state)) {
 				_state->isRunning = false;
@@ -250,36 +262,11 @@ void GameController::setAIController(SnakeAI *ai) {
 	aiController = ai;
 }
 
-void GameController::registerSnakePositions(CellType type) {
-	if (type != CellType::Snake_A && type != CellType::Snake_B) return;
-
+void GameController::updateSnakeInArena(Snake& snake, CellType type) {
 	auto& arena = *_state->arena;
-
-	if (type == CellType::Snake_A) {
-		auto& head = _state->snake_A->getHead();
-		arena.setCell(head.x, head.y, CellType::Snake_A);
-
-		if (!_state->snake_A->getIsGrowing()) {
-			const Vec2& lastTail = _state->snake_A->getLastTailPosition();
-			arena.clearCell(lastTail.x, lastTail.y);
-		}
-		else
-			_state->snake_A->setIsGrowing(false);
-
-		return;
-	}
-
-	if (_state->snake_B != nullptr && type == CellType::Snake_B) {
-		auto& head = _state->snake_B->getHead();
-		arena.setCell(head.x, head.y, CellType::Snake_B);
-
-		if (!_state->snake_B->getIsGrowing()) {
-			const Vec2& lastTail = _state->snake_B->getLastTailPosition();
-			arena.clearCell(lastTail.x, lastTail.y);
-		}
-		else
-			_state->snake_B->setIsGrowing(false);
-
-		return;
+	arena.setCell(snake.getHead().x, snake.getHead().y, type);
+	if (snake.didRemoveTail()) {
+		Vec2 tail = snake.getDroppedTail();
+		arena.clearCell(tail.x, tail.y);
 	}
 }

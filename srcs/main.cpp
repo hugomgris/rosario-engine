@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 	// SYSTEMS
 	GameController gameController(&state);
 	gameController.setAIController(nullptr);
-	gameController.registerSnakePositions(CellType::Snake_A);
+	gameController.updateSnakeInArena(*state.snake_A, CellType::Snake_A);
 
 	Renderer renderer;
 	renderer.init(width, height);

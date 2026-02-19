@@ -153,50 +153,8 @@ const Vec2 *Snake::getSegments() const { return _segments; }
 
 const Vec2& Snake::getHead() const { return _segments[0]; }
 
-const Vec2& Snake::getLastTailPosition() const {
-	Vec2 currentTail = _segments[_length - 1];
-
-	switch (_direction) {
-		case Direction::Up:
-			return Vec2{currentTail.x, currentTail.y + 1};
-
-		case Direction::Down:
-			return Vec2{currentTail.x, currentTail.y - 1};
-
-		case Direction::Left:
-			return Vec2{currentTail.x + 1, currentTail.y};
-
-		case Direction::Right:
-			return Vec2{currentTail.x - 1, currentTail.y};
-	}
-}
-
-Direction Snake::getDirection() const { return _direction; }
-
-bool Snake::getIsGrowing() const { return _isGrowing; };
-
-void Snake::setIsGrowing(bool growing) { _isGrowing = growing; };
-
-Vec2 Snake::getNextHeadPosition() const {
-	Vec2 nextPos = _segments[0];
-	
-	switch (_direction) {
-		case Direction::Left:
-			nextPos.x--;
-			break;
-		case Direction::Right:
-			nextPos.x++;
-			break;
-		case Direction::Up:
-			nextPos.y--;
-			break;
-		case Direction::Down:
-			nextPos.y++;
-			break;
-	}
-	
-	return nextPos;
-}
+bool Snake::didRemoveTail() const { return _didRemoveTail; }
+Vec2 Snake::getDroppedTail() const { return _lastDroppedTail; }
 
 void Snake::move(){
 	auto head = _segments[0];
@@ -233,6 +191,15 @@ void Snake::move(){
 		newPos.y = previousPositions[i - 1].y;
 		_segments[i] = newPos;
 	}
+
+	// After moving, handle tail removal
+	if (!_isGrowing) {
+		_didRemoveTail = true;
+		_lastDroppedTail = previousPositions[_length - 1];
+	} else {
+		_didRemoveTail = false;
+	}
+	_isGrowing = false;
 }
 
 void Snake::changeDirection(Direction dir) { 
@@ -264,4 +231,23 @@ void Snake::reset(int width, int height) {
 void Snake::resetAsMirrored(const Snake& otherSnake, int width, int height) {
 	initializeAsMirrored(otherSnake, width, height);
 }
-	
+
+Vec2 Snake::getNextHeadPosition() const {
+	Vec2 nextPos = _segments[0];
+	switch (_direction) {
+		case Direction::Left:
+			nextPos.x--;
+			break;
+		case Direction::Right:
+			nextPos.x++;
+			break;
+		case Direction::Up:
+			nextPos.y--;
+			break;
+		case Direction::Down:
+			nextPos.y++;
+			break;
+	}
+	return nextPos;
+}
+

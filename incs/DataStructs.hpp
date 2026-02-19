@@ -79,6 +79,7 @@ struct AIConfig {
 	// Behavior
 	float randomMoveChance;	// 0.0 - 1.0 (for easy mode)
 	float aggressiveness;	// 0.0 = cautious, 1.0 = greedy
+	bool hasSurvivalMode;
 	
 	static AIConfig easy();
 	static AIConfig medium();

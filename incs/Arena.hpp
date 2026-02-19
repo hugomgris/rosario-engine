@@ -13,11 +13,8 @@ enum class CellType {
 	Food
 };
 
-enum class GrowthDirection {
-	UP,
-	DOWN,
-	LEFT,
-	RIGHT
+enum class WallPreset {
+	InterLock1
 };
 
 class Arena {
@@ -40,9 +37,11 @@ class Arena {
 		bool isWalkable(int x, int y) const;
 		void setFoodCell(int x, int y);
 		Vector2 getFoodPosition() const;
+		const std::vector<Vec2> getAvailableCells() const;
 
 		// obstacle management
 		void spawnObstacle(int x, int y, int width, int height);
+		void transformWallWithPreset(WallPreset preset);
 		void growWall(int x, int y, int width, int height);
 		void clearCell(int x, int y);
 		void clearArena();

@@ -38,6 +38,7 @@ class GameController {
 
 		GameState& getState() const { return *_state; }
 		void setAIController(SnakeAI *ai);
+		void resetFoodTracker() { _foodTracker = 0; };
 
 		void bufferInput(Input input);
 		void clearInputBuffer();
@@ -45,5 +46,5 @@ class GameController {
 		void checkHeadFoodCollision();
 		bool checkGameOverCollision();
 
-		void registerSnakePositions(CellType type);
+		void updateSnakeInArena(Snake& snake, CellType type);
 };

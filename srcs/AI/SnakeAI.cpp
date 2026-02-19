@@ -161,10 +161,12 @@ Input SnakeAI::decideNextMove(const GameState& state) {
 		return foodMove;
 	}
 	
-	// 2 - If can't get food safely, go into survival mode
-	Input survivalMove = this->survivalMode(state);
-	if (survivalMove != Input::None) {
-		return survivalMove;
+	if (config.hasSurvivalMode) {
+		// 2 - If can't get food safely, go into survival mode
+		Input survivalMove = this->survivalMode(state);
+		if (survivalMove != Input::None) {
+			return survivalMove;
+		}
 	}
 	
 	// 3 - just D O N T   D I E

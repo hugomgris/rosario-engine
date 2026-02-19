@@ -161,40 +161,40 @@ std::vector<Vector2> AnimationSystem::createRectangularShape(int left, int top, 
 
 // inset polygon calculation
 std::vector<Vector2> AnimationSystem::calculateInsetShape(const std::vector<Vector2>& outerShape,
-                                                           const Vector2& center,
-                                                           float insetRatio,
-                                                           float maxInsetPixels) const {
-    if (outerShape.empty()) return {};
+														const Vector2& center,
+														float insetRatio,
+														float maxInsetPixels) const {
+	if (outerShape.empty()) return {};
 
-    // Find the average distance from center to outline points
-    // This gives us a stable reference to convert pixel inset → scale factor
-    float avgDist = 0.0f;
-    for (const Vector2& point : outerShape) {
-        float dx = point.x - center.x;
-        float dy = point.y - center.y;
-        avgDist += std::sqrt(dx * dx + dy * dy);
-    }
-    avgDist /= static_cast<float>(outerShape.size());
+	// Find the average distance from center to outline points
+	// This gives us a stable reference to convert pixel inset → scale factor
+	float avgDist = 0.0f;
+	for (const Vector2& point : outerShape) {
+		float dx = point.x - center.x;
+		float dy = point.y - center.y;
+		avgDist += std::sqrt(dx * dx + dy * dy);
+	}
+	avgDist /= static_cast<float>(outerShape.size());
 
-    if (avgDist < 0.001f) return outerShape;
+	if (avgDist < 0.001f) return outerShape;
 
-    // minScale: how far in (as a ratio of avgDist) the inset is allowed to go
-    float minScale = std::max(0.0f, (avgDist - maxInsetPixels) / avgDist);
+	// minScale: how far in (as a ratio of avgDist) the inset is allowed to go
+	float minScale = std::max(0.0f, (avgDist - maxInsetPixels) / avgDist);
 
-    // Lerp between minScale (spawn) and 1.0 (at outline) using the same scale for ALL points
-    float scale = minScale + (1.0f - minScale) * (1.0f - insetRatio);
+	// Lerp between minScale (spawn) and 1.0 (at outline) using the same scale for ALL points
+	float scale = minScale + (1.0f - minScale) * (1.0f - insetRatio);
 
-    std::vector<Vector2> insetShape;
-    insetShape.reserve(outerShape.size());
+	std::vector<Vector2> insetShape;
+	insetShape.reserve(outerShape.size());
 
-    for (const Vector2& point : outerShape) {
-        float dx = point.x - center.x;
-        float dy = point.y - center.y;
-        insetShape.push_back({
-            center.x + dx * scale,
-            center.y + dy * scale
-        });
-    }
+	for (const Vector2& point : outerShape) {
+		float dx = point.x - center.x;
+		float dy = point.y - center.y;
+		insetShape.push_back({
+			center.x + dx * scale,
+			center.y + dy * scale
+		});
+	}
 
-    return insetShape;
+	return insetShape;
 }

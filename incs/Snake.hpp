@@ -17,6 +17,8 @@ class Snake {
 		Direction	_direction;
 		bool		_isDead = false;
 		bool		_isGrowing = false;
+		bool		_didRemoveTail = false;
+		Vec2		_lastDroppedTail;
 
 
 	public:
@@ -36,11 +38,10 @@ class Snake {
 		int getLength() const;
 		const Vec2* getSegments() const;
 		const Vec2& getHead() const;
-		const Vec2& getLastTailPosition() const;
 		Direction getDirection() const;  //for testing
 		Vec2 getNextHeadPosition() const;  // Predict next position without moving
-		bool getIsGrowing() const;
-		void setIsGrowing(bool growing);
+		bool didRemoveTail() const;
+		Vec2 getDroppedTail() const;
 		
 		void move();
 		void changeDirection(Direction dir);
