@@ -2,12 +2,14 @@
 #include "../../incs/SnakeAI.hpp"
 #include "../../incs/Pathfinder.hpp"
 #include "../../incs/FloodFill.hpp"
+#include "../../incs/Arena.hpp"
 #include "../../incs/Snake.hpp"
 #include "../../incs/DataStructs.hpp"
 #include "../fixtures/TestHelpers.hpp"
 
 class AIIntegrationTest : public ::testing::Test {
 protected:
+    std::unique_ptr<Arena> arena;
     std::unique_ptr<Snake> snakeA;
     std::unique_ptr<Snake> snakeB;
     std::unique_ptr<Food> food;
@@ -18,13 +20,14 @@ protected:
     std::unique_ptr<SnakeAI> aiHard;
     
     void SetUp() override {
+        arena = std::make_unique<Arena>(20, 20, 32);
         snakeA = std::make_unique<Snake>(20, 20);
         snakeB = std::make_unique<Snake>(Snake(*snakeA, 20, 20));  // Opposite side
         food = std::make_unique<Food>(Vec2{10, 10}, 20, 20);
         config = std::make_unique<GameConfig>(GameConfig{GameMode::AI});
         state = std::make_unique<GameState>(GameState{
             20, 20,
-            snakeA.get(), snakeB.get(),
+            arena.get(), snakeA.get(), snakeB.get(),
             food.get(),
             false, true, false,
             GameStateType::Playing,

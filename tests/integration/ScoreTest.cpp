@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "../../incs/Arena.hpp"
 #include "../../incs/Snake.hpp"
 #include "../../incs/DataStructs.hpp"
 #include "../fixtures/TestHelpers.hpp"
@@ -6,6 +7,7 @@
 
 class ScoreTest : public ::testing::Test {
 	protected:
+		std::unique_ptr<Arena> arena;
 		std::unique_ptr<Snake> snake;
 		std::unique_ptr<Food> food;
 		std::unique_ptr<GameConfig> config;
@@ -13,12 +15,13 @@ class ScoreTest : public ::testing::Test {
 		std::unique_ptr<GameController> manager;
 		
 		void SetUp() override {
+			arena = std::make_unique<Arena>(20, 20, 32);
 			snake = std::make_unique<Snake>(20, 20);
 			food = std::make_unique<Food>(Vec2{10, 10}, 20, 20);
 			config = std::make_unique<GameConfig>(GameConfig{GameMode::SINGLE});
 			state = std::make_unique<GameState>(GameState{
 				20, 20,
-				snake.get(), nullptr,
+				arena.get(), snake.get(), nullptr,
 				food.get(),
 				false, true, false,
 				GameStateType::Playing,

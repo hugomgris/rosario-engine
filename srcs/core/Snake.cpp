@@ -153,6 +153,8 @@ const Vec2 *Snake::getSegments() const { return _segments; }
 
 const Vec2& Snake::getHead() const { return _segments[0]; }
 
+Direction Snake::getDirection() const { return _direction; }
+
 bool Snake::didRemoveTail() const { return _didRemoveTail; }
 Vec2 Snake::getDroppedTail() const { return _lastDroppedTail; }
 
