@@ -235,6 +235,96 @@ std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
 	return outline;
 }
 
+std::vector<std::vector<Vector2>> Arena::getAllOutlines(int offsetX, int offsetY) {
+    struct IVec2 {
+        int x, y;
+        bool operator<(const IVec2& o) const { return x < o.x || (x == o.x && y < o.y); }
+        bool operator==(const IVec2& o) const { return x == o.x && y == o.y; }
+    };
+
+    auto isWall = [&](int c, int r) -> bool {
+        if (r < 0 || r >= gridHeight || c < 0 || c >= gridWidth) return true;
+        return grid[r][c] != CellType::Empty &&
+               grid[r][c] != CellType::Food  &&
+               grid[r][c] != CellType::Snake_A &&
+               grid[r][c] != CellType::Snake_B;
+    };
+
+    std::map<IVec2, IVec2> next;
+    std::set<IVec2> cancelled;
+
+    auto addEdge = [&](IVec2 a, IVec2 b) {
+        if (cancelled.count(a)) return;
+        if (next.count(a)) {
+            next.erase(a);
+            cancelled.insert(a);
+        } else {
+            next[a] = b;
+        }
+    };
+
+    for (int r = 0; r < gridHeight; r++) {
+        for (int c = 0; c < gridWidth; c++) {
+            if (isWall(c, r)) continue;
+            if (isWall(c,   r-1)) addEdge({c,   r  }, {c+1, r  });
+            if (isWall(c+1, r  )) addEdge({c+1, r  }, {c+1, r+1});
+            if (isWall(c,   r+1)) addEdge({c+1, r+1}, {c,   r+1});
+            if (isWall(c-1, r  )) addEdge({c,   r+1}, {c,   r  });
+        }
+    }
+
+    std::vector<std::vector<Vector2>> allOutlines;
+
+    // Keep extracting loops until the edge map is empty
+    while (!next.empty()) {
+		IVec2 start = next.begin()->first;
+		for (auto& kv : next)
+			if (kv.first < start) start = kv.first;
+
+		// --- Walk once to collect corners ---
+		std::vector<Vector2> outline;
+		std::vector<IVec2> loopNodes;   // track every node in this loop
+		IVec2 prev = start;
+		IVec2 cur  = next[start];
+		loopNodes.push_back(start);
+		int limit = (int)next.size() + 2;
+
+		while (!(cur == start) && --limit > 0) {
+			IVec2 nxt = next[cur];
+			int dx1 = cur.x - prev.x, dy1 = cur.y - prev.y;
+			int dx2 = nxt.x - cur.x,  dy2 = nxt.y - cur.y;
+			if (dx1 != dx2 || dy1 != dy2) {
+				outline.push_back({
+					static_cast<float>(offsetX + cur.x * squareSize),
+					static_cast<float>(offsetY + cur.y * squareSize)
+				});
+			}
+			loopNodes.push_back(cur);
+			prev = cur;
+			cur  = nxt;
+		}
+		// Check start corner
+		if (!outline.empty()) {
+			int dx1 = cur.x - prev.x,   dy1 = cur.y - prev.y;
+			int dx2 = start.x - cur.x,  dy2 = start.y - cur.y;
+			if (dx1 != dx2 || dy1 != dy2)
+				outline.push_back({
+					static_cast<float>(offsetX + start.x * squareSize),
+					static_cast<float>(offsetY + start.y * squareSize)
+				});
+		}
+
+		if (!outline.empty())
+			allOutlines.push_back(outline);
+
+		// --- Erase every node that belonged to this loop ---
+		for (const IVec2& node : loopNodes)
+			next.erase(node);
+	}
+
+    return allOutlines;
+}
+
 void Arena::transformArenaWithPreset(WallPreset preset) {
 	clearArena();
 
@@ -245,6 +335,14 @@ void Arena::transformArenaWithPreset(WallPreset preset) {
 
 		case WallPreset::Spiral1:
 			ArenaPresets::applySpiral1(*this);
+			break;
+
+		case WallPreset::Columns1:
+			ArenaPresets::applyColumns1(*this);
+			break;
+
+		case WallPreset::Columns2:
+			ArenaPresets::applyColumns2(*this);
 			break;
 
 		default:

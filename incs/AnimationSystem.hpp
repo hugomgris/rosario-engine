@@ -49,7 +49,8 @@ class AnimationSystem {
 	private:
 		GameState*										state;
 		std::vector<TunnelLine>                         tunnelLines;
-		std::vector<Vector2>							tunnelLineShape;
+		std::vector<Vector2>							basicTunnelLine;
+		std::vector<std::vector<Vector2>>               tunnelLineShapes;
 		std::chrono::high_resolution_clock::time_point  lastTunnelSpawn;
 		TunnelConfig                                    currentTunnelConfig;
 		ScreenShakeConfig                               shakeConfig;

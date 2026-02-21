@@ -15,7 +15,9 @@ enum class CellType {
 
 enum class WallPreset {
 	InterLock1,
-	Spiral1
+	Spiral1,
+	Columns1,
+	Columns2
 };
 
 class Arena {
@@ -49,6 +51,7 @@ class Arena {
 
 		// outline extraction for tunnel lines
 		std::vector<Vector2> getArenaOutline(int offsetX, int offsetY);
+		std::vector<std::vector<Vector2>> getAllOutlines(int offsetX, int offsetY);
 
 		// rendering
 		void render(const Renderer& renderer) const;

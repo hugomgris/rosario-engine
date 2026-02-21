@@ -100,33 +100,35 @@ void AnimationSystem::renderTunnelEffect() {
 	};
 
 	// Define outer shape (end positions)
-		tunnelLineShape = createRectangularShape(
+		basicTunnelLine = createRectangularShape(
 		borderThickness, borderThickness,
 		screenWidth - borderThickness, screenHeight - borderThickness
 	);
 
 	for (const auto& line : tunnelLines) {
-		renderTunnelLine(line, tunnelLineShape, center, contentInset);
+		renderTunnelLine(line, basicTunnelLine, center, contentInset);
 	}
 }
 
-void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop, 
-												int borderRight, int borderBottom) {
-	if (!tunnelEffectEnabled || tunnelLines.empty()) return;
+void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop,
+                                                int borderRight, int borderBottom) {
+    if (!tunnelEffectEnabled || tunnelLines.empty()) return;
 
-	int contentInset = currentTunnelConfig.contentInset;
+    tunnelLineShapes = state->arena->getAllOutlines(borderLeft, borderTop);
 
-	// Calculate center of custom area
-	Vector2 center = {
-		static_cast<float>((borderLeft + borderRight) / 2),
-		static_cast<float>((borderTop + borderBottom) / 2)
-	};
+    // Single fugue point for ALL shapes — the visual center of the arena
+    Vector2 arenaCenter = {
+        static_cast<float>(borderLeft + borderRight) / 2.0f,
+        static_cast<float>(borderTop  + borderBottom) / 2.0f
+    };
 
-	tunnelLineShape = state->arena->getArenaOutline(borderLeft, borderTop);
-
-	for (const auto& line : tunnelLines) {
-		renderTunnelLine(line, tunnelLineShape, center, contentInset);
-	}
+    for (const auto& line : tunnelLines) {
+        for (const auto& shape : tunnelLineShapes) {
+            if (shape.empty()) continue;
+            renderTunnelLine(line, shape, arenaCenter,
+                             static_cast<float>(currentTunnelConfig.contentInset));
+        }
+    }
 }
 
 void AnimationSystem::triggerScreenShake(const ScreenShakeConfig &config) {
@@ -161,40 +163,35 @@ std::vector<Vector2> AnimationSystem::createRectangularShape(int left, int top, 
 
 // inset polygon calculation
 std::vector<Vector2> AnimationSystem::calculateInsetShape(const std::vector<Vector2>& outerShape,
-														const Vector2& center,
-														float insetRatio,
-														float maxInsetPixels) const {
-	if (outerShape.empty()) return {};
+                                                           const Vector2& center,
+                                                           float insetRatio,
+                                                           float maxInsetPixels) const {
+    if (outerShape.empty()) return {};
 
-	// Find the average distance from center to outline points
-	// This gives us a stable reference to convert pixel inset → scale factor
-	float avgDist = 0.0f;
-	for (const Vector2& point : outerShape) {
-		float dx = point.x - center.x;
-		float dy = point.y - center.y;
-		avgDist += std::sqrt(dx * dx + dy * dy);
-	}
-	avgDist /= static_cast<float>(outerShape.size());
+    // Use a fixed reference distance — the arena half-diagonal —
+    // so that ALL shapes (border, spiral arms, islands) use the same
+    // scale factor and appear as one coherent depth layer.
+    float refDist = std::sqrt(
+        (center.x * 2) * (center.x * 2) +
+        (center.y * 2) * (center.y * 2)
+    ) / 2.0f;
 
-	if (avgDist < 0.001f) return outerShape;
+    if (refDist < 0.001f) return outerShape;
 
-	// minScale: how far in (as a ratio of avgDist) the inset is allowed to go
-	float minScale = std::max(0.0f, (avgDist - maxInsetPixels) / avgDist);
+    float minScale = std::max(0.0f, (refDist - maxInsetPixels) / refDist);
+    float scale = minScale + (1.0f - minScale) * (1.0f - insetRatio);
 
-	// Lerp between minScale (spawn) and 1.0 (at outline) using the same scale for ALL points
-	float scale = minScale + (1.0f - minScale) * (1.0f - insetRatio);
+    std::vector<Vector2> insetShape;
+    insetShape.reserve(outerShape.size());
 
-	std::vector<Vector2> insetShape;
-	insetShape.reserve(outerShape.size());
+    for (const Vector2& point : outerShape) {
+        float dx = point.x - center.x;
+        float dy = point.y - center.y;
+        insetShape.push_back({
+            center.x + dx * scale,
+            center.y + dy * scale
+        });
+    }
 
-	for (const Vector2& point : outerShape) {
-		float dx = point.x - center.x;
-		float dy = point.y - center.y;
-		insetShape.push_back({
-			center.x + dx * scale,
-			center.y + dy * scale
-		});
-	}
-
-	return insetShape;
+    return insetShape;
 }

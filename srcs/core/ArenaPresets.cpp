@@ -41,12 +41,12 @@ void ArenaPresets::applySpiral1(Arena& arena) {
 	auto hline = [&](int x0, int x1, int yy) {
 		if (x0 > x1) std::swap(x0, x1);
 		for (int xx = x0; xx <= x1; ++xx)
-			arena.setCell(xx, yy, CellType::Wall);
+			arena.setCell(xx, yy, CellType::Obstacle);
 	};
 	auto vline = [&](int xx, int y0, int y1) {
 		if (y0 > y1) std::swap(y0, y1);
 		for (int yy = y0; yy <= y1; ++yy)
-			arena.setCell(xx, yy, CellType::Wall);
+			arena.setCell(xx, yy, CellType::Obstacle);
 	};
 
 	enum Dir { LEFT, DOWN, RIGHT, UP };
@@ -94,6 +94,50 @@ void ArenaPresets::applySpiral1(Arena& arena) {
 				dir = LEFT;
 				break;
 			}
+		}
+	}
+}
+
+void ArenaPresets::applyColumns1(Arena& arena) {
+	auto grid = arena.getGrid();
+
+	int W = (int)grid[0].size() - 2;
+	int H = (int)grid.size()    - 2;
+
+	for (int x = 3; x < W; x += 4) {
+		for (int y = 3; y < H; y += 4) {
+			arena.setCell(x, y, CellType::Obstacle);
+		}
+	}
+}
+
+void ArenaPresets::applyColumns2(Arena& arena) {
+	auto grid = arena.getGrid();
+
+	int W = (int)grid[0].size() - 2;
+	int H = (int)grid.size()    - 2;
+
+	for (int x = 3; x < W; x += 7) {
+		for (int y = 3; y < H; y += 7) {
+			arena.setCell(x, y, CellType::Obstacle);
+			arena.setCell(x + 1, y, CellType::Obstacle);
+			arena.setCell(x + 2, y, CellType::Obstacle);
+			arena.setCell(x + 3, y, CellType::Obstacle);
+
+			arena.setCell(x, y + 1, CellType::Obstacle);
+			arena.setCell(x + 1, y + 1, CellType::Obstacle);
+			arena.setCell(x + 2, y + 1, CellType::Obstacle);
+			arena.setCell(x + 3, y + 1, CellType::Obstacle);
+
+			arena.setCell(x, y + 2, CellType::Obstacle);
+			arena.setCell(x + 1, y + 2, CellType::Obstacle);
+			arena.setCell(x + 2, y + 2, CellType::Obstacle);
+			arena.setCell(x + 3, y + 2, CellType::Obstacle);
+
+			arena.setCell(x, y + 3, CellType::Obstacle);
+			arena.setCell(x + 1, y + 3, CellType::Obstacle);
+			arena.setCell(x + 2, y + 3, CellType::Obstacle);
+			arena.setCell(x + 3, y + 3, CellType::Obstacle);
 		}
 	}
 }
