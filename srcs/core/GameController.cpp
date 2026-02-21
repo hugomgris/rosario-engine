@@ -134,7 +134,12 @@ void GameController::processNextInput() {
 			_state->score++;  // Increment score when food is eaten
 			_foodTracker++;
 
-			// TODO: properly write the preset based wall transformations
+			if (_foodTracker == 1) {
+				_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+			} else if (_foodTracker >= 10) {
+				_state->arena->clearArena();
+				_foodTracker = 0;
+			}
 			
 			if (!_state->food->replaceInFreeSpace(_state)) {
 				_state->isRunning = false;
@@ -152,19 +157,19 @@ void GameController::processNextInput() {
 				_state->snake_B->grow();
 				_state->scoreB++;  // Increment score when food is eaten
 				_foodTracker++;
+
+				if (_foodTracker == 1) {
+					_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+				} else if (_foodTracker >= 10) {
+					_state->arena->clearArena();
+					_foodTracker = 0;
+				}
 				
 				if (!_state->food->replaceInFreeSpace(_state)) {
 					_state->isRunning = false;
 					std::cout << "YOU WIN" << std::endl;
 				}
 			}
-		}
-
-		if (_foodTracker == 1) {
-			_state->arena->transformArenaWithPreset(WallPreset::Columns2);
-		} else if (_foodTracker >= 10) {
-			_state->arena->clearArena();
-			_foodTracker = 0;
 		}
 	}
 
