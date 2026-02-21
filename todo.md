@@ -1,4 +1,4 @@
 ## Todo list
 
 - have the spawning walls break the snake, not the other way around
-- fix tests
+- animation handling IN and OUT
