@@ -135,9 +135,9 @@ void GameController::processNextInput() {
 			_foodTracker++;
 
 			// TODO: properly write the preset based wall transformations
-			if (_foodTracker >= 5 && _foodTracker < 10) {
+			if (_foodTracker == 1 && _foodTracker < 10) {
 				//_state->arena->spawnObstacle(10, 10, 5, 5);	
-				_state->arena->transformWallWithPreset(WallPreset::InterLock1); 
+				_state->arena->transformArenaWithPreset(WallPreset::Spiral1); 
 			} else if (_foodTracker >= 10) {
 				_state->arena->clearArena();
 				_foodTracker = 0;

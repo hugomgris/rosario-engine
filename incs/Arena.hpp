@@ -14,7 +14,8 @@ enum class CellType {
 };
 
 enum class WallPreset {
-	InterLock1
+	InterLock1,
+	Spiral1
 };
 
 class Arena {
@@ -41,7 +42,7 @@ class Arena {
 
 		// obstacle management
 		void spawnObstacle(int x, int y, int width, int height);
-		void transformWallWithPreset(WallPreset preset);
+		void transformArenaWithPreset(WallPreset preset);
 		void growWall(int x, int y, int width, int height);
 		void clearCell(int x, int y);
 		void clearArena();

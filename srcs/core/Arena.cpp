@@ -1,4 +1,5 @@
 #include "../../incs/Arena.hpp"
+#include "../../incs/ArenaPresets.hpp"
 
 // NOTE:
 // grid is stored with a 1-cell thick WALL border on all sides.
@@ -234,31 +235,19 @@ std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
 	return outline;
 }
 
-void Arena::transformWallWithPreset(WallPreset preset) {
+void Arena::transformArenaWithPreset(WallPreset preset) {
 	clearArena();
 
 	switch (preset) {
 		case WallPreset::InterLock1:
-			// Left-side horizontal walls
-			for (int i = 0; i < 15; i++) {
-				setCell(i, 4, CellType::Wall);
-				setCell(i, 5, CellType::Wall);
+			ArenaPresets::applyInterlock1(*this);
+			break;
 
-				setCell(i, 14, CellType::Wall);
-				setCell(i, 15, CellType::Wall);
+		case WallPreset::Spiral1:
+			ArenaPresets::applySpiral1(*this);
+			break;
 
-				setCell(i, 24, CellType::Wall);
-				setCell(i, 25, CellType::Wall);
-			}
-
-			// Right-side horizontal walls
-			int right = gridWidth - 3;
-			for (int i = 0; i < 15; i++) {
-				setCell(right - i, 9, CellType::Wall);
-				setCell(right - i, 10, CellType::Wall);
-
-				setCell(right - i, 19, CellType::Wall);
-				setCell(right - i, 20, CellType::Wall);
-			}
+		default:
+			std::cout << "Unknown wall preset!" << std::endl;
 	}
 }

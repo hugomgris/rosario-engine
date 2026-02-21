@@ -24,6 +24,7 @@ MAIN_SRC        := main.cpp
 CORE_SRC        := core/GameController.cpp	\
 					core/InputManager.cpp	\
 					core/Arena.cpp			\
+					core/ArenaPresets.cpp	\
 					core/Snake.cpp			\
 					core/Food.cpp			\
 					core/Utils.cpp
