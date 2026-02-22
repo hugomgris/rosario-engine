@@ -73,15 +73,15 @@ Vector2 Arena::getFoodPosition() const {
 }
 
 const std::vector<Vec2> Arena::getAvailableCells() const {
-    std::vector<Vec2> freePos;
-    for (int y = 1; y < gridHeight - 1; y++) {
-        for (int x = 1; x < gridWidth - 1; x++) {
-            if (grid[y][x] == CellType::Empty) {
-                freePos.push_back(Vec2{x - 1, y - 1});
-            }
-        }
-    }
-    return freePos;
+	std::vector<Vec2> freePos;
+	for (int y = 1; y < gridHeight - 1; y++) {
+		for (int x = 1; x < gridWidth - 1; x++) {
+			if (grid[y][x] == CellType::Empty) {
+				freePos.push_back(Vec2{x - 1, y - 1});
+			}
+		}
+	}
+	return freePos;
 }
 
 //obstacle management
@@ -141,13 +141,30 @@ void Arena::clearArena() {
 }
 
 void Arena::render(const Renderer& renderer) const {
+	bool fading = (fadeTimer > 0.0f);
+	float eased = 0.0f;
+	if (fading) {
+		float p = getSpawnFadeProgress();   // 0→1 over fadeDuration
+		eased = p * p;                      // ease-in snap
+	}
+
 	for (int y = 0; y < gridHeight; y++) {
 		for (int x = 0; x < gridWidth; x++) {
 			if (grid[y][x] == CellType::Empty) continue;
-			if (grid[y][x] == CellType::Wall || grid[y][x] == CellType::Obstacle) {
-				// Arena grid coordinates directly match render coordinates
-				// No translation needed here
+
+			if (grid[y][x] == CellType::SpawningSolid) continue; // invisible during countdown
+
+			if (grid[y][x] == CellType::Wall) {
 				renderer.drawBorderBrick(x, y, wallColor);
+			}
+			else if (grid[y][x] == CellType::Obstacle) {
+				if (fading) {
+					Color faded = wallColor;
+					faded.a = static_cast<unsigned char>(eased * 255.0f);
+					renderer.drawBorderBrick(x, y, faded);
+				} else {
+					renderer.drawBorderBrick(x, y, wallColor);
+				}
 			}
 		}
 	}
@@ -236,47 +253,47 @@ std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
 }
 
 std::vector<std::vector<Vector2>> Arena::getAllOutlines(int offsetX, int offsetY) {
-    struct IVec2 {
-        int x, y;
-        bool operator<(const IVec2& o) const { return x < o.x || (x == o.x && y < o.y); }
-        bool operator==(const IVec2& o) const { return x == o.x && y == o.y; }
-    };
+	struct IVec2 {
+		int x, y;
+		bool operator<(const IVec2& o) const { return x < o.x || (x == o.x && y < o.y); }
+		bool operator==(const IVec2& o) const { return x == o.x && y == o.y; }
+	};
 
-    auto isWall = [&](int c, int r) -> bool {
-        if (r < 0 || r >= gridHeight || c < 0 || c >= gridWidth) return true;
-        return grid[r][c] != CellType::Empty &&
-               grid[r][c] != CellType::Food  &&
-               grid[r][c] != CellType::Snake_A &&
-               grid[r][c] != CellType::Snake_B;
-    };
+	auto isWall = [&](int c, int r) -> bool {
+		if (r < 0 || r >= gridHeight || c < 0 || c >= gridWidth) return true;
+		return grid[r][c] != CellType::Empty &&
+			grid[r][c] != CellType::Food  &&
+			grid[r][c] != CellType::Snake_A &&
+			grid[r][c] != CellType::Snake_B;
+	};
 
-    std::map<IVec2, IVec2> next;
-    std::set<IVec2> cancelled;
+	std::map<IVec2, IVec2> next;
+	std::set<IVec2> cancelled;
 
-    auto addEdge = [&](IVec2 a, IVec2 b) {
-        if (cancelled.count(a)) return;
-        if (next.count(a)) {
-            next.erase(a);
-            cancelled.insert(a);
-        } else {
-            next[a] = b;
-        }
-    };
+	auto addEdge = [&](IVec2 a, IVec2 b) {
+		if (cancelled.count(a)) return;
+		if (next.count(a)) {
+			next.erase(a);
+			cancelled.insert(a);
+		} else {
+			next[a] = b;
+		}
+	};
 
-    for (int r = 0; r < gridHeight; r++) {
-        for (int c = 0; c < gridWidth; c++) {
-            if (isWall(c, r)) continue;
-            if (isWall(c,   r-1)) addEdge({c,   r  }, {c+1, r  });
-            if (isWall(c+1, r  )) addEdge({c+1, r  }, {c+1, r+1});
-            if (isWall(c,   r+1)) addEdge({c+1, r+1}, {c,   r+1});
-            if (isWall(c-1, r  )) addEdge({c,   r+1}, {c,   r  });
-        }
-    }
+	for (int r = 0; r < gridHeight; r++) {
+		for (int c = 0; c < gridWidth; c++) {
+			if (isWall(c, r)) continue;
+			if (isWall(c,   r-1)) addEdge({c,   r  }, {c+1, r  });
+			if (isWall(c+1, r  )) addEdge({c+1, r  }, {c+1, r+1});
+			if (isWall(c,   r+1)) addEdge({c+1, r+1}, {c,   r+1});
+			if (isWall(c-1, r  )) addEdge({c,   r+1}, {c,   r  });
+		}
+	}
 
-    std::vector<std::vector<Vector2>> allOutlines;
+	std::vector<std::vector<Vector2>> allOutlines;
 
-    // Keep extracting loops until the edge map is empty
-    while (!next.empty()) {
+	// Keep extracting loops until the edge map is empty
+	while (!next.empty()) {
 		IVec2 start = next.begin()->first;
 		for (auto& kv : next)
 			if (kv.first < start) start = kv.first;
@@ -322,7 +339,7 @@ std::vector<std::vector<Vector2>> Arena::getAllOutlines(int offsetX, int offsetY
 			next.erase(node);
 	}
 
-    return allOutlines;
+	return allOutlines;
 }
 
 void Arena::transformArenaWithPreset(WallPreset preset) {
@@ -352,22 +369,37 @@ void Arena::transformArenaWithPreset(WallPreset preset) {
 
 // spawn management
 void Arena::tickSpawnTimer(float deltaTime) {
-	if (spawnTimer <= 0.0f) return;
+	// Phase 1: countdown to solidification
+	if (spawnTimer > 0.0f) {
+		spawnTimer -= deltaTime;
 
-	spawnTimer -= deltaTime;
+		if (spawnTimer <= 0.0f) {
+			// Solidify cells
+			for (int y = 1; y < gridHeight - 1; y++)
+				for (int x = 1; x < gridWidth - 1; x++)
+					if (grid[y][x] == CellType::SpawningSolid)
+						grid[y][x] = CellType::Obstacle;
 
-	if (spawnTimer <= 0.0f) {
-		// solidify!
-		for (int y = 1; y < gridHeight - 1; y++) {
-			for (int x = 1; x < gridWidth - 1; x++) {
-				if (grid[y][x] == CellType::SpawningSolid) {
-					grid[y][x] = CellType::Obstacle;
-				}
-			}
+			// Kick off the fade-in timer
+			fadeTimer = fadeDuration;
 		}
+		return;
 	}
+
+	// Phase 2: fade-in after solidification
+	if (fadeTimer > 0.0f)
+		fadeTimer -= deltaTime;
 }
 
 void Arena::beginSpawn(float solidifyDelay) {
 	spawnTimer = solidifyDelay;
+	spawnDuration = solidifyDelay;
 };
+
+float Arena::getSpawnFadeProgress() const {
+	if (fadeDuration <= 0.0f) return 1.0f;
+	if (fadeTimer <= 0.0f)    return 1.0f;   // fully opaque once done
+	// fadeTimer counts DOWN from fadeDuration to 0
+	// so progress goes 0.0 → 1.0
+	return 1.0f - (fadeTimer / fadeDuration);
+}
