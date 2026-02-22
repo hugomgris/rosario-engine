@@ -52,7 +52,7 @@ void AnimationSystem::updateTunnelEffect(float deltaTime) {
 	if (elapsed.count() >= currentTunnelConfig.spawnInterval) {
 		if (static_cast<int>(tunnelLines.size()) < currentTunnelConfig.maxLines) {
 			TunnelLine newLine;
-			// Points will be set during rendering based on context
+			newLine.epoch = currentEpoch;
 			tunnelLines.push_back(newLine);
 		}
 		lastTunnelSpawn = now;
@@ -111,24 +111,41 @@ void AnimationSystem::renderTunnelEffect() {
 }
 
 void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop,
-                                                int borderRight, int borderBottom) {
-    if (!tunnelEffectEnabled || tunnelLines.empty()) return;
+												int borderRight, int borderBottom) {
+	if (!tunnelEffectEnabled || tunnelLines.empty()) return;
 
-    tunnelLineShapes = state->arena->getAllOutlines(borderLeft, borderTop);
+	// Always refresh current shapes from arena
+	currentShapes = state->arena->getAllOutlines(borderLeft, borderTop);
+	tunnelLineShapes = currentShapes;  // keep member in sync for notifyArenaSpawning
 
-    // Single fugue point for ALL shapes — the visual center of the arena
-    Vector2 arenaCenter = {
-        static_cast<float>(borderLeft + borderRight) / 2.0f,
-        static_cast<float>(borderTop  + borderBottom) / 2.0f
-    };
+	Vector2 arenaCenter = {
+		static_cast<float>(borderLeft + borderRight) / 2.0f,
+		static_cast<float>(borderTop  + borderBottom) / 2.0f
+	};
 
-    for (const auto& line : tunnelLines) {
-        for (const auto& shape : tunnelLineShapes) {
-            if (shape.empty()) continue;
-            renderTunnelLine(line, shape, arenaCenter,
-                             static_cast<float>(currentTunnelConfig.contentInset));
-        }
-    }
+	float maxInset = static_cast<float>(currentTunnelConfig.contentInset);
+
+	for (const auto& line : tunnelLines) {
+		// Lines born before the spawn use the pre-spawn outlines,
+		// lines born after use the current (post-spawn) outlines
+		const auto& shapes = (line.epoch < currentEpoch) ? previousShapes : currentShapes;
+
+		for (const auto& shape : shapes) {
+			if (shape.empty()) continue;
+			renderTunnelLine(line, shape, arenaCenter, maxInset);
+		}
+	}
+}
+
+void AnimationSystem::notifyArenaSpawning() {
+	// snapshot the current outlines as previous
+	// new lines -> whatever getALlOutlines returns
+	previousShapes = currentShapes;
+	currentEpoch++;
+
+	for (auto& line : tunnelLines) {
+		line.epoch = currentEpoch - 1;
+	}
 }
 
 void AnimationSystem::triggerScreenShake(const ScreenShakeConfig &config) {

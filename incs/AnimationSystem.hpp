@@ -10,6 +10,7 @@
 struct TunnelLine {
 	float progress;        // 0 = at center, 1 = at edge
 	float age;
+	int epoch = 0;
 
 	std::vector<Vector2> points;
 	
@@ -78,6 +79,11 @@ class AnimationSystem {
 			return t < 0.5f ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
 		}
 
+		// tunnel line epoch helpers
+		int currentEpoch = 0;
+		std::vector<std::vector<Vector2>> previousShapes;
+		std::vector<std::vector<Vector2>> currentShapes;
+
 		// TRANSITION TO POINT BASED TUNNEL LINE - HELPERS
 		std::vector<Vector2> createRectangularShape(int left, int top, int right, int bottom) const;
 
@@ -110,6 +116,8 @@ class AnimationSystem {
 		const std::vector<TunnelLine>& getTunnelLines() const { return tunnelLines; }
 		const TunnelConfig& getTunnelConfig() const { return currentTunnelConfig; }
 		bool isTunnelEffectEnabled() const { return tunnelEffectEnabled; }
+
+		void notifyArenaSpawning();
 
 		// scren shake managers (unsued for now)
 		void triggerScreenShake(const ScreenShakeConfig &config);

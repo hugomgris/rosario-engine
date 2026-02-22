@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
 	gameController.setOnArenaChangeSpawnCallback([&animations, &arena]() {
+		animations.notifyArenaSpawning();
 		arena.beginSpawn(1.0f / animations.getAnimationSpeed());
 	});
 

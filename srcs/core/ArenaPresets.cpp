@@ -2,24 +2,24 @@
 
 void ArenaPresets::applyInterlock1(Arena& arena) {
 	for (int i = 0; i < 15; i++) {
-		arena.setCell(i, 4, CellType::Wall);
-		arena.setCell(i, 5, CellType::Wall);
+		arena.setCell(i, 4, CellType::SpawningSolid);
+		arena.setCell(i, 5, CellType::SpawningSolid);
 
-		arena.setCell(i, 14, CellType::Wall);
-		arena.setCell(i, 15, CellType::Wall);
+		arena.setCell(i, 14, CellType::SpawningSolid);
+		arena.setCell(i, 15, CellType::SpawningSolid);
 
-		arena.setCell(i, 24, CellType::Wall);
-		arena.setCell(i, 25, CellType::Wall);
+		arena.setCell(i, 24, CellType::SpawningSolid);
+		arena.setCell(i, 25, CellType::SpawningSolid);
 	}
 
 	// Right-side horizontal walls
 	int right = arena.getGrid().size() - 3;
 	for (int i = 0; i < 15; i++) {
-		arena.setCell(right - i, 9, CellType::Wall);
-		arena.setCell(right - i, 10, CellType::Wall);
+		arena.setCell(right - i, 9, CellType::SpawningSolid);
+		arena.setCell(right - i, 10, CellType::SpawningSolid);
 
-		arena.setCell(right - i, 19, CellType::Wall);
-		arena.setCell(right - i, 20, CellType::Wall);
+		arena.setCell(right - i, 19, CellType::SpawningSolid);
+		arena.setCell(right - i, 20, CellType::SpawningSolid);
 	}
 }
 
@@ -41,12 +41,12 @@ void ArenaPresets::applySpiral1(Arena& arena) {
 	auto hline = [&](int x0, int x1, int yy) {
 		if (x0 > x1) std::swap(x0, x1);
 		for (int xx = x0; xx <= x1; ++xx)
-			arena.setCell(xx, yy, CellType::Obstacle);
+			arena.setCell(xx, yy, CellType::SpawningSolid);
 	};
 	auto vline = [&](int xx, int y0, int y1) {
 		if (y0 > y1) std::swap(y0, y1);
 		for (int yy = y0; yy <= y1; ++yy)
-			arena.setCell(xx, yy, CellType::Obstacle);
+			arena.setCell(xx, yy, CellType::SpawningSolid);
 	};
 
 	enum Dir { LEFT, DOWN, RIGHT, UP };
@@ -106,7 +106,7 @@ void ArenaPresets::applyColumns1(Arena& arena) {
 
 	for (int x = 3; x < W; x += 4) {
 		for (int y = 3; y < H; y += 4) {
-			arena.setCell(x, y, CellType::Obstacle);
+			arena.setCell(x, y, CellType::SpawningSolid);
 		}
 	}
 }
