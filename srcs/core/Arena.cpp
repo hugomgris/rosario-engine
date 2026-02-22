@@ -349,3 +349,25 @@ void Arena::transformArenaWithPreset(WallPreset preset) {
 			std::cout << "Unknown wall preset!" << std::endl;
 	}
 }
+
+// spawn management
+void Arena::tickSpawnTimer(float deltaTime) {
+	if (spawnTimer <= 0.0f) return;
+
+	spawnTimer -= deltaTime;
+
+	if (spawnTimer <= 0.0f) {
+		// solidify!
+		for (int y = 1; y < gridHeight - 1; y++) {
+			for (int x = 1; x < gridWidth - 1; x++) {
+				if (grid[y][x] == CellType::SpawningSolid) {
+					grid[y][x] = CellType::Obstacle;
+				}
+			}
+		}
+	}
+}
+
+void Arena::beginSpawn(float solidifyDelay) {
+	spawnTimer = solidifyDelay;
+};

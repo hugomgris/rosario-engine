@@ -10,7 +10,8 @@ enum class CellType {
 	Obstacle,
 	Snake_A,
 	Snake_B,
-	Food
+	Food,
+	SpawningSolid
 };
 
 enum class WallPreset {
@@ -28,6 +29,8 @@ class Arena {
 		int squareSize;
 
 		Vector2 foodPosition;
+
+		float spawnTimer = 0.0f;
 
 	public:
 		Arena(int width, int height, int squareSize); // W and H are in amount-of-squares magnitude
@@ -55,4 +58,9 @@ class Arena {
 
 		// rendering
 		void render(const Renderer& renderer) const;
+
+		// spawn management
+		void tickSpawnTimer(float deltaTime);
+		bool hasSpawningCells() const { return spawnTimer > 0.0f; }
+		void beginSpawn(float solidifyDelay);
 };

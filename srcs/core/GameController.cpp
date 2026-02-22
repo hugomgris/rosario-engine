@@ -136,7 +136,8 @@ void GameController::processNextInput() {
 
 			if (_foodTracker == 1) {
 				_state->arena->transformArenaWithPreset(WallPreset::Columns2);
-			} else if (_foodTracker >= 10) {
+				onArenaChangeSpawnCallBack();
+			} else if (_foodTracker >= 5) {
 				_state->arena->clearArena();
 				_foodTracker = 0;
 			}
@@ -160,7 +161,8 @@ void GameController::processNextInput() {
 
 				if (_foodTracker == 1) {
 					_state->arena->transformArenaWithPreset(WallPreset::Columns2);
-				} else if (_foodTracker >= 10) {
+					onArenaChangeSpawnCallBack();
+				} else if (_foodTracker >= 5) {
 					_state->arena->clearArena();
 					_foodTracker = 0;
 				}

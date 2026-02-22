@@ -9,6 +9,7 @@
 #include <iostream>
 #include <chrono>
 #include <queue>
+#include <functional>
 
 class GameController {
 	private:
@@ -21,6 +22,8 @@ class GameController {
 		int aiThinkCounter;
 
 		int _foodTracker;
+
+		std::function<void()> onArenaChangeSpawnCallBack;
 
 		using time = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
@@ -47,4 +50,8 @@ class GameController {
 		bool checkGameOverCollision();
 
 		void updateSnakeInArena(Snake& snake, CellType type);
+
+		void setOnArenaChangeSpawnCallback(std::function<void()> callback) {
+			onArenaChangeSpawnCallBack = callback;
+		}
 };

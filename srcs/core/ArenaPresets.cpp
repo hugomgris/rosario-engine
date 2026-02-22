@@ -119,25 +119,25 @@ void ArenaPresets::applyColumns2(Arena& arena) {
 
 	for (int x = 3; x < W; x += 7) {
 		for (int y = 3; y < H; y += 7) {
-			arena.setCell(x, y, CellType::Obstacle);
-			arena.setCell(x + 1, y, CellType::Obstacle);
-			arena.setCell(x + 2, y, CellType::Obstacle);
-			arena.setCell(x + 3, y, CellType::Obstacle);
+			arena.setCell(x, y, CellType::SpawningSolid);
+			arena.setCell(x + 1, y, CellType::SpawningSolid);
+			arena.setCell(x + 2, y, CellType::SpawningSolid);
+			arena.setCell(x + 3, y, CellType::SpawningSolid);
 
-			arena.setCell(x, y + 1, CellType::Obstacle);
-			arena.setCell(x + 1, y + 1, CellType::Obstacle);
-			arena.setCell(x + 2, y + 1, CellType::Obstacle);
-			arena.setCell(x + 3, y + 1, CellType::Obstacle);
+			arena.setCell(x, y + 1, CellType::SpawningSolid);
+			arena.setCell(x + 1, y + 1, CellType::SpawningSolid);
+			arena.setCell(x + 2, y + 1, CellType::SpawningSolid);
+			arena.setCell(x + 3, y + 1, CellType::SpawningSolid);
 
-			arena.setCell(x, y + 2, CellType::Obstacle);
-			arena.setCell(x + 1, y + 2, CellType::Obstacle);
-			arena.setCell(x + 2, y + 2, CellType::Obstacle);
-			arena.setCell(x + 3, y + 2, CellType::Obstacle);
+			arena.setCell(x, y + 2, CellType::SpawningSolid);
+			arena.setCell(x + 1, y + 2, CellType::SpawningSolid);
+			arena.setCell(x + 2, y + 2, CellType::SpawningSolid);
+			arena.setCell(x + 3, y + 2, CellType::SpawningSolid);
 
-			arena.setCell(x, y + 3, CellType::Obstacle);
-			arena.setCell(x + 1, y + 3, CellType::Obstacle);
-			arena.setCell(x + 2, y + 3, CellType::Obstacle);
-			arena.setCell(x + 3, y + 3, CellType::Obstacle);
+			arena.setCell(x, y + 3, CellType::SpawningSolid);
+			arena.setCell(x + 1, y + 3, CellType::SpawningSolid);
+			arena.setCell(x + 2, y + 3, CellType::SpawningSolid);
+			arena.setCell(x + 3, y + 3, CellType::SpawningSolid);
 		}
 	}
 }

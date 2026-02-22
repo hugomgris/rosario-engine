@@ -97,6 +97,8 @@ class AnimationSystem {
 
 		void init(GameState *state, int width, int heigth);
 
+		float getAnimationSpeed() const { return currentTunnelConfig.animationSpeed; }
+
 		// tunnel effect managers
 		void enableTunnelEffect(bool enabled, const TunnelConfig &config = TunnelConfig::menu());
 		void updateTunnelEffect(float deltaTime);

@@ -123,6 +123,10 @@ int main(int argc, char **argv) {
 	
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
+	gameController.setOnArenaChangeSpawnCallback([&animations, &arena]() {
+		arena.beginSpawn(1.0f / animations.getAnimationSpeed());
+	});
+
 	// MAIN GAME LOOP
 	bool gameOverStateInitialized = false;
 	
@@ -134,6 +138,7 @@ int main(int argc, char **argv) {
 		
 		// update phase
 		inputManager.update();
+		arena.tickSpawnTimer(deltaTime);
 
 		// general, cross modes poll input
 		Input preInput = inputManager.pollGameplayInput();
