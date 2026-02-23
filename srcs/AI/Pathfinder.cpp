@@ -19,14 +19,14 @@ std::vector<Vec2> PathFinder::reconstructPath(Node *goalNode) {
 
 	std::reverse(path.begin(), path.end());
 
-	return path; // starting position is not included because the snake is there
+	return path;
 }
 
+// TODO: snake needs to detect obstacles and growths in its pathfinding
 std::vector<Vec2> PathFinder::findPath(const GameState &state, Vec2 start, Vec2 goal, int maxDepth) {
 	std::multiset<Node*, CompareNode> openList;
-	std::vector<std::vector<bool>> visited(state.width, 
-											std::vector<bool>(state.height, false));
-	std::vector<Node*> allNodes; //needed for clenaup
+	std::vector<std::vector<bool>> visited(state.width, std::vector<bool>(state.height, false));
+	std::vector<Node*> allNodes;	//needed for clenaup
 
 	Node *startNode = new Node {
 		start,
@@ -63,7 +63,7 @@ std::vector<Vec2> PathFinder::findPath(const GameState &state, Vec2 start, Vec2 
 			if (!isWalkable(state, neighborPos)) continue;
 			if (visited[neighborPos.x][neighborPos.y]) continue;
 
-			int tentativeGCost = current->gCost + 1; // minimum cost would be one step
+			int tentativeGCost = current->gCost + 1;	// minimum cost would be one step
 			int hCost = manhattanDistance(neighborPos, goal);
 
 			Node * neighborNode = new Node {

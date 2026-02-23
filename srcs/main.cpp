@@ -5,6 +5,7 @@
 #include "../incs/AnimationSystem.hpp"
 #include "../incs/MenuSystem.hpp"
 #include "../incs/PostProcessingSystem.hpp"
+#include "../incs/Arena.hpp"
 #include "../incs/Snake.hpp"
 #include "../incs/SnakeAI.hpp"
 #include "../incs/Food.hpp"
@@ -45,13 +46,16 @@ int main(int argc, char **argv) {
 	int width = std::stoi(argv[1]);
 	int height = std::stoi(argv[2]);
 
-	if (width < 16 || height < 16 || width > 41 || height > 41)
+	// right now, 58x32 is the size of the full 1920x1080 screen
+	if (width < 16 || height < 16 || width > 58 || height > 32)
 	{
 		std::cerr << "Minimal arena width and height values are 16 units! Try running again with those or higher values!" << std::endl;
 		return 1;
 	}
 
 	// ENTITIES
+	int squareSize2D = 32;
+	Arena arena(width, height, squareSize2D);
 	Snake snake_A(width, height);
 	Snake snake_B(snake_A, width, height);
 	Food food(Vec2{0, 0}, width, height);
@@ -60,6 +64,7 @@ int main(int argc, char **argv) {
 	GameState state;
 	state.width = width;
 	state.height = height;
+	state.arena = &arena;
 	state.snake_A = &snake_A;
 	state.snake_B = &snake_B;
 	state.food = &food;
@@ -77,6 +82,7 @@ int main(int argc, char **argv) {
 	// SYSTEMS
 	GameController gameController(&state);
 	gameController.setAIController(nullptr);
+	gameController.updateSnakeInArena(*state.snake_A, CellType::Snake_A);
 
 	Renderer renderer;
 	renderer.init(width, height);
@@ -90,7 +96,7 @@ int main(int argc, char **argv) {
 	textSystem.init();
 
 	AnimationSystem animations;
-	animations.init(1920, 1080);
+	animations.init(&state, 1920, 1080);
 	animations.enableTunnelEffect(true, TunnelConfig::menu());
 
 	MenuSystem menu(gameController);
@@ -99,7 +105,7 @@ int main(int argc, char **argv) {
 
 	InputManager inputManager;
 	inputManager.registerNavigationCallback([&menu](NavigationAction action) {
-    	menu.handleNavigation(action);
+		menu.handleNavigation(action);
 	});
 	inputManager.registerMouseCallback([&menu](Vector2 pos, bool clicked) {
 		menu.handleMouseInput(pos, clicked);
@@ -112,10 +118,25 @@ int main(int argc, char **argv) {
 	// TIMING and preparations
 	food.replaceInFreeSpace(&state);
 
-	const double TARGET_FPS = 10.0;					// Snake moves 10 times per second
+	const double TARGET_FPS = 12.0;					// Snake moves 10 times per second
 	const double FRAME_TIME = 1.0 / TARGET_FPS; 	// 0.1 seconds per update
 	
 	auto lastTime = std::chrono::high_resolution_clock::now();
+
+	float lineLifetime = 1.0f / animations.getTunnelConfig().animationSpeed;
+
+	gameController.setOnArenaChangeSpawnCallback([&]() {
+		animations.notifyArenaSpawning();
+		arena.beginSpawn(lineLifetime);
+	});
+
+	gameController.setOnArenaClearCallback([&]() {
+		animations.notifyArenaDespawning();
+		arena.beginDespawn(lineLifetime);
+		animations.onDespawnReadyCallback = [&]() {
+			arena.startFadeOut();
+		};
+	});
 
 	// MAIN GAME LOOP
 	bool gameOverStateInitialized = false;
@@ -126,10 +147,12 @@ int main(int argc, char **argv) {
 		float deltaTime = frameTime.count();
 		lastTime = currentTime;
 		
-		// update phase
+		//----  MANAGEMENT PHASE  ----//
 		inputManager.update();
+		arena.tickSpawnTimer(deltaTime);
+		arena.tickDespawnTimer(deltaTime);
 
-		// general, cross modes poll input
+		// general, non-gameplay poll input
 		Input preInput = inputManager.pollGameplayInput();
 		if (preInput == Input::ToggleFS) {
 			ToggleFullscreen();
@@ -145,7 +168,7 @@ int main(int argc, char **argv) {
 
 			case GameStateType::Playing: {
 				inputManager.setContext(InputContext::Gameplay);
-            	Input input = inputManager.pollGameplayInput();
+				Input input = inputManager.pollGameplayInput();
 				
 				if (input == Input::Pause)
 					inputManager.processInput(input, state);
@@ -171,10 +194,11 @@ int main(int argc, char **argv) {
 				
 			case GameStateType::Paused: {
 				inputManager.setContext(InputContext::Paused);
-            	Input input = inputManager.pollGameplayInput();
+				Input input = inputManager.pollGameplayInput();
 				
 				if (input == Input::Pause)
 					inputManager.processInput(input, state);
+				break;
 			}
 				
 			case GameStateType::GameOver: {
@@ -188,7 +212,8 @@ int main(int argc, char **argv) {
 			}
 		}
 		
-		//rendering phase
+		//----  RENDERING PHASE  ----//
+
 		postProcess.beginCapture();
 		ClearBackground(Color{23, 23, 23, 255});
 
@@ -210,30 +235,21 @@ int main(int argc, char **argv) {
 			case GameStateType::Paused: {
 				switch (state.renderMode) {
 					case RenderMode::MODE3D:
-						// 3D gameplay rendering (Paused uses same render, just frozen)
 						BeginMode3D(renderer.getCamera3D());
 						renderer.render3D(state, state.isPaused ? 0.0f : deltaTime);
 						EndMode3D();
-						
-						// UI overlay
-						/* DrawText("Press 1/2/3 to switch libraries", 10, 10, 20, customWhite);
-						DrawText("Arrow keys to move, Q/ESC to quit", 10, 35, 20, customWhite);
-						DrawFPS(screenWidth - 95, 10); */
 						break;
 
 					case RenderMode::MODE2D:
-						// Update renderer state
 						BeginMode2D(renderer.getCamera2D());
 						renderer.render2D(state, state.isPaused ? 0.0f : deltaTime, particles, animations, snakeALightTop);
-						//renderer.drawSnake2D(state.snake_A);
-						//renderer.drawFood2D(state.food);
 						EndMode2D();
 						break;
+
+					case RenderMode::ASCII:
+						break; // unimplemented yet
 				}
-				
-				/* if (state.isPaused) {
-					DrawText("PAUSED", screenWidth / 2 - 60, screenHeight / 2, 40, customBlack);
-				} */
+
 				break;
 			}			
 		
@@ -247,7 +263,8 @@ int main(int argc, char **argv) {
 		
 		postProcess.endCapture();
 		
-		// Apply postprocessing and present to screen
+		//----  POST PROCESSING PHASE  ----//
+		
 		BeginDrawing();
 		ClearBackground(BLACK);
 		postProcess.applyAndPresent(deltaTime);

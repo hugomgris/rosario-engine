@@ -14,6 +14,7 @@
 #include <chrono>
 
 // Forward declarations
+class Arena;
 class ParticleSystem;
 class AnimationSystem;
 class MenuSystem;
@@ -27,40 +28,40 @@ class Renderer {
 		Camera3D	camera3D;
 		float		cubeSize;
 		float		cameraSize;
-		float 		menuFov;
 		float		customFov;
 
-	// 2D pipleine
-	Camera2D	camera2D;
-	float		squareSize;
-	float		separator;
-	int			gridWidth;
-	int			gridHeight;
-	
-	// 2D layout calculations
-	int			borderThickness;
-	int			arenaWidth;    // Total arena including borders
-	int			arenaHeight;
-	int			arenaOffsetX;  // Center offset in screen
-	int			arenaOffsetY;
-	int			gameAreaX;     // Where game grid starts (after border)
-	int			gameAreaY;
-	
-	// 2D tail tracking (for particle trails)
-	struct TailState {
-		float lastX = 0.0f;
-		float lastY = 0.0f;
-		bool isFirstFrame = true;
-	};
-	TailState snakeA_tailState;
-	TailState snakeB_tailState;
-	
-	// Food tracking (for explosion particles)
-	int lastFoodX = -1;
-	int lastFoodY = -1;
-	
-	void calculate2DLayout();  // Helper to compute arena positioning
-	Vector2 gridToScreen2D(int gridX, int gridY) const;  // Convert grid coords to screen coords
+		// 2D pipleine
+		Camera2D	camera2D;
+		float		squareSize;
+		float		separator;
+		int			gridWidth;
+		int			gridHeight;
+		
+		// 2D layout calculations
+		int			borderThickness;
+		int			arenaWidth;		// Total arena including borders
+		int			arenaHeight;
+		int			arenaOffsetX;	// Center offset in screen
+		int			arenaOffsetY;
+		int			gameAreaX;		// Where game grid starts (after border)
+		int			gameAreaY;
+		
+		// 2D tail tracking (for particle trails)
+		struct TailState {
+			float lastX = 0.0f;
+			float lastY = 0.0f;
+			bool isFirstFrame = true;
+		};
+		
+		TailState snakeA_tailState;
+		TailState snakeB_tailState;
+		
+		// Food tracking (for explosion particles)
+		int lastFoodX = -1;
+		int lastFoodY = -1;
+		
+		void calculate2DLayout();								// Helper to compute arena positioning
+		Vector2 gridToScreen2D(int gridX, int gridY) const;		// Convert grid coords to screen coords
 	
 		float	accumulatedTime;
 		
@@ -89,11 +90,14 @@ class Renderer {
 								Color front, Color back, Color top, Color bottom, Color right, Color left);
 		
 	
-	// 2D pipeline
-	void drawSnake2D(const Snake* snake, Color color, ParticleSystem& particles, TailState& tailState);
-	void drawFood2D(const Food* food, ParticleSystem& particles);
-	void drawBorderFullscreen(int thickness);  // Full-screen border (menu/game over)
-	void drawBorderCentered(int thickness);     // Centered arena border (2D game)
+		// 2D pipeline
+		void drawSnake2D(const Snake* snake, Color color, ParticleSystem& particles, TailState& tailState);
+		void drawFood2D(const Food* food, ParticleSystem& particles);
+		void drawBorderFullscreen(int thickness);	// Full-screen border (menu/game over)
+		void drawBorderCentered(int thickness);     // Centered arena border (2D game)
+		void drawBorderModular();					// "brick" based borders for growth implementation
+		void drawBorderBrick(int x, int y, Color color) const;
+
 	public:
 		void init(int width, int height);
 		void render3D(const GameState& state, float deltaTime);

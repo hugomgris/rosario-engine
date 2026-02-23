@@ -1,0 +1,90 @@
+#pragma once
+#include "Renderer.hpp"
+#include <vector>
+#include <map>
+#include <set>
+
+enum class CellType {
+	Empty,
+	Wall,
+	Obstacle,
+	Snake_A,
+	Snake_B,
+	Food,
+	SpawningSolid,
+	DespawningSolid
+};
+
+enum class WallPreset {
+	InterLock1,
+	Spiral1,
+	Columns1,
+	Columns2,
+	Cross,
+	Checkerboard,
+	Maze,
+	Diamond,
+	Tunnels,
+	FourRooms,
+};
+
+class Arena {
+	private:
+		std::vector<std::vector<CellType>> grid;
+		int gridWidth;
+		int gridHeight;
+		int squareSize;
+
+		Vector2 foodPosition;
+
+		float spawnTimer = 0.0f;
+		float spawnDuration = 0.0f;
+		float fadeTimer = 0.0f;
+		float fadeDuration = 0.1f;
+
+		float despawnTimer    = 0.0f;
+		float fadeOutTimer    = 0.0f;
+		float fadeOutDuration = 0.15f;
+
+	public:
+		Arena(int width, int height, int squareSize); // W and H are in amount-of-squares magnitude
+		~Arena() = default;
+
+		// Grid manipulation (uses game coordinates: 0 to width-1, 0 to height-1)
+		std::vector<std::vector<CellType>> getGrid() const;
+		void setCell(int x, int y, CellType type);
+		CellType getCell(int x, int y) const;
+		bool isWalkable(int x, int y) const;
+		void setFoodCell(int x, int y);
+		Vector2 getFoodPosition() const;
+		const std::vector<Vec2> getAvailableCells() const;
+
+		// obstacle management
+		void spawnObstacle(int x, int y, int width, int height);
+		void transformArenaWithPreset(WallPreset preset);
+		void growWall(int x, int y, int width, int height);
+		void clearCell(int x, int y);
+		void clearArena();
+
+		// outline extraction for tunnel lines
+		std::vector<Vector2> getArenaOutline(int offsetX, int offsetY);
+		std::vector<std::vector<Vector2>> getAllOutlines(int offsetX, int offsetY);
+
+		// rendering
+		void render(const Renderer& renderer) const;
+
+		// spawn management
+		bool isSpawning() const;
+		void tickSpawnTimer(float deltaTime);
+		bool hasSpawningCells() const { return spawnTimer > 0.0f; }
+		void beginSpawn(float solidifyDelay);
+		float getSpawnProgress() const { return 1.0f - (spawnTimer / spawnDuration); }
+		float getSpawnFadeProgress() const;
+
+		// despawning management
+		bool isDespawning() const;
+		void beginDespawn(float delay);
+		void tickDespawnTimer(float deltaTime);
+		float getDespawnFadeProgress() const;
+		void startFadeOut();
+};

@@ -9,6 +9,7 @@ struct Vec2 {
 };
 
 // Forward declarations
+class Arena;
 class Snake;
 class Food;
 class SnakeAI;
@@ -45,6 +46,7 @@ struct GameTiming {
 struct GameState {
 	int							width;
 	int							height;
+	Arena*						arena;
 	Snake*						snake_A;
 	Snake*						snake_B;
 	Food*						food;
@@ -77,6 +79,7 @@ struct AIConfig {
 	// Behavior
 	float randomMoveChance;	// 0.0 - 1.0 (for easy mode)
 	float aggressiveness;	// 0.0 = cautious, 1.0 = greedy
+	bool hasSurvivalMode;
 	
 	static AIConfig easy();
 	static AIConfig medium();

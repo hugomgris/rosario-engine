@@ -57,6 +57,9 @@ void Snake::initializeAtRandomPosition(int width, int height) {
 			_segments[3] = { headPosition.x - 3, headPosition.y };
 			break;
 	}
+
+	// DEBUG
+	//std::cout << "head snake coords:" << _segments[0].x << "-" << _segments[0].y << std::endl;
 }
 
 Snake::Snake(const Snake &otherSnake, int width, int height) : _length(otherSnake._length), _maxLength(otherSnake._maxLength) {
@@ -149,7 +152,14 @@ int Snake::getLength() const { return _length; }
 
 const Vec2 *Snake::getSegments() const { return _segments; }
 
+const Vec2& Snake::getHead() const { return _segments[0]; }
+
 Direction Snake::getDirection() const { return _direction; }
+
+bool Snake::didRemoveTail() const { return _didRemoveTail; }
+Vec2 Snake::getDroppedTail() const { return _lastDroppedTail; }
+
+bool Snake::getIsGrowing() const { return _isGrowing; }
 
 void Snake::move(){
 	auto head = _segments[0];
@@ -186,6 +196,15 @@ void Snake::move(){
 		newPos.y = previousPositions[i - 1].y;
 		_segments[i] = newPos;
 	}
+
+	// After moving, handle tail removal
+	if (!_isGrowing) {
+		_didRemoveTail = true;
+		_lastDroppedTail = previousPositions[_length - 1];
+	} else {
+		_didRemoveTail = false;
+	}
+	_isGrowing = false;
 }
 
 void Snake::changeDirection(Direction dir) { 
@@ -202,11 +221,12 @@ void Snake::changeDirection(Direction dir) {
 
 void Snake::grow() {
 	if (_length >= _maxLength) {
-		// Snake has filled the entire arena - this is a win condition!
+		// Snake has filled the entire arena, which should trigger a win condition (will this ever happen to anyone tho?)
 		return;
 	}
 	_segments[_length] = Vec2{ _segments[_length - 1].x, _segments[_length - 1].y };
 	_length++;
+	_isGrowing = true;
 }
 
 void Snake::reset(int width, int height) {
@@ -216,4 +236,23 @@ void Snake::reset(int width, int height) {
 void Snake::resetAsMirrored(const Snake& otherSnake, int width, int height) {
 	initializeAsMirrored(otherSnake, width, height);
 }
-	
+
+Vec2 Snake::getNextHeadPosition() const {
+	Vec2 nextPos = _segments[0];
+	switch (_direction) {
+		case Direction::Left:
+			nextPos.x--;
+			break;
+		case Direction::Right:
+			nextPos.x++;
+			break;
+		case Direction::Up:
+			nextPos.y--;
+			break;
+		case Direction::Down:
+			nextPos.y++;
+			break;
+	}
+	return nextPos;
+}
+

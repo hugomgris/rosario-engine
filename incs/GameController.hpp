@@ -1,6 +1,8 @@
 #pragma once
 #include "DataStructs.hpp"
 #include "Input.hpp"
+#include "Arena.hpp"
+#include "ArenaPresets.hpp"
 #include "Snake.hpp"
 #include "SnakeAI.hpp"
 #include "Food.hpp"
@@ -8,6 +10,7 @@
 #include <iostream>
 #include <chrono>
 #include <queue>
+#include <functional>
 
 class GameController {
 	private:
@@ -18,6 +21,11 @@ class GameController {
 
 		SnakeAI *aiController;
 		int aiThinkCounter;
+
+		int _foodTracker;
+
+		std::function<void()> onArenaChangeSpawnCallBack;
+		std::function<void()> onArenaClearCallBack;
 
 		using time = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
@@ -35,10 +43,21 @@ class GameController {
 
 		GameState& getState() const { return *_state; }
 		void setAIController(SnakeAI *ai);
+		void resetFoodTracker() { _foodTracker = 0; };
 
 		void bufferInput(Input input);
 		void clearInputBuffer();
 
 		void checkHeadFoodCollision();
 		bool checkGameOverCollision();
+
+		void updateSnakeInArena(Snake& snake, CellType type);
+
+		void setOnArenaChangeSpawnCallback(std::function<void()> callback) {
+			onArenaChangeSpawnCallBack = callback;
+		}
+
+		void setOnArenaClearCallback(std::function<void()> callback) {
+			onArenaClearCallBack = callback;
+		}
 };

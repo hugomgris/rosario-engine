@@ -61,8 +61,8 @@ class MenuSystem {
 					const GameState& state);
 		void renderGameOver(Renderer &renderer, TextSystem& textSystem,
 							ParticleSystem& particles, AnimationSystem& animations,
-							const GameState& state);        // input handling
-		//void handleInput(Vector2 mousePos, bool mouseClicked);
+							const GameState& state);	// input handling
+
 		// input related methods
 		Button* getHoveredButton(Vector2 mousePos) const;
 

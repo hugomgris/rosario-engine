@@ -21,24 +21,26 @@ INCDIR          := incs
 # -=-=-=-=-    SOURCE FILES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 MAIN_SRC        := main.cpp
-CORE_SRC        := core/GameController.cpp \
-					core/InputManager.cpp \
-					core/Snake.cpp \
-					core/Food.cpp \
+CORE_SRC        := core/GameController.cpp	\
+					core/InputManager.cpp	\
+					core/Arena.cpp			\
+					core/ArenaPresets.cpp	\
+					core/Snake.cpp			\
+					core/Food.cpp			\
 					core/Utils.cpp
 
-AI_SRC          := AI/AIConfig.cpp \
-					AI/FloodFill.cpp \
-					AI/Pathfinder.cpp \
-					AI/SnakeAI.cpp \
+AI_SRC          := AI/AIConfig.cpp			\
+					AI/FloodFill.cpp		\
+					AI/Pathfinder.cpp		\
+					AI/SnakeAI.cpp			\
 					AI/GridHelper.cpp
 
-GRAPHICS_SRC    := graphics/Renderer.cpp \
-					graphics/TextSystem.cpp \
-					graphics/ParticleSystem.cpp \
-					graphics/AnimationSystem.cpp \
-					graphics/MenuSystem.cpp \
-					graphics/RaylibColors.cpp \
+GRAPHICS_SRC    := graphics/Renderer.cpp				\
+					graphics/TextSystem.cpp				\
+					graphics/ParticleSystem.cpp			\
+					graphics/AnimationSystem.cpp		\
+					graphics/MenuSystem.cpp				\
+					graphics/RaylibColors.cpp			\
 					graphics/PostProcessingSystem.cpp
 
 ALL_SRC         := $(MAIN_SRC) $(CORE_SRC) $(AI_SRC) $(GRAPHICS_SRC)
@@ -112,8 +114,14 @@ TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
 
 all: $(RAYLIB_SRC_DIR)/libraylib.a $(NAME)
 
-game: re
-	./rosario 30 30
+game: all
+	./rosario 31 31
+
+gamere: re
+	./rosario 31 31
+
+gamecheck: re
+	valgrind --leak-check=full --track-origins=yes --show-leak-kinds=all ./rosario 30 30
 
 check_gtest:
 	@if [ ! -f "$(GTEST_LIB)" ]; then \
@@ -169,7 +177,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 
 test: check_gtest check_raylib $(TEST_BINARY)
 	@echo "$(CYAN)Running tests...$(DEF_COLOR)"
-	./$(TEST_BINARY)
+	valgrind --track-origins=yes --leak-check=full ./$(TEST_BINARY)
+
+retest: fclean test
 
 $(TEST_BINARY): $(TESTABLE_OBJS) $(TEST_OBJS) $(GTEST_LIB) $(GTEST_MAIN_LIB)
 	@echo "$(YELLOW)Linking test binary...$(DEF_COLOR)"

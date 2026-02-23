@@ -10,11 +10,11 @@ uniform vec2 resolution;
 uniform float intensity;
 
 void main() {
-    vec4 color = texture(texture0, fragTexCoord);
-    
-    // Scanlines
-    float scanline = sin(fragTexCoord.y * resolution.y * 2.0) * intensity;
-    color.rgb -= scanline;
-    
-    finalColor = color;
+	vec4 color = texture(texture0, fragTexCoord);
+	
+	// Scanlines
+	float scanline = sin(fragTexCoord.y * resolution.y * 2.0) * intensity;
+	color.rgb -= scanline;
+	
+	finalColor = color;
 }

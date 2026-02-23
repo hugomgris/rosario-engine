@@ -2,11 +2,11 @@
 #include "DataStructs.hpp"
 #include "Utils.hpp"
 
+class Arena;
+
 class Food {
 	private:
 		Vec2		_position;
-		int			_hLimit;
-		int			_vLimit;
 		const char	*_foodChar;
 
 	public:
@@ -16,7 +16,7 @@ class Food {
 		Food &operator=(const Food &other);
 
 	bool replaceInFreeSpace(GameState *gameState);
-	void reset(GameState *gameState);  // Reinitialize food at new position
+	void reset(GameState *gameState);	// Reinitialize food at new position
 
 	Vec2 getPosition() const;
 	const char* getFoodChar() const;

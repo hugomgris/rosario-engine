@@ -24,14 +24,14 @@ void TextSystem::loadFont() {
 		codepoints[i] = 32 + i;
 	}
 	
-	codepoints[256 - 32 + 0] = 0x2191;  // ↑
-	codepoints[256 - 32 + 1] = 0x2193;  // ↓
-	codepoints[256 - 32 + 2] = 0x2190;  // ←
-	codepoints[256 - 32 + 3] = 0x2192;  // →
-	codepoints[256 - 32 + 4] = 0x00B7;  // ·
-	codepoints[256 - 32 + 5] = 0x2022;  // •
-	codepoints[256 - 32 + 6] = 0x00B7;  // ·
-	codepoints[256 - 32 + 7] = 0x002E;  // .
+	codepoints[256 - 32 + 0] = 0x2191;	// ↑
+	codepoints[256 - 32 + 1] = 0x2193;	// ↓
+	codepoints[256 - 32 + 2] = 0x2190;	// ←
+	codepoints[256 - 32 + 3] = 0x2192;	// →
+	codepoints[256 - 32 + 4] = 0x00B7;	// ·
+	codepoints[256 - 32 + 5] = 0x2022;	// •
+	codepoints[256 - 32 + 6] = 0x00B7;	// ·
+	codepoints[256 - 32 + 7] = 0x002E;	// .
 	
 	customFont = LoadFontEx("fonts/JetBrainsMono-VariableFont_wght.ttf", 64, codepoints, codepointCount);
 	delete[] codepoints;
@@ -46,7 +46,7 @@ int TextSystem::measureText(const std::string& text, int fontSize) {
 	return static_cast<int>(textSize.x);
 }
 
-// Custom rectangle drawing based text
+// ---- Custom square drawing based text ----//
 
 void TextSystem::drawRects(const std::vector<Rectangle>& rects, Color color) {
 	for (const auto& rect : rects) {
@@ -55,7 +55,7 @@ void TextSystem::drawRects(const std::vector<Rectangle>& rects, Color color) {
 }
 
 void TextSystem::drawLogo(int centerX, int centerY, int square, int sep,
-                          Color whiteColor, Color blueColor, Color redColor) {
+						Color whiteColor, Color blueColor, Color redColor) {
 	int totalWidth = (26 * square) + (6 * sep);
 	int startX = centerX - (totalWidth / 2);
 	
@@ -115,7 +115,7 @@ void TextSystem::drawLogo(int centerX, int centerY, int square, int sep,
 }
 
 void TextSystem::drawGameOverLogo(int centerX, int centerY, int square, int sep,
-                                  Color whiteColor, Color grayColor) {
+								Color whiteColor, Color grayColor) {
 	int totalWidth = (26 * square) + (3 * sep);
 	int startX = centerX - (totalWidth / 2);
 	centerY = centerY - (square * 3.5);
@@ -209,10 +209,10 @@ void TextSystem::drawGameOverLogo(int centerX, int centerY, int square, int sep,
 	drawRects(rRects, grayColor);
 }
 
-// Font-based text rendering
+// ----Font-based text rendering ---- //
 
 void TextSystem::drawText(const std::string& text, int x, int y, int fontSize, 
-                          Color color, bool centered) {
+						Color color, bool centered) {
 	Vector2 textSize = MeasureTextEx(customFont, text.c_str(), fontSize, 1.0f);
 	
 	int drawX = centered ? x - (textSize.x / 2) : x;
@@ -222,8 +222,8 @@ void TextSystem::drawText(const std::string& text, int x, int y, int fontSize,
 }
 
 void TextSystem::drawInstruction(int centerX, int centerY, int& offset, 
-                                 const std::string& labelText, const std::string& dotText,
-                                 Color whiteColor, Color grayColor) {
+								const std::string& labelText, const std::string& dotText,
+								Color whiteColor, Color grayColor) {
 	int currentFontSize = smallMode ? smallFontSize : fontSize;
 	
 	// Draw label in white
@@ -236,7 +236,7 @@ void TextSystem::drawInstruction(int centerX, int centerY, int& offset,
 }
 
 void TextSystem::drawMode(const GameState& state, int centerX, int centerY, int& offset,
-                          Color /*whiteColor*/, Color grayColor) {
+						Color /*whiteColor*/, Color grayColor) {
 	int currentFontSize = smallMode ? smallFontSize : fontSize;
 	
 	std::string stateA;
@@ -247,17 +247,17 @@ void TextSystem::drawMode(const GameState& state, int centerX, int centerY, int&
 		case GameMode::SINGLE:
 			stateA = "SINGLE               ";
 			stateB = "       - MULTI - VsAI";
-			textColor = {70, 130, 180, 255};  // lightBlue
+			textColor = {70, 130, 180, 255};	// lightBlue
 			break;
 		case GameMode::MULTI:
 			stateA = "         MULTI       ";
 			stateB = "SINGLE -       - VsAI";
-			textColor = {255, 215, 0, 255};  // goldenYellow
+			textColor = {255, 215, 0, 255};		// goldenYellow
 			break;
 		case GameMode::AI:
 			stateA = "                 VsAI";
 			stateB = "SINGLE - MULTI -     ";
-			textColor = {144, 238, 144, 255};  // lightGreen
+			textColor = {144, 238, 144, 255};	// lightGreen
 			break;
 	}
 	
@@ -268,8 +268,8 @@ void TextSystem::drawMode(const GameState& state, int centerX, int centerY, int&
 }
 
 void TextSystem::drawInstructions(const GameState& state, int centerX, int centerY,
-                                  Color whiteColor, Color grayColor) {
-	int square = 10;  // Match menu square size
+								Color whiteColor, Color grayColor) {
+	int square = 10;	// should be the same as the menu square size
 	int offset = smallMode ? square * 2 : square * 6;
 	
 	drawMode(state, centerX, centerY, offset, whiteColor, grayColor);
@@ -323,7 +323,7 @@ void TextSystem::drawInstructions(const GameState& state, int centerX, int cente
 }
 
 void TextSystem::drawScore(const GameState& state, int centerX, int centerY,
-                           Color whiteColor) {
+						Color whiteColor) {
 	int currentFontSize = smallMode ? smallFontSize : fontSize;
 	int square = 10;
 	int yOffset = smallMode ? square * 20 : square * 25;
@@ -419,7 +419,7 @@ void TextSystem::drawScore(const GameState& state, int centerX, int centerY,
 }
 
 void TextSystem::drawWinner(const GameState& state, int centerX, int centerY,
-                            Color whiteColor) {
+							Color whiteColor) {
 	int currentFontSize = smallMode ? smallFontSize : fontSize;
 	int square = 10;
 	int yOffset = smallMode ? square * 15 : square * 20;
@@ -434,10 +434,10 @@ void TextSystem::drawWinner(const GameState& state, int centerX, int centerY,
 	if (state.config.mode == GameMode::MULTI) {
 		if (state.score > state.scoreB) {
 			winnerText = "PLAYER 1 WINS!";
-			winnerColor = {70, 130, 180, 255};  // blue
+			winnerColor = {70, 130, 180, 255};		// blue
 		} else if (state.scoreB > state.score) {
 			winnerText = "PLAYER 2 WINS!";
-			winnerColor = {255, 215, 0, 255};  // yellow
+			winnerColor = {255, 215, 0, 255};		// yellow
 		} else {
 			winnerText = "IT'S A TIE!";
 			winnerColor = whiteColor;
@@ -445,10 +445,10 @@ void TextSystem::drawWinner(const GameState& state, int centerX, int centerY,
 	} else if (state.config.mode == GameMode::AI) {
 		if (state.score > state.scoreB) {
 			winnerText = "YOU WIN!";
-			winnerColor = {70, 130, 180, 255};  // blue
+			winnerColor = {70, 130, 180, 255};		// blue
 		} else if (state.scoreB > state.score) {
 			winnerText = "AI WINS!";
-			winnerColor = {144, 238, 144, 255};  // green
+			winnerColor = {144, 238, 144, 255};		// green
 		} else {
 			winnerText = "IT'S A TIE!";
 			winnerColor = whiteColor;

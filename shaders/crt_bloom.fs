@@ -23,49 +23,49 @@ uniform float bloomIntensity;
 
 // Barrel distortion
 vec2 curveUV(vec2 uv) {
-    if (curvatureAmount <= 0.0) return uv;
-    
-    vec2 centered = uv * 2.0 - 1.0;
-    float r2 = dot(centered, centered);
-    float distortion = 1.0 + curvatureAmount * r2;
-    centered *= distortion;
-    return centered * 0.5 + 0.5;
+	if (curvatureAmount <= 0.0) return uv;
+	
+	vec2 centered = uv * 2.0 - 1.0;
+	float r2 = dot(centered, centered);
+	float distortion = 1.0 + curvatureAmount * r2;
+	centered *= distortion;
+	return centered * 0.5 + 0.5;
 }
 
 // Scanlines effect
 float scanlines(vec2 uv) {
-    float scanline = sin(uv.y * resolution.y * 2.0) * scanlineIntensity;
-    return 1.0 - scanline;
+	float scanline = sin(uv.y * resolution.y * 2.0) * scanlineIntensity;
+	return 1.0 - scanline;
 }
 
 // Vignette effect
 float vignette(vec2 uv) {
-    float dist = distance(uv, vec2(0.5));
-    return smoothstep(0.8, 0.3, dist * vignetteStrength);
+	float dist = distance(uv, vec2(0.5));
+	return smoothstep(0.8, 0.3, dist * vignetteStrength);
 }
 
 // noise
 float noise(vec2 co) {
-    return fract(sin(dot(co.xy, vec2(12.9898, 78.233)) + time) * 43758.5453);
+	return fract(sin(dot(co.xy, vec2(12.9898, 78.233)) + time) * 43758.5453);
 }
 
 // RGB phosphor grid
 vec3 shadowMask(vec2 uv) {
-    vec3 mask = vec3(1.0);
-    float x = fract(uv.x * resolution.x / 3.0);
-    
-    if (x < 0.333) {
-        mask.r *= 1.1;
-        mask.gb *= 0.9;
-    } else if (x < 0.666) {
-        mask.g *= 1.1;
-        mask.rb *= 0.9;
-    } else {
-        mask.b *= 1.1;
-        mask.rg *= 0.9;
-    }
-    
-    return mask;
+	vec3 mask = vec3(1.0);
+	float x = fract(uv.x * resolution.x / 3.0);
+	
+	if (x < 0.333) {
+		mask.r *= 1.1;
+		mask.gb *= 0.9;
+	} else if (x < 0.666) {
+		mask.g *= 1.1;
+		mask.rb *= 0.9;
+	} else {
+		mask.b *= 1.1;
+		mask.rg *= 0.9;
+	}
+	
+	return mask;
 }
 
 void main() {

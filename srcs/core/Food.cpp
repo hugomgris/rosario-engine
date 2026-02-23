@@ -1,8 +1,9 @@
 #include "../incs/Food.hpp"
+#include "../incs/Arena.hpp"
 #include "../incs/Snake.hpp"
 #include <iostream>
 
-Food::Food(Vec2 position, int width, int height) : _position(position), _hLimit(width), _vLimit(height) {
+Food::Food(Vec2 position, int width, int height) : _position(position){
 	_foodChar = Utils::getFoodChar(Utils::getRandomInt(5));
 }
 
@@ -21,52 +22,10 @@ Food &Food::operator=(const Food & other)
 	return *this;
 }
 
-bool Food::replaceInFreeSpace(GameState *gameState)
-{
-	std::vector<Vec2> snakeASegments;
-	std::vector<Vec2> snakeBSegments;
-	for (int i = 0; i < gameState->snake_A->getLength(); i++) {
-		snakeASegments.push_back(gameState->snake_A->getSegments()[i]);
-	}
+bool Food::replaceInFreeSpace(GameState *gameState) {
+	Vector2 originalPosition = gameState->arena->getFoodPosition();
 
-	if (gameState->config.mode != GameMode::SINGLE && gameState->snake_B) {
-		for (int i = 0; i < gameState->snake_B->getLength(); i++) {
-			snakeBSegments.push_back(gameState->snake_B->getSegments()[i]);
-		}
-	}
-
-	std::vector<Vec2> availableCells;
-	availableCells.reserve(_hLimit * _vLimit - snakeASegments.size() - snakeBSegments.size());
-
-	for (int y = 0; y < _vLimit; y++) {
-		for (int x = 0; x < _hLimit; x++)
-		{
-			Vec2 candidate = {x, y};
-
-			bool occupied = false;
-			for (const auto &segment : snakeASegments) {
-				if (segment.x == candidate.x && segment.y == candidate.y)
-				{
-					occupied = true;
-					break;
-				}
-			}
-
-			if (!occupied) {
-				for (const auto &segment : snakeBSegments) {
-					if (segment.x == candidate.x && segment.y == candidate.y)
-					{
-						occupied = true;
-						break;
-					}
-				}
-			}
-
-			if (!occupied) {
-				availableCells.push_back(candidate);
-			}
-		}
-	}
+	const std::vector<Vec2>& availableCells = gameState->arena->getAvailableCells();
 
 	if (availableCells.empty())
 	{
@@ -77,8 +36,19 @@ bool Food::replaceInFreeSpace(GameState *gameState)
 	int randomIndex = Utils::getRandomInt(availableCells.size() - 1);
 	_position = availableCells[randomIndex];
 	_foodChar = Utils::getFoodChar(Utils::getRandomInt(5));
+	
+	//DEBUG
+	//std::cout << "new food pos:" << _position.x << "-" << _position.y << " which has type:" << static_cast<int>(gameState->arena->getGrid()[_position.x][_position.y]) << std::endl;
 
-	return true;
+	// update arena food tracking
+	// Only clear if there was a valid previous position
+	if (originalPosition.x >= 0 && originalPosition.y >= 0) {
+		gameState->arena->clearCell(originalPosition.x, originalPosition.y);
+	}
+	gameState->arena->setFoodCell(_position.x, _position.y);
+	
+
+	return true; 
 }
 
 Vec2 Food::getPosition() const { return _position; }

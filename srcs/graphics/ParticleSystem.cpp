@@ -82,15 +82,15 @@ void ParticleSystem::render() {
 	}
 	
 	for (const auto& particle : particles) {
-		// Fade out (lifetime progress)
+		// Fade out
 		float progress = particle.age / particle.lifetime;
 		unsigned char alpha;
 		
 		// alpha handling 
 		if (particle.type == ParticleType::Dust) {
-			alpha = static_cast<unsigned char>((1.0f - progress) * 200);  // Increased from 120
-		} else {  // explosion or Trail
-			alpha = static_cast<unsigned char>((1.0f - progress) * 255);  // Increased from 200
+			alpha = static_cast<unsigned char>((1.0f - progress) * 200);
+		} else {	// explosion or Trail
+			alpha = static_cast<unsigned char>((1.0f - progress) * 255);
 		}
 		
 		drawRotatedSquare(particle.x, particle.y, particle.currentSize, 
@@ -132,8 +132,6 @@ void ParticleSystem::spawnExplosion(float x, float y, int count) {
 		float speed = 50.0f + (rand() % 150);	// 50-200 pixels/sec
 		float vx = cosf(angle) * speed;
 		float vy = sinf(angle) * speed;
-		
-		Color explosionColor = {254, 74, 81, 255};	// lightRed
 		
 		particles.emplace_back(x, y, explosionMinSize, explosionMaxSize, 0.5f, 1.0f, vx, vy, explosionColor);
 	}
@@ -196,8 +194,6 @@ void ParticleSystem::spawnSnakeTrail(float x, float y, int count, float directio
 		float vx = cosf(angle) * speed;
 		float vy = sinf(angle) * speed;
 		
-		/* float minSize = (x <= 1135.0f) ? 10.0f : 20.0f;
-		float maxSize = (x <= 1135.0f) ? 15.0f : 25.0f; */
 		float minSize = 10.0f;
 		float maxSize = 20.0f;
 		float lifetime = 0.2f + (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 1.5f;

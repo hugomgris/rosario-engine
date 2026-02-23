@@ -16,6 +16,9 @@ class Snake {
 		Vec2		*_segments;
 		Direction	_direction;
 		bool		_isDead = false;
+		bool		_isGrowing = false;
+		bool		_didRemoveTail = false;
+		Vec2		_lastDroppedTail;
 
 
 	public:
@@ -33,16 +36,21 @@ class Snake {
 		bool isDead() const;
 
 		int getLength() const;
-		const Vec2 *getSegments() const;
-		Direction getDirection() const;  //for testing
-
-	void move();
-	void changeDirection(Direction dir);
-	void grow();
-	void reset(int width, int height);  // Reinitialize snake at new position
-	void resetAsMirrored(const Snake& otherSnake, int width, int height);  // Reset as mirrored opponent
+		const Vec2* getSegments() const;
+		const Vec2& getHead() const;
+		Direction getDirection() const;		// for testing
+		Vec2 getNextHeadPosition() const;	// predict next position without moving
+		bool didRemoveTail() const;
+		Vec2 getDroppedTail() const;
+		bool getIsGrowing() const;
+		
+		void move();
+		void changeDirection(Direction dir);
+		void grow();
+		void reset(int width, int height);										// Reinitialize snake at new position
+		void resetAsMirrored(const Snake& otherSnake, int width, int height);  	// Reset as mirrored opponent
 
 private:
-	void initializeAtRandomPosition(int width, int height);  // Common spawn logic
-	void initializeAsMirrored(const Snake& otherSnake, int width, int height);  // Initialize as mirrored opponent
+	void initializeAtRandomPosition(int width, int height);						// Common spawn logic
+	void initializeAsMirrored(const Snake& otherSnake, int width, int height);	// Initialize as mirrored opponent
 };

@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
+#include "../../incs/Arena.hpp"
 #include "../../incs/Snake.hpp"
 #include "../../incs/DataStructs.hpp"
 #include "../fixtures/TestHelpers.hpp"
 #include "../../incs/GameController.hpp"
 
 class FoodInteractionTest : public ::testing::Test {
-	protected:
+	protected:	
+		std::unique_ptr<Arena> arena;
 		std::unique_ptr<Snake> snake;
 		std::unique_ptr<Food> food;
 		std::unique_ptr<GameConfig> config;
@@ -13,12 +15,13 @@ class FoodInteractionTest : public ::testing::Test {
 		std::unique_ptr<GameController> manager;
 		
 		void SetUp() override {
+			arena = std::make_unique<Arena>(20, 20, 32);
 			snake = std::make_unique<Snake>(20, 20);
 			food = std::make_unique<Food>(Vec2{10, 10}, 20, 20);
 			config = std::make_unique<GameConfig>(GameConfig{GameMode::SINGLE});
 			state = std::make_unique<GameState>(GameState{
 				20, 20,
-				snake.get(), nullptr,
+				arena.get(), snake.get(), nullptr,
 				food.get(),
 				false, true, false,
 				GameStateType::Playing,
@@ -65,6 +68,7 @@ TEST_F(FoodInteractionTest, FoodPositioning) {
 
 TEST_F(FoodInteractionTest, EatingTrigger) {
 	Snake &snakeRef = *state->snake_A;
+	Food &foodRef = *state->food;
 
 	// Normalize direction to go upwards
 	if (snakeRef.getDirection() == Direction::Right || snakeRef.getDirection() == Direction::Left) {
@@ -78,15 +82,15 @@ TEST_F(FoodInteractionTest, EatingTrigger) {
 	}
 	
 	//Force a food position ABOVE the snake head and to its RIGHT
-	while (state->food->getPosition().x <= snakeRef.getSegments()[0].x || state->food->getPosition().y >= snakeRef.getSegments()[0].y)
-		state->food->replaceInFreeSpace(state.get());
+	while (foodRef.getPosition().x <= snakeRef.getSegments()[0].x || foodRef.getPosition().y >= snakeRef.getSegments()[0].y)
+		foodRef.replaceInFreeSpace(state.get());
 
-	Vec2 foodPosition = state->food->getPosition();
+	Vec2 foodPosition = foodRef.getPosition();
 
-	EXPECT_TRUE(state->food->getPosition().x > snakeRef.getSegments()[0].x && state->food->getPosition().y < snakeRef.getSegments()[0].y);
+	EXPECT_TRUE(foodRef.getPosition().x > snakeRef.getSegments()[0].x && foodRef.getPosition().y < snakeRef.getSegments()[0].y);
 
 	// Move the head of the snake to collide with the food
-	int i = state->snake_A->getSegments()[0].y - state->food->getPosition().y;
+	int i = state->snake_A->getSegments()[0].y - foodRef.getPosition().y;
 
 	while (i > 0) {
 		manager->update();
@@ -94,17 +98,17 @@ TEST_F(FoodInteractionTest, EatingTrigger) {
 	}
 
 	snakeRef.changeDirection(Direction::Right);
-	i = state->food->getPosition().x - state->snake_A->getSegments()[0].x;
+	i = foodRef.getPosition().x - state->snake_A->getSegments()[0].x;
 
 	// midway check -> food should still be in the same position
-	EXPECT_TRUE(foodPosition.x == state->food->getPosition().x && foodPosition.y == state->food->getPosition().y);
+	EXPECT_TRUE(foodPosition.x == foodRef.getPosition().x && foodPosition.y == foodRef.getPosition().y);
 
 	while (i > 0) {
 		manager->update();
 		i--;
 	}
 	
-	Vec2 newFoodPosition = state->food->getPosition();
+	Vec2 newFoodPosition = foodRef.getPosition();
 
 	if (foodPosition.x == newFoodPosition.x)
 		EXPECT_TRUE(foodPosition.y != newFoodPosition.y);

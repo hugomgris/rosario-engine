@@ -1,4 +1,5 @@
 #include "../../incs/GridHelper.hpp"
+#include "../../incs/Arena.hpp"
 
 int GridHelper::manhattanDistance(Vec2 a, Vec2 b) {
 	return (abs(a.x - b.x) + abs(a.y - b.y));
@@ -9,14 +10,15 @@ bool GridHelper::isWalkable(const GameState& state, Vec2 pos,
 	int x = pos.x;
 	int y = pos.y;
 
-	// Bounds check
-	if (x < 0 || y < 0 || x >= state.width || y >= state.height)
+	// Check arena walls (includes bounds checking)
+	CellType cell = state.arena ? state.arena->getCell(x, y) : CellType::Empty;
+	if (cell == CellType::Wall || cell == CellType::Obstacle || cell == CellType::DespawningSolid) {
 		return false;
-
+	}
 	// Check if in ignore list first
 	for (const Vec2& ignored : ignorePositions) {
 		if (pos.x == ignored.x && pos.y == ignored.y)
-			return true;  // ✅ Treat as walkable
+			return true;
 	}
 
 	// Check snake a collision

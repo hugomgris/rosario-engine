@@ -1,16 +1,23 @@
 #pragma once
-
+#include "DataStructs.hpp"
+#include "Arena.hpp"
 #include <raylib.h>
 #include <vector>
 #include <chrono>
 #include <cmath>
 #include <algorithm>
+#include <functional>
 
 struct TunnelLine {
 	float progress;        // 0 = at center, 1 = at edge
 	float age;
+	int epoch = 0;
+
+	std::vector<Vector2> points;
 	
-	TunnelLine() : progress(0.0f), age(0.0f) {}
+	TunnelLine() : progress(0.0f), age(0.0f) {
+		
+	}
 };
 
 struct TunnelConfig {
@@ -42,7 +49,10 @@ struct ScreenShakeConfig {
 // system
 class AnimationSystem {
 	private:
+		GameState*										state;
 		std::vector<TunnelLine>                         tunnelLines;
+		std::vector<Vector2>							basicTunnelLine;
+		std::vector<std::vector<Vector2>>               tunnelLineShapes;
 		std::chrono::high_resolution_clock::time_point  lastTunnelSpawn;
 		TunnelConfig                                    currentTunnelConfig;
 		ScreenShakeConfig                               shakeConfig;
@@ -70,21 +80,50 @@ class AnimationSystem {
 			return t < 0.5f ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
 		}
 
+		// tunnel line epoch helpers
+		int currentEpoch = 0;
+		std::vector<std::vector<Vector2>> previousShapes;
+		std::vector<std::vector<Vector2>> currentShapes;
+
+		// TRANSITION TO POINT BASED TUNNEL LINE - HELPERS
+		std::vector<Vector2> createRectangularShape(int left, int top, int right, int bottom) const;
+
+		std::vector<Vector2> calculateInsetShape(const std::vector<Vector2>& outerShape,
+		                                         const Vector2& center,
+		                                         float insetRatio, 
+		                                         float maxInsetPixels) const;
+
+		void renderTunnelLine(const TunnelLine& line, 
+                          const std::vector<Vector2>& outerShape,
+                          const Vector2& center,
+                          float maxInset) const;
+
 	public:
 		AnimationSystem();
 		~AnimationSystem() = default;
 
-		void init(int width, int heigth);
+		void init(GameState *state, int width, int heigth);
 
-	// tunnel effect managers
-	void enableTunnelEffect(bool enabled, const TunnelConfig &config = TunnelConfig::menu());
-	void updateTunnelEffect(float deltaTime);
-	void renderTunnelEffect() const;
-	void renderTunnelEffectCustom(int left, int top, int right, int bottom) const;  // Custom border area
-	void clearTunnelEffect();		// tunnel effect getters
+		float getAnimationSpeed() const { return currentTunnelConfig.animationSpeed; }
+
+		// tunnel effect managers
+		void enableTunnelEffect(bool enabled, const TunnelConfig &config = TunnelConfig::menu());
+		void updateTunnelEffect(float deltaTime);
+		void renderTunnelEffect();
+		void renderTunnelEffectCustom(int left, int top, int right, int bottom);  // Custom border area
+		void clearTunnelEffect();
+		
+		// tunnel effect getters
 		const std::vector<TunnelLine>& getTunnelLines() const { return tunnelLines; }
 		const TunnelConfig& getTunnelConfig() const { return currentTunnelConfig; }
 		bool isTunnelEffectEnabled() const { return tunnelEffectEnabled; }
+
+		void notifyArenaSpawning();
+		void notifyArenaDespawning();
+
+		// despawning stuff
+		std::function<void()> onDespawnReadyCallback;
+		bool despawnPending = false;
 
 		// scren shake managers (unsued for now)
 		void triggerScreenShake(const ScreenShakeConfig &config);

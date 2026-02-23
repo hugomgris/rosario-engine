@@ -1,0 +1,134 @@
+[0;92mGoogle Test already built[0;39m
+[0;92mRaylib already built[0;39m
+[0;96mRunning tests...[0;39m
+valgrind --track-origins=yes --leak-check=full ./run_tests
+Running main() from /home/hmunoz-g/42-OuterCore/rosario-engine/libs/googletest/googletest/src/gtest_main.cc
+[==========] Running 49 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from FloodFillTest
+[ RUN      ] FloodFillTest.EmptyCornerReachability
+[       OK ] FloodFillTest.EmptyCornerReachability (205 ms)
+[ RUN      ] FloodFillTest.WallReachability
+[       OK ] FloodFillTest.WallReachability (112 ms)
+[ RUN      ] FloodFillTest.BlockedPosition
+[       OK ] FloodFillTest.BlockedPosition (58 ms)
+[ RUN      ] FloodFillTest.IgnorePositionsWorks
+[       OK ] FloodFillTest.IgnorePositionsWorks (119 ms)
+[ RUN      ] FloodFillTest.OutOfBoundsStart
+[       OK ] FloodFillTest.OutOfBoundsStart (3 ms)
+[ RUN      ] FloodFillTest.MultipleIgnorePositions
+[       OK ] FloodFillTest.MultipleIgnorePositions (65 ms)
+[ RUN      ] FloodFillTest.IsolatedCell
+[       OK ] FloodFillTest.IsolatedCell (57 ms)
+[ RUN      ] FloodFillTest.EmptyPathReturnsFalse
+[       OK ] FloodFillTest.EmptyPathReturnsFalse (3 ms)
+[ RUN      ] FloodFillTest.SafePathReturnsTrue
+[       OK ] FloodFillTest.SafePathReturnsTrue (60 ms)
+[ RUN      ] FloodFillTest.PathAccountsForGrowth
+[       OK ] FloodFillTest.PathAccountsForGrowth (59 ms)
+[ RUN      ] FloodFillTest.LongSnakeInTightSpace
+[       OK ] FloodFillTest.LongSnakeInTightSpace (65 ms)
+[ RUN      ] FloodFillTest.ExactSpaceRequired
+[       OK ] FloodFillTest.ExactSpaceRequired (59 ms)
+[ RUN      ] FloodFillTest.TailPositionIgnored
+[       OK ] FloodFillTest.TailPositionIgnored (60 ms)
+[ RUN      ] FloodFillTest.RealGameScenario
+tests/unit/FloodFillTests.cpp:253: Skipped
+Food positioned directly at snake head
+
+[  SKIPPED ] FloodFillTest.RealGameScenario (36 ms)
+[ RUN      ] FloodFillTest.ConsistentCounting
+[       OK ] FloodFillTest.ConsistentCounting (111 ms)
+[----------] 15 tests from FloodFillTest (1096 ms total)
+
+[----------] 10 tests from PathfinderTest
+[ RUN      ] PathfinderTest.AdjacentFood
+[       OK ] PathfinderTest.AdjacentFood (56 ms)
+[ RUN      ] PathfinderTest.StraightLinePath
+[       OK ] PathfinderTest.StraightLinePath (11 ms)
+[ RUN      ] PathfinderTest.LShapedPath
+[       OK ] PathfinderTest.LShapedPath (22 ms)
+[ RUN      ] PathfinderTest.PathAroundSnake
+[       OK ] PathfinderTest.PathAroundSnake (6 ms)
+[ RUN      ] PathfinderTest.NoPathBlocked
+[       OK ] PathfinderTest.NoPathBlocked (10 ms)
+[ RUN      ] PathfinderTest.StartEqualsGoal
+[       OK ] PathfinderTest.StartEqualsGoal (4 ms)
+[ RUN      ] PathfinderTest.OutOfBoundsGoal
+[       OK ] PathfinderTest.OutOfBoundsGoal (54 ms)
+[ RUN      ] PathfinderTest.MaxDepthLimit
+[       OK ] PathfinderTest.MaxDepthLimit (5 ms)
+[ RUN      ] PathfinderTest.PathExcludesStart
+[       OK ] PathfinderTest.PathExcludesStart (27 ms)
+[ RUN      ] PathfinderTest.ManhattanDistanceCorrect
+[       OK ] PathfinderTest.ManhattanDistanceCorrect (26 ms)
+[----------] 10 tests from PathfinderTest (228 ms total)
+
+[----------] 5 tests from SnakeTest
+[ RUN      ] SnakeTest.SnakeInitialization
+[       OK ] SnakeTest.SnakeInitialization (3 ms)
+[ RUN      ] SnakeTest.SnakeMovement
+[       OK ] SnakeTest.SnakeMovement (2 ms)
+[ RUN      ] SnakeTest.SnakeGrowth
+[       OK ] SnakeTest.SnakeGrowth (4 ms)
+[ RUN      ] SnakeTest.DirectionControl
+[       OK ] SnakeTest.DirectionControl (5 ms)
+[ RUN      ] SnakeTest.GrowthPattern
+[       OK ] SnakeTest.GrowthPattern (7 ms)
+[----------] 5 tests from SnakeTest (25 ms total)
+
+[----------] 2 tests from Vec2Test
+[ RUN      ] Vec2Test.Vec2Creation
+[       OK ] Vec2Test.Vec2Creation (2 ms)
+[ RUN      ] Vec2Test.Vec2Equality
+[       OK ] Vec2Test.Vec2Equality (2 ms)
+[----------] 2 tests from Vec2Test (5 ms total)
+
+[----------] 12 tests from AIIntegrationTest
+[ RUN      ] AIIntegrationTest.AIReturnsValidMove
+[       OK ] AIIntegrationTest.AIReturnsValidMove (26 ms)
+[ RUN      ] AIIntegrationTest.AllDifficultyLevelsWork
+[       OK ] AIIntegrationTest.AllDifficultyLevelsWork (594 ms)
+[ RUN      ] AIIntegrationTest.AIMovesTowardFood
+[       OK ] AIIntegrationTest.AIMovesTowardFood (68 ms)
+[ RUN      ] AIIntegrationTest.HandlesNoFoodPath
+[       OK ] AIIntegrationTest.HandlesNoFoodPath (251 ms)
+[ RUN      ] AIIntegrationTest.AIMultipleMoves
+[       OK ] AIIntegrationTest.AIMultipleMoves (602 ms)
+[ RUN      ] AIIntegrationTest.EasyAIShowsVariability
+[       OK ] AIIntegrationTest.EasyAIShowsVariability (549 ms)
+[ RUN      ] AIIntegrationTest.HardAIUsesSafetyChecks
+[       OK ] AIIntegrationTest.HardAIUsesSafetyChecks (271 ms)
+[ RUN      ] AIIntegrationTest.AIHandlesEdgePosition
+[       OK ] AIIntegrationTest.AIHandlesEdgePosition (193 ms)
+[ RUN      ] AIIntegrationTest.AISimulationStressTest
+[       OK ] AIIntegrationTest.AISimulationStressTest (27058 ms)
+[ RUN      ] AIIntegrationTest.PathfindingIntegration
+[       OK ] AIIntegrationTest.PathfindingIntegration (105 ms)
+[ RUN      ] AIIntegrationTest.FloodFillIntegration
+[       OK ] AIIntegrationTest.FloodFillIntegration (122 ms)
+[ RUN      ] AIIntegrationTest.FullGameLoopSimulation
+[       OK ] AIIntegrationTest.FullGameLoopSimulation (3085 ms)
+[----------] 12 tests from AIIntegrationTest (32933 ms total)
+
+[----------] 2 tests from FoodInteractionTest
+[ RUN      ] FoodInteractionTest.FoodPositioning
+[       OK ] FoodInteractionTest.FoodPositioning (36 ms)
+[ RUN      ] FoodInteractionTest.EatingTrigger
+unknown file: Failure
+C++ exception with description "bad_function_call" thrown in the test body.
+
+[  FAILED  ] FoodInteractionTest.EatingTrigger (73 ms)
+[----------] 2 tests from FoodInteractionTest (112 ms total)
+
+[----------] 1 test from ScoreTest
+[ RUN      ] ScoreTest.ScoreUpdate
+unknown file: Failure
+C++ exception with description "bad_function_call" thrown in the test body.
+
+[  FAILED  ] ScoreTest.ScoreUpdate (16 ms)
+[----------] 1 test from ScoreTest (16 ms total)
+
+[----------] 2 tests from SnakeCollisionTest
+[ RUN      ] SnakeCollisionTest.SelfCollision
+Snake A DIED (self)

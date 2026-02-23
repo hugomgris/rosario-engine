@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../../incs/DataStructs.hpp"
+#include "../../incs/Arena.hpp"
 #include "../../incs/Snake.hpp"
 #include "../../incs/Food.hpp"
 
 namespace TestHelpers {
 	inline GameState createBasicGameState(int width = 20, int height = 20) {
+		static Arena arena(width, height, 32);
 		static Snake snake(width, height);
 		static Food food({10, 10}, width, height);
 		static GameConfig config{GameMode::SINGLE};
@@ -13,6 +15,7 @@ namespace TestHelpers {
 		return GameState {
 			width,
 			height,
+			&arena,
 			&snake,
 			nullptr,
 			&food,

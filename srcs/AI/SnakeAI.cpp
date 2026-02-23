@@ -1,4 +1,5 @@
 #include "../../incs/SnakeAI.hpp"
+#include "../../incs/Arena.hpp"
 #include "../../incs/Food.hpp"
 #include <cstdlib>
 #include <ctime>
@@ -13,21 +14,21 @@ Input positionToInput(Vec2 from, Vec2 to) {
 	int dy = to.y - from.y;
 	
 	// Determine direction based on delta
-	if (dx > 0) return Input::Right_B;  // Moving right
-	if (dx < 0) return Input::Left_B;   // Moving left
-	if (dy > 0) return Input::Down_B;   // Moving down
-	if (dy < 0) return Input::Up_B;     // Moving up
+	if (dx > 0) return Input::Right_B;	// Moving right
+	if (dx < 0) return Input::Left_B;	// Moving left
+	if (dy > 0) return Input::Down_B;	// Moving down
+	if (dy < 0) return Input::Up_B;		// Moving up
 	
-	return Input::None;  // No movement
+	return Input::None;		// No movement
 }
 
 Vec2 getNextPosition(Vec2 head, Input direction) {
 	switch (direction) {
-		case Input::Up_B:    return {head.x, head.y - 1};
-		case Input::Down_B:  return {head.x, head.y + 1};
-		case Input::Left_B:  return {head.x - 1, head.y};
-		case Input::Right_B: return {head.x + 1, head.y};
-		default:             return head;
+		case Input::Up_B:		return {head.x, head.y - 1};
+		case Input::Down_B:		return {head.x, head.y + 1};
+		case Input::Left_B:		return {head.x - 1, head.y};
+		case Input::Right_B:	return {head.x + 1, head.y};
+		default:				return head;
 	}
 }
 
@@ -44,8 +45,10 @@ Input SnakeAI::goToFood(const GameState& state) {
 		// tail reachable check
 		if (config.useSafetyCheck) {
 			if (!floodFill.canReachTail(state, state.snake_B, path)) {
-				// if the path is unsafe, go into survival mode (square movement, basically)
-				return survivalMode(state);
+				// if the path is unsafe, go into survival mode if available (loop on self, basically)
+				if (config.hasSurvivalMode) {
+					return survivalMode(state);
+				}
 			}
 		}
 
@@ -53,11 +56,17 @@ Input SnakeAI::goToFood(const GameState& state) {
 	}
 	
 	// no food path triggers survival mode too
-	return survivalMode(state);
+	if (config.hasSurvivalMode) {
+		return survivalMode(state);
+	}
+	return Input::None;
 }
 
 Input SnakeAI::survivalMode(const GameState& state) {
 	if (!state.snake_B) return Input::None;
+
+	// DEBUG
+	//std::cout << "Snake B went into SURVIVAL MODE" << std::endl;
 	
 	Vec2 head = state.snake_B->getSegments()[0];
 	const Vec2* segments = state.snake_B->getSegments();
@@ -105,9 +114,9 @@ Input SnakeAI::maximizeSpace(const GameState& state) {
 }
 
 bool SnakeAI::isSafeMove(const GameState& state, Vec2 nextPos) {
-	// Bounds check
-	if (nextPos.x < 0 || nextPos.y < 0 || 
-		nextPos.x >= state.width || nextPos.y >= state.height) {
+	// Check arena walls (includes bounds checking)
+	CellType cell = state.arena->getCell(nextPos.x, nextPos.y);
+	if (cell == CellType::Wall || cell == CellType::Obstacle || cell == CellType::DespawningSolid) {
 		return false;
 	}
 	
@@ -159,10 +168,13 @@ Input SnakeAI::decideNextMove(const GameState& state) {
 		return foodMove;
 	}
 	
-	// 2 - If can't get food safely, go into survival mode
-	Input survivalMove = this->survivalMode(state);
-	if (survivalMove != Input::None) {
-		return survivalMove;
+	if (config.hasSurvivalMode) {
+		// 2 - If can't get food safely, go into survival mode
+		std::cout << (config.hasSurvivalMode ? "true" : "false") << std::endl;
+		Input survivalMove = this->survivalMode(state);
+		if (survivalMove != Input::None) {
+			return survivalMove;
+		}
 	}
 	
 	// 3 - just D O N T   D I E
@@ -171,6 +183,6 @@ Input SnakeAI::decideNextMove(const GameState& state) {
 		return spaceMove;
 	}
 	
-	// 4 - AI is turbo cooked, but something  needs to be returned
+	// 4 - At this point AI is turbo cooked, but something  needs to be returned
 	return Input::Left_B;
 }

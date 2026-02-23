@@ -1,9 +1,11 @@
 #include "../../incs/FloodFill.hpp"
+#include "../../incs/Arena.hpp"
 
 int FloodFill::countReachable(const GameState& state, Vec2 start, 
 							const std::vector<Vec2>& ignorePositions) {
-	// Bounds check for start position
-	if (start.x < 0 || start.y < 0 || start.x >= state.width || start.y >= state.height)
+	// Check arena walls for start position (includes bounds checking)
+	CellType startCell = state.arena ? state.arena->getCell(start.x, start.y) : CellType::Empty;
+	if (startCell == CellType::Wall || startCell == CellType::Obstacle || startCell == CellType::DespawningSolid)
 		return 0;
 	
 	std::vector<std::vector<bool>> visited(state.width, 
