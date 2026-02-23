@@ -42,6 +42,7 @@ class Snake {
 		Vec2 getNextHeadPosition() const;  // Predict next position without moving
 		bool didRemoveTail() const;
 		Vec2 getDroppedTail() const;
+		bool getIsGrowing() const;
 		
 		void move();
 		void changeDirection(Direction dir);

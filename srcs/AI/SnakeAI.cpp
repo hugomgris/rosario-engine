@@ -45,8 +45,10 @@ Input SnakeAI::goToFood(const GameState& state) {
 		// tail reachable check
 		if (config.useSafetyCheck) {
 			if (!floodFill.canReachTail(state, state.snake_B, path)) {
-				// if the path is unsafe, go into survival mode (square movement, basically)
-				return survivalMode(state);
+				// if the path is unsafe, go into survival mode if available (square movement, basically)
+				if (config.hasSurvivalMode) {
+					return survivalMode(state);
+				}
 			}
 		}
 
@@ -54,7 +56,10 @@ Input SnakeAI::goToFood(const GameState& state) {
 	}
 	
 	// no food path triggers survival mode too
-	return survivalMode(state);
+	if (config.hasSurvivalMode) {
+		return survivalMode(state);
+	}
+	return Input::None;
 }
 
 Input SnakeAI::survivalMode(const GameState& state) {
@@ -163,6 +168,7 @@ Input SnakeAI::decideNextMove(const GameState& state) {
 	
 	if (config.hasSurvivalMode) {
 		// 2 - If can't get food safely, go into survival mode
+		std::cout << (config.hasSurvivalMode ? "true" : "false") << std::endl;
 		Input survivalMove = this->survivalMode(state);
 		if (survivalMove != Input::None) {
 			return survivalMove;

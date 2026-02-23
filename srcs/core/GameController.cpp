@@ -15,10 +15,12 @@ void GameController::update()  {
 	
 	// Check collisions BEFORE moving
 	if (!checkGameOverCollision()) {
-		_state->isRunning = false;
-		_state->currentState = GameStateType::GameOver;
-		return;  // Don't move if collision detected
-	}
+    std::cout << "GAME OVER - A dead: " << _state->snake_A->isDead() 
+              << " B dead: " << _state->snake_B->isDead() << std::endl;
+    _state->isRunning = false;
+    _state->currentState = GameStateType::GameOver;
+    return;
+}
 	
 	// Safe to move
 	_state->snake_A->move();
@@ -176,85 +178,100 @@ void GameController::processNextInput() {
 	}
 
 // TODO: handle snake B collision with obstacles and growths
-bool GameController::checkGameOverCollision()
-{
-	// Get next positions based on current direction
-	Vec2 head_A = _state->snake_A->getSegments()[0];
+bool GameController::checkGameOverCollision() {
 	Vec2 nextPos_A = _state->snake_A->getNextHeadPosition();
-	
-	// Check if next position is a wall or obstacle
-	if (_state->arena->getCell(nextPos_A.x, nextPos_A.y) == CellType::Wall ||
-			_state->arena->getCell(nextPos_A.x, nextPos_A.y) == CellType::Obstacle) {
+	bool snakeB_active = (_state->config.mode != GameMode::SINGLE && _state->snake_B);
+
+	// --- Snake A: wall/obstacle via grid (reliable) ---
+	CellType cellA = _state->arena->getCell(nextPos_A.x, nextPos_A.y);
+	if (cellA == CellType::Wall || cellA == CellType::Obstacle) {
 		_state->snake_A->setAsDead(true);
-		std::cout << "Snake A DIED against a wall or obstacle" << std::endl;
-		return false;
+		std::cout << "Snake A DIED (wall/obstacle)" << std::endl;
 	}
-	
-	// Check self-collision for snake A 
-	for (int i = 1; i < _state->snake_A->getLength() - 1; i++)
-	{
-		if (_state->snake_A->getSegments()[i].x == nextPos_A.x && 
-				_state->snake_A->getSegments()[i].y == nextPos_A.y) {
-			_state->snake_A->setAsDead(true);
-			std::cout << "Snake A DIED against itself" << std::endl;
+
+	// --- Snake A: self-collision via segments ---
+	// Skip [0]=head, skip last segment (tail vacates unless growing)
+	if (!_state->snake_A->isDead()) {
+		int limit = _state->snake_A->getIsGrowing()
+				? _state->snake_A->getLength()
+				: _state->snake_A->getLength() - 1;
+		for (int i = 1; i < limit; i++) {
+			auto& seg = _state->snake_A->getSegments()[i];
+			if (seg.x == nextPos_A.x && seg.y == nextPos_A.y) {
+				_state->snake_A->setAsDead(true);
+				std::cout << "Snake A DIED (self)" << std::endl;
+				break;
+			}
 		}
 	}
 
-	if (_state->snake_A->isDead()) {
-		return false;
-	}
-
-	if (_state->config.mode != GameMode::SINGLE && _state->snake_B) {
-		Vec2 head_B = _state->snake_B->getSegments()[0];
+	if (snakeB_active) {
 		Vec2 nextPos_B = _state->snake_B->getNextHeadPosition();
 
-		// Check if next position is a wall
-		if (_state->arena->getCell(nextPos_B.x, nextPos_B.y) == CellType::Wall) {
+		// --- Snake B: wall/obstacle via grid ---
+		CellType cellB = _state->arena->getCell(nextPos_B.x, nextPos_B.y);
+		if (cellB == CellType::Wall || cellB == CellType::Obstacle) {
 			_state->snake_B->setAsDead(true);
-			std::cout << "Snake B DIED against a wall" << std::endl;
-			return false;
+			std::cout << "Snake B DIED (wall/obstacle)" << std::endl;
 		}
 
-		// Check if snake_A's next position collides with snake_B's body 
-		for (int i = 0; i < _state->snake_B->getLength() - 1; i++)
-		{
-			if (_state->snake_B->getSegments()[i].x == nextPos_A.x && 
-					_state->snake_B->getSegments()[i].y == nextPos_A.y) {
-				_state->snake_A->setAsDead(true);
-				std::cout << "Snake A DIED against B snake" << std::endl;
+		// --- Snake B: self-collision via segments ---
+		if (!_state->snake_B->isDead()) {
+			int limit = _state->snake_B->getIsGrowing()
+					? _state->snake_B->getLength()
+					: _state->snake_B->getLength() - 1;
+			for (int i = 1; i < limit; i++) {
+				auto& seg = _state->snake_B->getSegments()[i];
+				if (seg.x == nextPos_B.x && seg.y == nextPos_B.y) {
+					_state->snake_B->setAsDead(true);
+					std::cout << "Snake B DIED (self)" << std::endl;
+					break;
+				}
 			}
 		}
 
-		// Check self-collision for snake B 
-		for (int i = 1; i < _state->snake_B->getLength() - 1; i++)
+		// --- Cross-collision: A into B's body (skip B's tail unless growing) ---
 		{
-			if (_state->snake_B->getSegments()[i].x == nextPos_B.x && 
-					_state->snake_B->getSegments()[i].y == nextPos_B.y) {
-				_state->snake_B->setAsDead(true);
-				std::cout << "Snake B DIED against itself" << std::endl;
+			int limit = _state->snake_B->getIsGrowing()
+					? _state->snake_B->getLength()
+					: _state->snake_B->getLength() - 1;
+			for (int i = 0; i < limit; i++) {
+				auto& seg = _state->snake_B->getSegments()[i];
+				if (seg.x == nextPos_A.x && seg.y == nextPos_A.y) {
+					_state->snake_A->setAsDead(true);
+					std::cout << "Snake A DIED (hit B)" << std::endl;
+					break;
+				}
 			}
 		}
 
-		if (_state->snake_B->isDead()) {
-			return false;
-		}
-
-		// Check if snake_B's next position collides with snake_A's body 
-		for (int i = 0; i < _state->snake_A->getLength() - 1; i++)
+		// --- Cross-collision: B into A's body ---
 		{
-			if (_state->snake_A->getSegments()[i].x == nextPos_B.x && 
-					_state->snake_A->getSegments()[i].y == nextPos_B.y) {
-				_state->snake_B->setAsDead(true);
-				std::cout << "Snake B DIED against A snake" << std::endl;
+			int limit = _state->snake_A->getIsGrowing()
+					? _state->snake_A->getLength()
+					: _state->snake_A->getLength() - 1;
+			for (int i = 0; i < limit; i++) {
+				auto& seg = _state->snake_A->getSegments()[i];
+				if (seg.x == nextPos_B.x && seg.y == nextPos_B.y) {
+					_state->snake_B->setAsDead(true);
+					std::cout << "Snake B DIED (hit A)" << std::endl;
+					break;
+				}
 			}
 		}
 
-		if (_state->snake_A->isDead() || _state->snake_B->isDead()) {
-			return false;
+		// --- Head-on ---
+		Vec2 headA = _state->snake_A->getSegments()[0];
+		Vec2 headB = _state->snake_B->getSegments()[0];
+		if (nextPos_A.x == headB.x && nextPos_A.y == headB.y &&
+			nextPos_B.x == headA.x && nextPos_B.y == headA.y) {
+			_state->snake_A->setAsDead(true);
+			_state->snake_B->setAsDead(true);
+			std::cout << "Head-on collision!" << std::endl;
 		}
 	}
 
-	return true;
+	return !(_state->snake_A->isDead() || (snakeB_active && _state->snake_B->isDead()));
 }
 
 void GameController::clearInputBuffer() {

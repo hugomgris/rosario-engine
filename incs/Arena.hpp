@@ -33,7 +33,7 @@ class Arena {
 		float spawnTimer = 0.0f;
 		float spawnDuration = 0.0f;
 		float fadeTimer = 0.0f;
-		float fadeDuration = 0.15f;
+		float fadeDuration = 0.1f;
 
 	public:
 		Arena(int width, int height, int squareSize); // W and H are in amount-of-squares magnitude

@@ -219,7 +219,7 @@ void MenuSystem::renderGameOver(Renderer& renderer, TextSystem& textSystem,
 	
 	// Show winner if not single player
 	if (state.config.mode != GameMode::SINGLE) {
-		textSystem.drawWinner(state, screenCenterX, screenCenterY, Color{255, 248, 227, 255});
+		textSystem.drawWinner(state, screenCenterX, screenCenterY + 60, Color{255, 248, 227, 255});
 	}
 	
 	// Show scores and retry prompt
@@ -326,7 +326,7 @@ void MenuSystem::startGame() {
 	
 	// Create new AI if needed
 	if (state.config.mode == GameMode::AI) {
-		state.aiController = std::make_unique<SnakeAI>(AIConfig::easy());
+		state.aiController = std::make_unique<SnakeAI>(AIConfig::medium());
 		gameController.setAIController(state.aiController.get()); 
 	}
 	
@@ -360,12 +360,16 @@ void MenuSystem::restartGame() {
 	GameState &state = gameController.getState();
 
 	state.snake_A->reset(state.width, state.height);
-	state.snake_B->resetAsMirrored(*state.snake_A, state.width, state.height);  // Mirror snake_A
+	if (state.snake_B) {
+		state.snake_B->resetAsMirrored(*state.snake_A, state.width, state.height);  // Mirror snake_A
+	}
 	state.food->reset(&state);
 	state.score = 0;
 	state.scoreB = 0;
 	state.snake_A->setAsDead(false);
-	state.snake_B->setAsDead(false);
+	if (state.snake_B) {
+		state.snake_B->setAsDead(false);
+	}
 	state.gameOver = false;
 	state.isPaused = false;
 	state.timing.accumulator = 0.0;

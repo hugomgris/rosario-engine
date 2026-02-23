@@ -158,6 +158,8 @@ Direction Snake::getDirection() const { return _direction; }
 bool Snake::didRemoveTail() const { return _didRemoveTail; }
 Vec2 Snake::getDroppedTail() const { return _lastDroppedTail; }
 
+bool Snake::getIsGrowing() const { return _isGrowing; }
+
 void Snake::move(){
 	auto head = _segments[0];
 	Vec2 previousPositions[_length];
