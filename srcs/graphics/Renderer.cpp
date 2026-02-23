@@ -44,7 +44,7 @@ void Renderer::init(int width, int height) {
 	SetConfigFlags(FLAG_VSYNC_HINT);
 	
 	InitWindow(screenWidth, screenHeight, "Nibbler 3D - Raylib");
-	//ToggleFullscreen();
+	ToggleFullscreen();
 	SetTargetFPS(60);	// Lock to 60 FPS
 	
 	setupCamera3D();

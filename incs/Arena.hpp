@@ -19,7 +19,13 @@ enum class WallPreset {
 	InterLock1,
 	Spiral1,
 	Columns1,
-	Columns2
+	Columns2,
+	Cross,
+	Checkerboard,
+	Maze,
+	Diamond,
+	Tunnels,
+	FourRooms,
 };
 
 class Arena {

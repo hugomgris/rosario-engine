@@ -284,19 +284,33 @@ void Arena::transformArenaWithPreset(WallPreset preset) {
 		case WallPreset::InterLock1:
 			ArenaPresets::applyInterlock1(*this);
 			break;
-
 		case WallPreset::Spiral1:
 			ArenaPresets::applySpiral1(*this);
 			break;
-
 		case WallPreset::Columns1:
 			ArenaPresets::applyColumns1(*this);
 			break;
-
 		case WallPreset::Columns2:
 			ArenaPresets::applyColumns2(*this);
 			break;
-
+		case WallPreset::Cross:
+			ArenaPresets::applyCross(*this);
+			break;
+		case WallPreset::Checkerboard:
+			ArenaPresets::applyCheckerboard(*this);
+			break;
+		case WallPreset::Maze:
+			ArenaPresets::applyMaze(*this);
+			break;
+		case WallPreset::Diamond:
+			ArenaPresets::applyDiamond(*this);
+			break;
+		case WallPreset::Tunnels:
+			ArenaPresets::applyTunnels(*this);
+			break;
+		case WallPreset::FourRooms:
+			ArenaPresets::applyFourRooms(*this);
+			break;
 		default:
 			std::cout << "Unknown wall preset!" << std::endl;
 	}

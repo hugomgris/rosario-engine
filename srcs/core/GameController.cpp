@@ -140,7 +140,7 @@ void GameController::processNextInput() {
 
 			if (_foodTracker == 2) {
 				if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
-				_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+				_state->arena->transformArenaWithPreset(ArenaPresets::getRandomPreset());
 				updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
 				if (_state->snake_B)
 					updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
@@ -172,7 +172,7 @@ void GameController::processNextInput() {
 
 				if (_foodTracker == 2) {
 					if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
-					_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+					_state->arena->transformArenaWithPreset(ArenaPresets::getRandomPreset());
 					updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
 					if (_state->snake_B)
 						updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
