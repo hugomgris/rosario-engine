@@ -138,12 +138,18 @@ void GameController::processNextInput() {
 			_state->score++;	// Increment score when food is eaten
 			_foodTracker++;
 
-			if (_foodTracker == 1) {
-				_state->arena->transformArenaWithPreset(WallPreset::Spiral1);
+			if (_foodTracker == 2) {
+				if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
+				_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+				updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
+				if (_state->snake_B)
+					updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
 				if (onArenaChangeSpawnCallBack)
 					onArenaChangeSpawnCallBack();
-			} else if (_foodTracker >= 5) {
-				_state->arena->clearArena();
+			} else if (_foodTracker >= 6) {
+				if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
+				if (onArenaClearCallBack)
+					onArenaClearCallBack();
 				_foodTracker = 0;
 			}
 			
@@ -164,15 +170,21 @@ void GameController::processNextInput() {
 				_state->scoreB++;	// Increment score when food is eaten
 				_foodTracker++;
 
-				if (_foodTracker == 1) {
+				if (_foodTracker == 2) {
+					if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
 					_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+					updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
+					if (_state->snake_B)
+						updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
 					if (onArenaChangeSpawnCallBack)
 						onArenaChangeSpawnCallBack();
-				} else if (_foodTracker >= 5) {
-					_state->arena->clearArena();
+				} else if (_foodTracker >= 6) {
+					if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
+					if (onArenaClearCallBack)
+						onArenaClearCallBack();
 					_foodTracker = 0;
 				}
-				
+								
 				if (!_state->food->replaceInFreeSpace(_state)) {
 					_state->isRunning = false;
 					std::cout << "YOU WIN" << std::endl;
@@ -187,7 +199,7 @@ bool GameController::checkGameOverCollision() {
 
 	// Snake A into Wall/Obstacle
 	CellType cellA = _state->arena->getCell(nextPos_A.x, nextPos_A.y);
-	if (cellA == CellType::Wall || cellA == CellType::Obstacle) {
+	if (cellA == CellType::Wall || cellA == CellType::Obstacle || cellA == CellType::DespawningSolid) {
 		_state->snake_A->setAsDead(true);
 		std::cout << "Snake A DIED (wall/obstacle)" << std::endl;
 	}
@@ -213,7 +225,7 @@ bool GameController::checkGameOverCollision() {
 
 		// Snake B into Wall/Obstacle
 		CellType cellB = _state->arena->getCell(nextPos_B.x, nextPos_B.y);
-		if (cellB == CellType::Wall || cellB == CellType::Obstacle) {
+		if (cellB == CellType::Wall || cellB == CellType::Obstacle || cellB == CellType::DespawningSolid) {
 			_state->snake_B->setAsDead(true);
 			std::cout << "Snake B DIED (wall/obstacle)" << std::endl;
 		}

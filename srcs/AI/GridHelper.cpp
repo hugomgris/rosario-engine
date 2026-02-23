@@ -11,11 +11,10 @@ bool GridHelper::isWalkable(const GameState& state, Vec2 pos,
 	int y = pos.y;
 
 	// Check arena walls (includes bounds checking)
-	if ((state.arena && state.arena->getCell(x, y) == CellType::Wall) ||
-			(state.arena && state.arena->getCell(x, y) == CellType::Obstacle)) {
+	CellType cell = state.arena ? state.arena->getCell(x, y) : CellType::Empty;
+	if (cell == CellType::Wall || cell == CellType::Obstacle || cell == CellType::DespawningSolid) {
 		return false;
 	}
-
 	// Check if in ignore list first
 	for (const Vec2& ignored : ignorePositions) {
 		if (pos.x == ignored.x && pos.y == ignored.y)

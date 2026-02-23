@@ -123,9 +123,19 @@ int main(int argc, char **argv) {
 	
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
-	gameController.setOnArenaChangeSpawnCallback([&animations, &arena]() {
+	float lineLifetime = 1.0f / animations.getTunnelConfig().animationSpeed;
+
+	gameController.setOnArenaChangeSpawnCallback([&]() {
 		animations.notifyArenaSpawning();
-		arena.beginSpawn(1.0f / animations.getAnimationSpeed());
+		arena.beginSpawn(lineLifetime);
+	});
+
+	gameController.setOnArenaClearCallback([&]() {
+		animations.notifyArenaDespawning();
+		arena.beginDespawn(lineLifetime);
+		animations.onDespawnReadyCallback = [&]() {
+			arena.startFadeOut();
+		};
 	});
 
 	// MAIN GAME LOOP
@@ -140,6 +150,7 @@ int main(int argc, char **argv) {
 		//----  MANAGEMENT PHASE  ----//
 		inputManager.update();
 		arena.tickSpawnTimer(deltaTime);
+		arena.tickDespawnTimer(deltaTime);
 
 		// general, non-gameplay poll input
 		Input preInput = inputManager.pollGameplayInput();

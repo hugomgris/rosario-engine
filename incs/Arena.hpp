@@ -11,7 +11,8 @@ enum class CellType {
 	Snake_A,
 	Snake_B,
 	Food,
-	SpawningSolid
+	SpawningSolid,
+	DespawningSolid
 };
 
 enum class WallPreset {
@@ -34,6 +35,10 @@ class Arena {
 		float spawnDuration = 0.0f;
 		float fadeTimer = 0.0f;
 		float fadeDuration = 0.1f;
+
+		float despawnTimer    = 0.0f;
+		float fadeOutTimer    = 0.0f;
+		float fadeOutDuration = 0.15f;
 
 	public:
 		Arena(int width, int height, int squareSize); // W and H are in amount-of-squares magnitude
@@ -63,9 +68,17 @@ class Arena {
 		void render(const Renderer& renderer) const;
 
 		// spawn management
+		bool isSpawning() const;
 		void tickSpawnTimer(float deltaTime);
 		bool hasSpawningCells() const { return spawnTimer > 0.0f; }
 		void beginSpawn(float solidifyDelay);
 		float getSpawnProgress() const { return 1.0f - (spawnTimer / spawnDuration); }
 		float getSpawnFadeProgress() const;
+
+		// despawning management
+		bool isDespawning() const;
+		void beginDespawn(float delay);
+		void tickDespawnTimer(float deltaTime);
+		float getDespawnFadeProgress() const;
+		void startFadeOut();
 };

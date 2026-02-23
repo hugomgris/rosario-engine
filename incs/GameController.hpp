@@ -24,6 +24,7 @@ class GameController {
 		int _foodTracker;
 
 		std::function<void()> onArenaChangeSpawnCallBack;
+		std::function<void()> onArenaClearCallBack;
 
 		using time = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
@@ -53,5 +54,9 @@ class GameController {
 
 		void setOnArenaChangeSpawnCallback(std::function<void()> callback) {
 			onArenaChangeSpawnCallBack = callback;
+		}
+
+		void setOnArenaClearCallback(std::function<void()> callback) {
+			onArenaClearCallBack = callback;
 		}
 };

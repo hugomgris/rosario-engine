@@ -46,6 +46,21 @@ void AnimationSystem::updateTunnelEffect(float deltaTime) {
 		tunnelLines.end()
 	);
 
+	if (despawnPending) {
+		bool oldLinesAlive = false;
+		for (const auto& line : tunnelLines) {
+			if (line.epoch < currentEpoch) {
+				oldLinesAlive = true;
+				break;
+			}
+		}
+		if (!oldLinesAlive) {
+			despawnPending = false;
+			if (onDespawnReadyCallback)
+				onDespawnReadyCallback();
+		}
+	}
+
 	// Spawn new lines at regular intervals
 	auto now = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<float> elapsed = now - lastTunnelSpawn;
@@ -115,9 +130,8 @@ void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop,
 												int borderRight, int borderBottom) {
 	if (!tunnelEffectEnabled || tunnelLines.empty()) return;
 
-	// Always refresh current shapes from arena
 	currentShapes = state->arena->getAllOutlines(borderLeft, borderTop);
-	tunnelLineShapes = currentShapes;	// keep member in sync for notifyArenaSpawning
+	tunnelLineShapes = currentShapes;
 
 	Vector2 arenaCenter = {
 		static_cast<float>(borderLeft + borderRight) / 2.0f,
@@ -147,6 +161,16 @@ void AnimationSystem::notifyArenaSpawning() {
 	for (auto& line : tunnelLines) {
 		line.epoch = currentEpoch - 1;
 	}
+}
+
+void AnimationSystem::notifyArenaDespawning() {
+	previousShapes = currentShapes;
+	currentEpoch++;
+
+	for (auto& line : tunnelLines)
+		line.epoch = currentEpoch - 1;
+
+	despawnPending = true;
 }
 
 void AnimationSystem::triggerScreenShake(const ScreenShakeConfig &config) {

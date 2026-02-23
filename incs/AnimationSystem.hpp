@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cmath>
 #include <algorithm>
+#include <functional>
 
 struct TunnelLine {
 	float progress;        // 0 = at center, 1 = at edge
@@ -118,6 +119,11 @@ class AnimationSystem {
 		bool isTunnelEffectEnabled() const { return tunnelEffectEnabled; }
 
 		void notifyArenaSpawning();
+		void notifyArenaDespawning();
+
+		// despawning stuff
+		std::function<void()> onDespawnReadyCallback;
+		bool despawnPending = false;
 
 		// scren shake managers (unsued for now)
 		void triggerScreenShake(const ScreenShakeConfig &config);

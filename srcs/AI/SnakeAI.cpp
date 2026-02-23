@@ -115,7 +115,8 @@ Input SnakeAI::maximizeSpace(const GameState& state) {
 
 bool SnakeAI::isSafeMove(const GameState& state, Vec2 nextPos) {
 	// Check arena walls (includes bounds checking)
-	if (state.arena && state.arena->getCell(nextPos.x, nextPos.y) == CellType::Wall) {
+	CellType cell = state.arena->getCell(nextPos.x, nextPos.y);
+	if (cell == CellType::Wall || cell == CellType::Obstacle || cell == CellType::DespawningSolid) {
 		return false;
 	}
 	
