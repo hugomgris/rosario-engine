@@ -39,7 +39,7 @@ void GameController::update()  {
 	
 	checkHeadFoodCollision();
 
-	/* // DEBUG AND TEST
+	/* // DEBUG
 	if (_foodTracker >= 5 && _foodTracker < 10) {
 		//_state->arena->spawnObstacle(10, 10, 5, 5);	
 		_state->arena->transformWallWithPreset(WallPreset::InterLock1); 
@@ -135,13 +135,13 @@ void GameController::processNextInput() {
 				_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
 				
 			_state->snake_A->grow();
-			_state->score++;  // Increment score when food is eaten
+			_state->score++;	// Increment score when food is eaten
 			_foodTracker++;
 
 			if (_foodTracker == 1) {
-				_state->arena->transformArenaWithPreset(WallPreset::Columns2);
+				_state->arena->transformArenaWithPreset(WallPreset::Spiral1);
 				if (onArenaChangeSpawnCallBack)
-   					onArenaChangeSpawnCallBack();
+					onArenaChangeSpawnCallBack();
 			} else if (_foodTracker >= 5) {
 				_state->arena->clearArena();
 				_foodTracker = 0;
@@ -161,13 +161,13 @@ void GameController::processNextInput() {
 					_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
 					
 				_state->snake_B->grow();
-				_state->scoreB++;  // Increment score when food is eaten
+				_state->scoreB++;	// Increment score when food is eaten
 				_foodTracker++;
 
 				if (_foodTracker == 1) {
 					_state->arena->transformArenaWithPreset(WallPreset::Columns2);
 					if (onArenaChangeSpawnCallBack)
-   						onArenaChangeSpawnCallBack();
+						onArenaChangeSpawnCallBack();
 				} else if (_foodTracker >= 5) {
 					_state->arena->clearArena();
 					_foodTracker = 0;
@@ -181,20 +181,19 @@ void GameController::processNextInput() {
 		}
 	}
 
-// TODO: handle snake B collision with obstacles and growths
 bool GameController::checkGameOverCollision() {
 	Vec2 nextPos_A = _state->snake_A->getNextHeadPosition();
 	bool snakeB_active = (_state->config.mode != GameMode::SINGLE && _state->snake_B);
 
-	// --- Snake A: wall/obstacle via grid (reliable) ---
+	// Snake A into Wall/Obstacle
 	CellType cellA = _state->arena->getCell(nextPos_A.x, nextPos_A.y);
 	if (cellA == CellType::Wall || cellA == CellType::Obstacle) {
 		_state->snake_A->setAsDead(true);
 		std::cout << "Snake A DIED (wall/obstacle)" << std::endl;
 	}
 
-	// --- Snake A: self-collision via segments ---
-	// Skip [0]=head, skip last segment (tail vacates unless growing)
+	// Snake A into Self
+	// Skip [0]=head, skip last segment (tail)
 	if (!_state->snake_A->isDead()) {
 		int limit = _state->snake_A->getIsGrowing()
 				? _state->snake_A->getLength()
@@ -212,14 +211,14 @@ bool GameController::checkGameOverCollision() {
 	if (snakeB_active) {
 		Vec2 nextPos_B = _state->snake_B->getNextHeadPosition();
 
-		// --- Snake B: wall/obstacle via grid ---
+		// Snake B into Wall/Obstacle
 		CellType cellB = _state->arena->getCell(nextPos_B.x, nextPos_B.y);
 		if (cellB == CellType::Wall || cellB == CellType::Obstacle) {
 			_state->snake_B->setAsDead(true);
 			std::cout << "Snake B DIED (wall/obstacle)" << std::endl;
 		}
 
-		// --- Snake B: self-collision via segments ---
+		// Snake B into Self
 		if (!_state->snake_B->isDead()) {
 			int limit = _state->snake_B->getIsGrowing()
 					? _state->snake_B->getLength()
@@ -234,7 +233,7 @@ bool GameController::checkGameOverCollision() {
 			}
 		}
 
-		// --- Cross-collision: A into B's body (skip B's tail unless growing) ---
+		// Snake A into Snake B
 		{
 			int limit = _state->snake_B->getIsGrowing()
 					? _state->snake_B->getLength()
@@ -249,7 +248,7 @@ bool GameController::checkGameOverCollision() {
 			}
 		}
 
-		// --- Cross-collision: B into A's body ---
+		// Snake B into Snake A
 		{
 			int limit = _state->snake_A->getIsGrowing()
 					? _state->snake_A->getLength()
@@ -264,7 +263,7 @@ bool GameController::checkGameOverCollision() {
 			}
 		}
 
-		// --- Head-on ---
+		// Head into Head collision
 		Vec2 headA = _state->snake_A->getSegments()[0];
 		Vec2 headB = _state->snake_B->getSegments()[0];
 		if (nextPos_A.x == headB.x && nextPos_A.y == headB.y &&

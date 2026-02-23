@@ -14,8 +14,8 @@ MenuSystem::MenuSystem(GameController &controller) :
 	screenHeight(1080) {}
 
 void MenuSystem::init(int width, int height) {
-	(void)width;   // Reserved for future use
-	(void)height;  // Reserved for future use
+	(void)width;	// Reserved for future use
+	(void)height;	// Reserved for future use
 	screenWidth = 1920;
 	screenHeight = 1080;
 	setState(MenuState::Start);
@@ -32,21 +32,21 @@ void MenuSystem::initializeButtons() {
 
 	// Unified while coding the buttons, will design them properly later.
 	// Colors
-		Color buttonOutline = snakeALightSide;   // Semi-transparent blue
-		Color buttonBackground = customBlack;
-		Color textColor = customWhite;     // White
-		Color textHoverColor = customBlack;
-		Color buttonHover = customWhite;   // Brighter blue
-		Color outlineHoverColor = customWhite;
-		
-		// Button dimensions
-		float buttonWidth = 300;
-		float buttonHeight = 60;
-		float spacing = 20;
-		
-		// Center buttons below the logo
-		float startY = screenHeight / 2 + 200;
-		float centerX = screenWidth / 2 - buttonWidth / 2;
+	Color buttonOutline = snakeALightSide;		// Semi-transparent blue
+	Color buttonBackground = customBlack;
+	Color textColor = customWhite;				// White
+	Color textHoverColor = customBlack;
+	Color buttonHover = customWhite;			// Brighter blue
+	Color outlineHoverColor = customWhite;
+	
+	// Button dimensions
+	float buttonWidth = 300;
+	float buttonHeight = 60;
+	float spacing = 20;
+	
+	// Center buttons below the logo
+	float startY = screenHeight / 2 + 200;
+	float centerX = screenWidth / 2 - buttonWidth / 2;
 	
 	if (currentState == MenuState::Start) {		
 		// Start button (placeholder for now)
@@ -128,7 +128,7 @@ void MenuSystem::initializeButtons() {
 		};
 		
 		buttons.push_back(quitButton);
-	} // Other menu states coming soon
+	} // expansion of the menu still to come
 }
 
 void MenuSystem::clearButtons() {
@@ -162,19 +162,15 @@ void MenuSystem::render(Renderer& renderer, TextSystem& textSystem,
 	int square = 30;
 	int sep = 15;
 
-	// Render tunnel effect
 	animations.renderTunnelEffect();
 
-	// Render particles
 	particles.render();
 	
-	// Render logo
 	textSystem.drawLogo(screenCenterX, screenCenterY, square, sep, 
 					Color{255, 248, 227, 255},  // customWhite
 					Color{70, 130, 180, 255},   // blue
 					Color{254, 74, 81, 255});   // red
 	
-	// Show current game mode below logo
 	const char* modeText = "";
 	switch (state.config.mode) {
 		case GameMode::SINGLE:
@@ -209,10 +205,8 @@ void MenuSystem::renderGameOver(Renderer& renderer, TextSystem& textSystem,
 	int square = 30;
 	int sep = 15;
 	
-	// Render particles
 	particles.render();
 	
-	// Render game over logo
 	textSystem.drawGameOverLogo(screenCenterX, screenCenterY, square, sep,
 							Color{255, 248, 227, 255},  // customWhite
 							Color{125, 125, 125, 255}); // customGray
@@ -223,19 +217,18 @@ void MenuSystem::renderGameOver(Renderer& renderer, TextSystem& textSystem,
 	}
 	
 	// Show scores and retry prompt
-	//textSystem.drawScore(state, screenCenterX, screenCenterY, Color{255, 248, 227, 255});
-	//textSystem.drawRetryPrompt(screenCenterX, screenCenterY, Color{255, 248, 227, 255});
+	// Right now, legacy from V1, need to either get rid of it or re-incorporate it to V2
+	/* textSystem.drawScore(state, screenCenterX, screenCenterY, Color{255, 248, 227, 255});
+	textSystem.drawRetryPrompt(screenCenterX, screenCenterY, Color{255, 248, 227, 255}); */
 
-		Vector2 mousePos = GetMousePosition();
-		for (size_t i = 0; i < buttons.size(); i++) {
-			bool hovered = buttons[i].isHovered(mousePos) || (i == static_cast<size_t>(selectedButtonIndex));
-			buttons[i].render(hovered);
-		}
+	Vector2 mousePos = GetMousePosition();
+	for (size_t i = 0; i < buttons.size(); i++) {
+		bool hovered = buttons[i].isHovered(mousePos) || (i == static_cast<size_t>(selectedButtonIndex));
+		buttons[i].render(hovered);
+	}
 	
-	// Render tunnel effect
 	animations.renderTunnelEffect();
 	
-	// Render fullscreen border
 	renderer.drawBorderFullscreen(25);
 }
 
@@ -269,7 +262,7 @@ void MenuSystem::handleNavigation(NavigationAction action) {
 			break;
 
 		case NavigationAction::Cancel:
-			// Go back / quite
+			// Go back / quit
 			if (currentState == MenuState::Start) {
 				quitGame();
 			}
@@ -361,7 +354,7 @@ void MenuSystem::restartGame() {
 
 	state.snake_A->reset(state.width, state.height);
 	if (state.snake_B) {
-		state.snake_B->resetAsMirrored(*state.snake_A, state.width, state.height);  // Mirror snake_A
+		state.snake_B->resetAsMirrored(*state.snake_A, state.width, state.height);	// Mirror snake_A
 	}
 	state.food->reset(&state);
 	state.score = 0;
@@ -380,8 +373,7 @@ void MenuSystem::restartGame() {
 
 	resetButtonIndex();
 
-	setState(MenuState::Start);
-	// gameOverStateSet flag in main.cpp will be reset on next state transition
+	setState(MenuState::Start);	// gameOverStateSet flag in main.cpp will be reset on next state transition
 }
 
 void MenuSystem::quitGame() {

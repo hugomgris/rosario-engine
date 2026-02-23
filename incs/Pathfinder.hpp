@@ -13,8 +13,8 @@ class PathFinder: protected GridHelper {
 private:
 	struct Node {
 		Vec2 pos;
-		int gCost;                              // Distance from start
-		int hCost;                              // Heuristic to goal
+		int gCost;		// Distance from start
+		int hCost;		// Heuristic to goal
 		int fCost() const { return gCost + hCost; }
 		Node* parent;
 	};
@@ -45,6 +45,6 @@ public:
 		const GameState& state,
 		Vec2 start,
 		Vec2 goal,
-		int maxDepth = 200                      // Difficulty tuning
+		int maxDepth = 200 	// Difficulty tuning
 	);
 };

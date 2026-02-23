@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 
 	InputManager inputManager;
 	inputManager.registerNavigationCallback([&menu](NavigationAction action) {
-    	menu.handleNavigation(action);
+		menu.handleNavigation(action);
 	});
 	inputManager.registerMouseCallback([&menu](Vector2 pos, bool clicked) {
 		menu.handleMouseInput(pos, clicked);
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 
 			case GameStateType::Playing: {
 				inputManager.setContext(InputContext::Gameplay);
-            	Input input = inputManager.pollGameplayInput();
+				Input input = inputManager.pollGameplayInput();
 				
 				if (input == Input::Pause)
 					inputManager.processInput(input, state);
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 				
 			case GameStateType::Paused: {
 				inputManager.setContext(InputContext::Paused);
-            	Input input = inputManager.pollGameplayInput();
+				Input input = inputManager.pollGameplayInput();
 				
 				if (input == Input::Pause)
 					inputManager.processInput(input, state);

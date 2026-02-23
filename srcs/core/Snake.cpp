@@ -221,7 +221,7 @@ void Snake::changeDirection(Direction dir) {
 
 void Snake::grow() {
 	if (_length >= _maxLength) {
-		// Snake has filled the entire arena - this is a win condition!
+		// Snake has filled the entire arena, which should trigger a win condition (will this ever happen to anyone tho?)
 		return;
 	}
 	_segments[_length] = Vec2{ _segments[_length - 1].x, _segments[_length - 1].y };

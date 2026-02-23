@@ -19,7 +19,7 @@ public:
 	int countReachable(
 		const GameState& state,
 		Vec2 start,
-		const std::vector<Vec2>& ignorePositions = {}       // mostly for the tail right now
+		const std::vector<Vec2>& ignorePositions = {}	// mostly for the tail right now
 	);
 	
 	bool canReachTail(

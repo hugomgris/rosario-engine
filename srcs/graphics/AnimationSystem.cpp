@@ -61,26 +61,26 @@ void AnimationSystem::updateTunnelEffect(float deltaTime) {
 }
 
 void AnimationSystem::renderTunnelLine(const TunnelLine& line,
-                                        const std::vector<Vector2>& outerShape,
-                                        const Vector2& center,
-                                        float maxInset) const {
-    if (outerShape.empty()) return;
+										const std::vector<Vector2>& outerShape,
+										const Vector2& center,
+										float maxInset) const {
+	if (outerShape.empty()) return;
 
-    // progress 0 = just spawned = start at inset (near center)
-    // progress 1 = dying       = at the outline (outer shape)
-    float insetRatio = 1.0f - line.progress;
+	// progress 0 = just spawned	= start at inset (near center)
+	// progress 1 = dying			= at the outline (outer shape)
+	float insetRatio = 1.0f - line.progress;
 
-    std::vector<Vector2> currentShape = calculateInsetShape(outerShape, center, insetRatio, maxInset);
+	std::vector<Vector2> currentShape = calculateInsetShape(outerShape, center, insetRatio, maxInset);
 
-    // Fade OUT as lines reach the wall (alpha goes 255 → 0)
-    unsigned char alpha = static_cast<unsigned char>(line.progress * 255);
-    Color fadedColor = currentTunnelConfig.lineColor;
-    fadedColor.a = alpha;
+	// Fade OUT as lines reach the wall (alpha goes 255 → 0)
+	unsigned char alpha = static_cast<unsigned char>(line.progress * 255);
+	Color fadedColor = currentTunnelConfig.lineColor;
+	fadedColor.a = alpha;
 
-    for (size_t i = 0; i < currentShape.size(); i++) {
-        size_t nextIndex = (i + 1) % currentShape.size();
-        DrawLineEx(currentShape[i], currentShape[nextIndex], tunnelLineThickness, fadedColor);
-    }
+	for (size_t i = 0; i < currentShape.size(); i++) {
+		size_t nextIndex = (i + 1) % currentShape.size();
+		DrawLineEx(currentShape[i], currentShape[nextIndex], tunnelLineThickness, fadedColor);
+	}
 }
 
 void AnimationSystem::renderTunnelEffect() {
@@ -117,7 +117,7 @@ void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop,
 
 	// Always refresh current shapes from arena
 	currentShapes = state->arena->getAllOutlines(borderLeft, borderTop);
-	tunnelLineShapes = currentShapes;  // keep member in sync for notifyArenaSpawning
+	tunnelLineShapes = currentShapes;	// keep member in sync for notifyArenaSpawning
 
 	Vector2 arenaCenter = {
 		static_cast<float>(borderLeft + borderRight) / 2.0f,
@@ -140,7 +140,7 @@ void AnimationSystem::renderTunnelEffectCustom(int borderLeft, int borderTop,
 
 void AnimationSystem::notifyArenaSpawning() {
 	// snapshot the current outlines as previous
-	// new lines -> whatever getALlOutlines returns
+	// new lines = whatever getALlOutlines returns
 	previousShapes = currentShapes;
 	currentEpoch++;
 
@@ -169,7 +169,7 @@ void AnimationSystem::updateScreenShake(float deltaTime) {
 }
 
 // tunnel effec helpers
-// mainly used for the default lines in menu (for now, at least)
+// this one mainly used for the default lines in menu (for now, at least)
 std::vector<Vector2> AnimationSystem::createRectangularShape(int left, int top, int right, int bottom) const {
 	return {
 		{static_cast<float>(left), static_cast<float>(top)},		// Top-left
@@ -181,35 +181,34 @@ std::vector<Vector2> AnimationSystem::createRectangularShape(int left, int top, 
 
 // inset polygon calculation
 std::vector<Vector2> AnimationSystem::calculateInsetShape(const std::vector<Vector2>& outerShape,
-                                                           const Vector2& center,
-                                                           float insetRatio,
-                                                           float maxInsetPixels) const {
-    if (outerShape.empty()) return {};
+														const Vector2& center,
+														float insetRatio,
+														float maxInsetPixels) const {
+	if (outerShape.empty()) return {};
 
-    // Use a fixed reference distance — the arena half-diagonal —
-    // so that ALL shapes (border, spiral arms, islands) use the same
-    // scale factor and appear as one coherent depth layer.
-    float refDist = std::sqrt(
-        (center.x * 2) * (center.x * 2) +
-        (center.y * 2) * (center.y * 2)
-    ) / 2.0f;
+	// Use a fixed reference distance (the arena half-diagonal) -> i.e., all shapes "fugue" to the center of the arena
+	// ALL shapes (border, spiral arms, islands) use the same scale factor for coherence (and because that's the targeted effect, lol)
+	float refDist = std::sqrt(
+		(center.x * 2) * (center.x * 2) +
+		(center.y * 2) * (center.y * 2)
+	) / 2.0f;
 
-    if (refDist < 0.001f) return outerShape;
+	if (refDist < 0.001f) return outerShape;
 
-    float minScale = std::max(0.0f, (refDist - maxInsetPixels) / refDist);
-    float scale = minScale + (1.0f - minScale) * (1.0f - insetRatio);
+	float minScale = std::max(0.0f, (refDist - maxInsetPixels) / refDist);
+	float scale = minScale + (1.0f - minScale) * (1.0f - insetRatio);
 
-    std::vector<Vector2> insetShape;
-    insetShape.reserve(outerShape.size());
+	std::vector<Vector2> insetShape;
+	insetShape.reserve(outerShape.size());
 
-    for (const Vector2& point : outerShape) {
-        float dx = point.x - center.x;
-        float dy = point.y - center.y;
-        insetShape.push_back({
-            center.x + dx * scale,
-            center.y + dy * scale
-        });
-    }
+	for (const Vector2& point : outerShape) {
+		float dx = point.x - center.x;
+		float dy = point.y - center.y;
+		insetShape.push_back({
+			center.x + dx * scale,
+			center.y + dy * scale
+		});
+	}
 
-    return insetShape;
+	return insetShape;
 }

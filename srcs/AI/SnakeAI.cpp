@@ -14,21 +14,21 @@ Input positionToInput(Vec2 from, Vec2 to) {
 	int dy = to.y - from.y;
 	
 	// Determine direction based on delta
-	if (dx > 0) return Input::Right_B;  // Moving right
-	if (dx < 0) return Input::Left_B;   // Moving left
-	if (dy > 0) return Input::Down_B;   // Moving down
-	if (dy < 0) return Input::Up_B;     // Moving up
+	if (dx > 0) return Input::Right_B;	// Moving right
+	if (dx < 0) return Input::Left_B;	// Moving left
+	if (dy > 0) return Input::Down_B;	// Moving down
+	if (dy < 0) return Input::Up_B;		// Moving up
 	
-	return Input::None;  // No movement
+	return Input::None;		// No movement
 }
 
 Vec2 getNextPosition(Vec2 head, Input direction) {
 	switch (direction) {
-		case Input::Up_B:    return {head.x, head.y - 1};
-		case Input::Down_B:  return {head.x, head.y + 1};
-		case Input::Left_B:  return {head.x - 1, head.y};
-		case Input::Right_B: return {head.x + 1, head.y};
-		default:             return head;
+		case Input::Up_B:		return {head.x, head.y - 1};
+		case Input::Down_B:		return {head.x, head.y + 1};
+		case Input::Left_B:		return {head.x - 1, head.y};
+		case Input::Right_B:	return {head.x + 1, head.y};
+		default:				return head;
 	}
 }
 
@@ -45,7 +45,7 @@ Input SnakeAI::goToFood(const GameState& state) {
 		// tail reachable check
 		if (config.useSafetyCheck) {
 			if (!floodFill.canReachTail(state, state.snake_B, path)) {
-				// if the path is unsafe, go into survival mode if available (square movement, basically)
+				// if the path is unsafe, go into survival mode if available (loop on self, basically)
 				if (config.hasSurvivalMode) {
 					return survivalMode(state);
 				}
@@ -182,6 +182,6 @@ Input SnakeAI::decideNextMove(const GameState& state) {
 		return spaceMove;
 	}
 	
-	// 4 - AI is turbo cooked, but something  needs to be returned
+	// 4 - At this point AI is turbo cooked, but something  needs to be returned
 	return Input::Left_B;
 }

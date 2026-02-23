@@ -39,11 +39,11 @@ class Renderer {
 		
 		// 2D layout calculations
 		int			borderThickness;
-		int			arenaWidth;    // Total arena including borders
+		int			arenaWidth;		// Total arena including borders
 		int			arenaHeight;
-		int			arenaOffsetX;  // Center offset in screen
+		int			arenaOffsetX;	// Center offset in screen
 		int			arenaOffsetY;
-		int			gameAreaX;     // Where game grid starts (after border)
+		int			gameAreaX;		// Where game grid starts (after border)
 		int			gameAreaY;
 		
 		// 2D tail tracking (for particle trails)
@@ -60,8 +60,8 @@ class Renderer {
 		int lastFoodX = -1;
 		int lastFoodY = -1;
 		
-		void calculate2DLayout();  // Helper to compute arena positioning
-		Vector2 gridToScreen2D(int gridX, int gridY) const;  // Convert grid coords to screen coords
+		void calculate2DLayout();								// Helper to compute arena positioning
+		Vector2 gridToScreen2D(int gridX, int gridY) const;		// Convert grid coords to screen coords
 	
 		float	accumulatedTime;
 		

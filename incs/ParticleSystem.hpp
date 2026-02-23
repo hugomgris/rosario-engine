@@ -12,8 +12,8 @@ enum class ParticleType {
 };
 
 struct Particle {
-	float			x, y;				// Center position
-	float			vx, vy;				// Velocity for movement
+	float			x, y;		// Center position
+	float			vx, vy;		// Velocity for movement
 	float			rotation;          
 	float			rotationSpeed;     
 	float			initialSize;

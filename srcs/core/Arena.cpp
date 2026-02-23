@@ -28,7 +28,7 @@ void Arena::setCell(int x, int y, CellType type) {
 CellType Arena::getCell(int x, int y) const { 
 	// Bounds check for game coordinates
 	if (x < 0 || x >= gridWidth - 2 || y < 0 || y >= gridHeight - 2) {
-		return CellType::Wall;  // Out of bounds treated as wall
+		return CellType::Wall;	// Out of bounds treated as wall
 	}
 	return grid[y + 1][x + 1]; 
 }
@@ -144,15 +144,15 @@ void Arena::render(const Renderer& renderer) const {
 	bool fading = (fadeTimer > 0.0f);
 	float eased = 0.0f;
 	if (fading) {
-		float p = getSpawnFadeProgress();   // 0→1 over fadeDuration
-		eased = p * p;                      // ease-in snap
+		float p = getSpawnFadeProgress();	// 0→1 over fadeDuration
+		eased = p * p;						// ease-in snap
 	}
 
 	for (int y = 0; y < gridHeight; y++) {
 		for (int x = 0; x < gridWidth; x++) {
 			if (grid[y][x] == CellType::Empty) continue;
 
-			if (grid[y][x] == CellType::SpawningSolid) continue; // invisible during countdown
+			if (grid[y][x] == CellType::SpawningSolid) continue;	// invisible during countdown
 
 			if (grid[y][x] == CellType::Wall) {
 				renderer.drawBorderBrick(x, y, wallColor);
@@ -195,7 +195,7 @@ std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
 	auto addEdge = [&](IVec2 a, IVec2 b) {
 		if (cancelled.count(a)) return;
 		if (next.count(a)) {
-			// Conflict: two cells want to write this edge — it's an interior edge, cancel it
+			// Conflict: two cells want to write this edge = it's an interior edge, so CANCEL it
 			next.erase(a);
 			cancelled.insert(a);
 		} else {
@@ -237,6 +237,7 @@ std::vector<Vector2> Arena::getArenaOutline(int offsetX, int offsetY) {
 		prev = cur;
 		cur  = nxt;
 	}
+
 	// Check start corner
 	if (!outline.empty()) {
 		IVec2 nxt = next[start];
@@ -298,9 +299,9 @@ std::vector<std::vector<Vector2>> Arena::getAllOutlines(int offsetX, int offsetY
 		for (auto& kv : next)
 			if (kv.first < start) start = kv.first;
 
-		// --- Walk once to collect corners ---
+		// walk once to collect corners
 		std::vector<Vector2> outline;
-		std::vector<IVec2> loopNodes;   // track every node in this loop
+		std::vector<IVec2> loopNodes;	// track every node in this loop
 		IVec2 prev = start;
 		IVec2 cur  = next[start];
 		loopNodes.push_back(start);
@@ -334,7 +335,7 @@ std::vector<std::vector<Vector2>> Arena::getAllOutlines(int offsetX, int offsetY
 		if (!outline.empty())
 			allOutlines.push_back(outline);
 
-		// --- Erase every node that belonged to this loop ---
+		// erase every node that belonged to this loop
 		for (const IVec2& node : loopNodes)
 			next.erase(node);
 	}
@@ -380,7 +381,7 @@ void Arena::tickSpawnTimer(float deltaTime) {
 					if (grid[y][x] == CellType::SpawningSolid)
 						grid[y][x] = CellType::Obstacle;
 
-			// Kick off the fade-in timer
+			// launch the fade-in timer
 			fadeTimer = fadeDuration;
 		}
 		return;
@@ -398,8 +399,7 @@ void Arena::beginSpawn(float solidifyDelay) {
 
 float Arena::getSpawnFadeProgress() const {
 	if (fadeDuration <= 0.0f) return 1.0f;
-	if (fadeTimer <= 0.0f)    return 1.0f;   // fully opaque once done
-	// fadeTimer counts DOWN from fadeDuration to 0
-	// so progress goes 0.0 → 1.0
+	if (fadeTimer <= 0.0f)    return 1.0f;	// fully opaque once done
+
 	return 1.0f - (fadeTimer / fadeDuration);
 }

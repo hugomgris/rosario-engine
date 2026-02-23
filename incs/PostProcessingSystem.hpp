@@ -61,9 +61,9 @@ class PostProcessingSystem {
 
 	// presets
 		static PostProcessConfig presetCRT();
-		static PostProcessConfig presetCRTBloom();  // CRT + Bloom combined
+		static PostProcessConfig presetCRTBloom();		// CRT + Bloom combined
 		static PostProcessConfig presetClean();
-		static PostProcessConfig presetMenu();		// runtime control
+		static PostProcessConfig presetMenu();			// runtime control
 		void toggleEffect(PostProcessEffect effect);
 		void setEffectIntensity(PostProcessEffect effect, float intensity);
 
