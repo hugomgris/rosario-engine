@@ -135,6 +135,10 @@ void GameController::processNextInput() {
 				_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
 				
 			_state->snake_A->grow();
+			for (int i = 0; i < _state->snake_A->getLength(); i++) {
+				auto& seg = _state->snake_A->getSegments()[i];
+				_state->arena->setCell(seg.x, seg.y, CellType::Snake_A);
+			}
 			_state->score++;	// Increment score when food is eaten
 			_foodTracker++;
 
@@ -167,6 +171,10 @@ void GameController::processNextInput() {
 					_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
 					
 				_state->snake_B->grow();
+				for (int i = 0; i < _state->snake_B->getLength(); i++) {
+					auto& seg = _state->snake_B->getSegments()[i];
+					_state->arena->setCell(seg.x, seg.y, CellType::Snake_B);
+				}
 				_state->scoreB++;	// Increment score when food is eaten
 				_foodTracker++;
 
@@ -196,93 +204,80 @@ void GameController::processNextInput() {
 bool GameController::checkGameOverCollision() {
 	Vec2 nextPos_A = _state->snake_A->getNextHeadPosition();
 	bool snakeB_active = (_state->config.mode != GameMode::SINGLE && _state->snake_B);
+	Vec2 nextPos_B = snakeB_active ? _state->snake_B->getNextHeadPosition() : Vec2{-1,-1};
 
-	// Snake A into Wall/Obstacle
+	// Check A
 	CellType cellA = _state->arena->getCell(nextPos_A.x, nextPos_A.y);
-	if (cellA == CellType::Wall || cellA == CellType::Obstacle || cellA == CellType::DespawningSolid) {
+	if (cellA == CellType::Wall || cellA == CellType::Obstacle || cellA == CellType::DespawningSolid)
 		_state->snake_A->setAsDead(true);
-		std::cout << "Snake A DIED (wall/obstacle)" << std::endl;
-	}
 
-	// Snake A into Self
-	// Skip [0]=head, skip last segment (tail)
+	// Snake A into self
 	if (!_state->snake_A->isDead()) {
 		int limit = _state->snake_A->getIsGrowing()
-				? _state->snake_A->getLength()
-				: _state->snake_A->getLength() - 1;
+			? _state->snake_A->getLength()
+			: _state->snake_A->getLength() - 1;
 		for (int i = 1; i < limit; i++) {
 			auto& seg = _state->snake_A->getSegments()[i];
 			if (seg.x == nextPos_A.x && seg.y == nextPos_A.y) {
 				_state->snake_A->setAsDead(true);
-				std::cout << "Snake A DIED (self)" << std::endl;
 				break;
 			}
 		}
 	}
 
 	if (snakeB_active) {
-		Vec2 nextPos_B = _state->snake_B->getNextHeadPosition();
-
-		// Snake B into Wall/Obstacle
 		CellType cellB = _state->arena->getCell(nextPos_B.x, nextPos_B.y);
-		if (cellB == CellType::Wall || cellB == CellType::Obstacle || cellB == CellType::DespawningSolid) {
+		if (cellB == CellType::Wall || cellB == CellType::Obstacle || cellB == CellType::DespawningSolid)
 			_state->snake_B->setAsDead(true);
-			std::cout << "Snake B DIED (wall/obstacle)" << std::endl;
-		}
 
-		// Snake B into Self
+		// Snake B into self
 		if (!_state->snake_B->isDead()) {
 			int limit = _state->snake_B->getIsGrowing()
-					? _state->snake_B->getLength()
-					: _state->snake_B->getLength() - 1;
+				? _state->snake_B->getLength()
+				: _state->snake_B->getLength() - 1;
 			for (int i = 1; i < limit; i++) {
 				auto& seg = _state->snake_B->getSegments()[i];
 				if (seg.x == nextPos_B.x && seg.y == nextPos_B.y) {
 					_state->snake_B->setAsDead(true);
-					std::cout << "Snake B DIED (self)" << std::endl;
 					break;
 				}
 			}
 		}
 
-		// Snake A into Snake B
-		{
-			int limit = _state->snake_B->getIsGrowing()
+		// Cross-collision: check NEXT positions against each other
+		// A into B's next head OR current body (excluding tail that will move)
+		if (!_state->snake_A->isDead()) {
+			// Head-on
+			if (nextPos_A.x == nextPos_B.x && nextPos_A.y == nextPos_B.y) {
+				_state->snake_A->setAsDead(true);
+				_state->snake_B->setAsDead(true);
+			} else {
+				// A into B's body
+				int limit = _state->snake_B->getIsGrowing()
 					? _state->snake_B->getLength()
 					: _state->snake_B->getLength() - 1;
-			for (int i = 0; i < limit; i++) {
-				auto& seg = _state->snake_B->getSegments()[i];
-				if (seg.x == nextPos_A.x && seg.y == nextPos_A.y) {
-					_state->snake_A->setAsDead(true);
-					std::cout << "Snake A DIED (hit B)" << std::endl;
-					break;
+				for (int i = 0; i < limit; i++) {
+					auto& seg = _state->snake_B->getSegments()[i];
+					if (seg.x == nextPos_A.x && seg.y == nextPos_A.y) {
+						_state->snake_A->setAsDead(true);
+						break;
+					}
 				}
 			}
 		}
 
-		// Snake B into Snake A
-		{
+		// B into A's body
+		if (!_state->snake_B->isDead()) {
 			int limit = _state->snake_A->getIsGrowing()
-					? _state->snake_A->getLength()
-					: _state->snake_A->getLength() - 1;
+				? _state->snake_A->getLength()
+				: _state->snake_A->getLength() - 1;
 			for (int i = 0; i < limit; i++) {
 				auto& seg = _state->snake_A->getSegments()[i];
 				if (seg.x == nextPos_B.x && seg.y == nextPos_B.y) {
 					_state->snake_B->setAsDead(true);
-					std::cout << "Snake B DIED (hit A)" << std::endl;
 					break;
 				}
 			}
-		}
-
-		// Head into Head collision
-		Vec2 headA = _state->snake_A->getSegments()[0];
-		Vec2 headB = _state->snake_B->getSegments()[0];
-		if (nextPos_A.x == headB.x && nextPos_A.y == headB.y &&
-			nextPos_B.x == headA.x && nextPos_B.y == headA.y) {
-			_state->snake_A->setAsDead(true);
-			_state->snake_B->setAsDead(true);
-			std::cout << "Head-on collision!" << std::endl;
 		}
 	}
 
