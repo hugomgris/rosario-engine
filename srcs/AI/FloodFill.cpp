@@ -4,8 +4,8 @@
 int FloodFill::countReachable(const GameState& state, Vec2 start, 
 							const std::vector<Vec2>& ignorePositions) {
 	// Check arena walls for start position (includes bounds checking)
-	if (state.arena && state.arena->getCell(start.x, start.y) == CellType::Wall ||
-			state.arena && state.arena->getCell(start.x, start.y) == CellType::Obstacle)
+	if ((state.arena && state.arena->getCell(start.x, start.y) == CellType::Wall) ||
+			(state.arena && state.arena->getCell(start.x, start.y) == CellType::Obstacle))
 		return 0;
 	
 	std::vector<std::vector<bool>> visited(state.width, 

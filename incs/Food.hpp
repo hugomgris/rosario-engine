@@ -7,8 +7,6 @@ class Arena;
 class Food {
 	private:
 		Vec2		_position;
-		int			_hLimit;
-		int			_vLimit;
 		const char	*_foodChar;
 
 	public:

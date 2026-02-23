@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
 	// TIMING and preparations
 	food.replaceInFreeSpace(&state);
 
-	const double TARGET_FPS = 10.0;					// Snake moves 10 times per second
+	const double TARGET_FPS = 12.0;					// Snake moves 10 times per second
 	const double FRAME_TIME = 1.0 / TARGET_FPS; 	// 0.1 seconds per update
 	
 	auto lastTime = std::chrono::high_resolution_clock::now();
@@ -137,11 +137,11 @@ int main(int argc, char **argv) {
 		float deltaTime = frameTime.count();
 		lastTime = currentTime;
 		
-		// update phase
+		//----  MANAGEMENT PHASE  ----//
 		inputManager.update();
 		arena.tickSpawnTimer(deltaTime);
 
-		// general, cross modes poll input
+		// general, non-gameplay poll input
 		Input preInput = inputManager.pollGameplayInput();
 		if (preInput == Input::ToggleFS) {
 			ToggleFullscreen();
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 				
 				if (input == Input::Pause)
 					inputManager.processInput(input, state);
-				break;  // Add missing break
+				break;
 			}
 				
 			case GameStateType::GameOver: {
@@ -201,7 +201,8 @@ int main(int argc, char **argv) {
 			}
 		}
 		
-		//rendering phase
+		//----  RENDERING PHASE  ----//
+
 		postProcess.beginCapture();
 		ClearBackground(Color{23, 23, 23, 255});
 
@@ -223,30 +224,21 @@ int main(int argc, char **argv) {
 			case GameStateType::Paused: {
 				switch (state.renderMode) {
 					case RenderMode::MODE3D:
-						// 3D gameplay rendering (Paused uses same render, just frozen)
 						BeginMode3D(renderer.getCamera3D());
 						renderer.render3D(state, state.isPaused ? 0.0f : deltaTime);
 						EndMode3D();
-						
-						// UI overlay
-						/* DrawText("Press 1/2/3 to switch libraries", 10, 10, 20, customWhite);
-						DrawText("Arrow keys to move, Q/ESC to quit", 10, 35, 20, customWhite);
-						DrawFPS(screenWidth - 95, 10); */
 						break;
 
 					case RenderMode::MODE2D:
-						// Update renderer state
 						BeginMode2D(renderer.getCamera2D());
 						renderer.render2D(state, state.isPaused ? 0.0f : deltaTime, particles, animations, snakeALightTop);
-						//renderer.drawSnake2D(state.snake_A);
-						//renderer.drawFood2D(state.food);
 						EndMode2D();
 						break;
+
+					case RenderMode::ASCII:
+						break; // unimplemented yet
 				}
-				
-				/* if (state.isPaused) {
-					DrawText("PAUSED", screenWidth / 2 - 60, screenHeight / 2, 40, customBlack);
-				} */
+
 				break;
 			}			
 		
@@ -260,7 +252,8 @@ int main(int argc, char **argv) {
 		
 		postProcess.endCapture();
 		
-		// Apply postprocessing and present to screen
+		//----  POST PROCESSING PHASE  ----//
+		
 		BeginDrawing();
 		ClearBackground(BLACK);
 		postProcess.applyAndPresent(deltaTime);

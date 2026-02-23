@@ -23,7 +23,7 @@ AIConfig AIConfig::medium() {
 		.predictOpponent = false,
 		.randomMoveChance = 0.0f,
 		.aggressiveness = 0.5f,		// Chill boi
-		.hasSurvivalMode = true	// doesn't chase own tail
+		.hasSurvivalMode = true		// doesn't chase own tail
 	};
 }
 
@@ -36,6 +36,6 @@ AIConfig AIConfig::hard() {
 		.predictOpponent = true,	// smart
 		.randomMoveChance = 0.0f,
 		.aggressiveness = 0.3f,		// cautious boi
-		.hasSurvivalMode = true	// doesn't chase own tail
+		.hasSurvivalMode = true		// doesn't chase own tail
 	};
 }

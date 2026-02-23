@@ -177,7 +177,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 
 test: check_gtest check_raylib $(TEST_BINARY)
 	@echo "$(CYAN)Running tests...$(DEF_COLOR)"
-	./$(TEST_BINARY)
+	valgrind --track-origins=yes --leak-check=full ./$(TEST_BINARY)
+
+retest: fclean test
 
 $(TEST_BINARY): $(TESTABLE_OBJS) $(TEST_OBJS) $(GTEST_LIB) $(GTEST_MAIN_LIB)
 	@echo "$(YELLOW)Linking test binary...$(DEF_COLOR)"

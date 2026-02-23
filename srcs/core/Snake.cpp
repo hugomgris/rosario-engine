@@ -58,7 +58,8 @@ void Snake::initializeAtRandomPosition(int width, int height) {
 			break;
 	}
 
-	std::cout << "head snake coords:" << _segments[0].x << "-" << _segments[0].y << std::endl;
+	// DEBUG
+	//std::cout << "head snake coords:" << _segments[0].x << "-" << _segments[0].y << std::endl;
 }
 
 Snake::Snake(const Snake &otherSnake, int width, int height) : _length(otherSnake._length), _maxLength(otherSnake._maxLength) {

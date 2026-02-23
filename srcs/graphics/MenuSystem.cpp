@@ -7,9 +7,9 @@
 MenuSystem::MenuSystem(GameController &controller) :
 	gameController(controller),
 	currentState(MenuState::Start),
+	selectedButtonIndex(99),
 	particleSpawnTimer(0.0f),
 	logoSnakeTrailCounter(0),
-	selectedButtonIndex(99),
 	screenWidth(1920),
 	screenHeight(1080) {}
 

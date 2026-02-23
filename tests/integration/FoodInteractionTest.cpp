@@ -68,6 +68,7 @@ TEST_F(FoodInteractionTest, FoodPositioning) {
 
 TEST_F(FoodInteractionTest, EatingTrigger) {
 	Snake &snakeRef = *state->snake_A;
+	Food &foodRef = *state->food;
 
 	// Normalize direction to go upwards
 	if (snakeRef.getDirection() == Direction::Right || snakeRef.getDirection() == Direction::Left) {
@@ -81,15 +82,15 @@ TEST_F(FoodInteractionTest, EatingTrigger) {
 	}
 	
 	//Force a food position ABOVE the snake head and to its RIGHT
-	while (state->food->getPosition().x <= snakeRef.getSegments()[0].x || state->food->getPosition().y >= snakeRef.getSegments()[0].y)
-		state->food->replaceInFreeSpace(state.get());
+	while (foodRef.getPosition().x <= snakeRef.getSegments()[0].x || foodRef.getPosition().y >= snakeRef.getSegments()[0].y)
+		foodRef.replaceInFreeSpace(state.get());
 
-	Vec2 foodPosition = state->food->getPosition();
+	Vec2 foodPosition = foodRef.getPosition();
 
-	EXPECT_TRUE(state->food->getPosition().x > snakeRef.getSegments()[0].x && state->food->getPosition().y < snakeRef.getSegments()[0].y);
+	EXPECT_TRUE(foodRef.getPosition().x > snakeRef.getSegments()[0].x && foodRef.getPosition().y < snakeRef.getSegments()[0].y);
 
 	// Move the head of the snake to collide with the food
-	int i = state->snake_A->getSegments()[0].y - state->food->getPosition().y;
+	int i = state->snake_A->getSegments()[0].y - foodRef.getPosition().y;
 
 	while (i > 0) {
 		manager->update();
@@ -97,17 +98,17 @@ TEST_F(FoodInteractionTest, EatingTrigger) {
 	}
 
 	snakeRef.changeDirection(Direction::Right);
-	i = state->food->getPosition().x - state->snake_A->getSegments()[0].x;
+	i = foodRef.getPosition().x - state->snake_A->getSegments()[0].x;
 
 	// midway check -> food should still be in the same position
-	EXPECT_TRUE(foodPosition.x == state->food->getPosition().x && foodPosition.y == state->food->getPosition().y);
+	EXPECT_TRUE(foodPosition.x == foodRef.getPosition().x && foodPosition.y == foodRef.getPosition().y);
 
 	while (i > 0) {
 		manager->update();
 		i--;
 	}
 	
-	Vec2 newFoodPosition = state->food->getPosition();
+	Vec2 newFoodPosition = foodRef.getPosition();
 
 	if (foodPosition.x == newFoodPosition.x)
 		EXPECT_TRUE(foodPosition.y != newFoodPosition.y);

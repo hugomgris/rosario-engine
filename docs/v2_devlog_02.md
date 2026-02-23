@@ -314,3 +314,5 @@ std::vector<Vector2> AnimationSystem::calculateInsetShape(const std::vector<Vect
 ```
 
 I could not, for the love of everything sacred, list all the approaches I tried to this calculations. Some of them gave me wrong inset shapes, some other didn't correctly manage bumps and dents, a good bunch also produced weird perspectives. But everything seems to have ended in a good spot. This too, as tey say, passed. And now I'm free to keep implementing new gameplay stuff (**looks nervously to the Nth refactoring bullet point in the the to-do list*)
+
+ 

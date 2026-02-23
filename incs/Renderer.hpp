@@ -28,7 +28,6 @@ class Renderer {
 		Camera3D	camera3D;
 		float		cubeSize;
 		float		cameraSize;
-		float 		menuFov;
 		float		customFov;
 
 		// 2D pipleine

@@ -15,12 +15,14 @@ void GameController::update()  {
 	
 	// Check collisions BEFORE moving
 	if (!checkGameOverCollision()) {
-    std::cout << "GAME OVER - A dead: " << _state->snake_A->isDead() 
-              << " B dead: " << _state->snake_B->isDead() << std::endl;
-    _state->isRunning = false;
-    _state->currentState = GameStateType::GameOver;
-    return;
-}
+		std::cout << "GAME OVER - A dead: " << _state->snake_A->isDead();
+		if (_state->snake_B)
+			std::cout << " B dead: " << _state->snake_B->isDead();
+		std::cout << std::endl;
+		_state->isRunning = false;
+		_state->currentState = GameStateType::GameOver;
+		return;
+	}
 	
 	// Safe to move
 	_state->snake_A->move();
@@ -138,7 +140,8 @@ void GameController::processNextInput() {
 
 			if (_foodTracker == 1) {
 				_state->arena->transformArenaWithPreset(WallPreset::Columns2);
-				onArenaChangeSpawnCallBack();
+				if (onArenaChangeSpawnCallBack)
+   					onArenaChangeSpawnCallBack();
 			} else if (_foodTracker >= 5) {
 				_state->arena->clearArena();
 				_foodTracker = 0;
@@ -163,7 +166,8 @@ void GameController::processNextInput() {
 
 				if (_foodTracker == 1) {
 					_state->arena->transformArenaWithPreset(WallPreset::Columns2);
-					onArenaChangeSpawnCallBack();
+					if (onArenaChangeSpawnCallBack)
+   						onArenaChangeSpawnCallBack();
 				} else if (_foodTracker >= 5) {
 					_state->arena->clearArena();
 					_foodTracker = 0;

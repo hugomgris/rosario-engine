@@ -15,7 +15,6 @@ Renderer::Renderer() :
 	screenHeight(1080),
 	cubeSize(2.0f),
 	cameraSize(0.0f),
-	menuFov(50.0f),
 	customFov(0.0f),
 	squareSize(32),
 	separator(0.0f),

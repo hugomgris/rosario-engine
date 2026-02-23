@@ -1,13 +1,14 @@
 #include "../../incs/AnimationSystem.hpp"
 
 AnimationSystem::AnimationSystem() :
-	tunnelLineThickness(2.0),
 	tunnelEffectEnabled(false),
+	tunnelLineThickness(2.0),
 	shakeTimer(0.0f),
 	shakeOffset({0.0f, 0.0f}),
 	screenWidth(1920),
-	screenHeight(1080) {
-	lastTunnelSpawn = std::chrono::high_resolution_clock::now();
+	screenHeight(1080)
+	{
+		lastTunnelSpawn = std::chrono::high_resolution_clock::now();
 }
 
 void AnimationSystem::init(GameState *gameState, int width, int height) {

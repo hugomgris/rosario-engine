@@ -65,7 +65,8 @@ Input SnakeAI::goToFood(const GameState& state) {
 Input SnakeAI::survivalMode(const GameState& state) {
 	if (!state.snake_B) return Input::None;
 
-	std::cout << "Snake B went into SURVIVAL MODE" << std::endl;
+	// DEBUG
+	//std::cout << "Snake B went into SURVIVAL MODE" << std::endl;
 	
 	Vec2 head = state.snake_B->getSegments()[0];
 	const Vec2* segments = state.snake_B->getSegments();
