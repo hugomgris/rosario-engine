@@ -1,5 +1,6 @@
 #pragma once
 #include "DataStructs.hpp"
+#include "ParticleSystem.hpp"
 #include "Input.hpp"
 #include "Arena.hpp"
 #include "ArenaPresets.hpp"
@@ -11,6 +12,8 @@
 #include <chrono>
 #include <queue>
 #include <functional>
+#include <set>
+#include <utility>
 
 class GameController {
 	private:
@@ -60,4 +63,8 @@ class GameController {
 		void setOnArenaClearCallback(std::function<void()> callback) {
 			onArenaClearCallBack = callback;
 		}
+
+		void onSolidify(const std::vector<std::pair<int,int>>& solidifiedPositions,
+                ParticleSystem& particles,
+                const Renderer& renderer);
 };

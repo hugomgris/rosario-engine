@@ -38,16 +38,6 @@ void GameController::update()  {
 	}
 	
 	checkHeadFoodCollision();
-
-	/* // DEBUG
-	if (_foodTracker >= 5 && _foodTracker < 10) {
-		//_state->arena->spawnObstacle(10, 10, 5, 5);	
-		_state->arena->transformWallWithPreset(WallPreset::InterLock1); 
-	} else if (_foodTracker >= 10) {
-		_state->arena->clearArena();
-		_foodTracker = 0;
-	} */
-
 }
 
 void GameController::bufferInput(Input input) {
@@ -69,7 +59,7 @@ void GameController::bufferInput(Input input) {
 }
 
 void GameController::processNextInput() {
-	// Process Snake A inpu
+	// Process Snake A input
 	if (!inputBuffer_A.empty()) {
 		Input input = inputBuffer_A.front();
 		inputBuffer_A.pop();
@@ -124,22 +114,51 @@ void GameController::processNextInput() {
 	}
 }
 
-	void GameController::checkHeadFoodCollision() {
-		Vec2	head_A = _state->snake_A->getSegments()[0];
-		//
-		Vec2	foodPos = _state->food->getPosition();
+void GameController::checkHeadFoodCollision() {
+	Vec2	head_A = _state->snake_A->getSegments()[0];
+	Vec2	foodPos = _state->food->getPosition();
 
-		if (head_A.x == foodPos.x && head_A.y == foodPos.y)
-		{
-			/* if (_state->audio)
-				_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
-				
-			_state->snake_A->grow();
-			for (int i = 0; i < _state->snake_A->getLength(); i++) {
-				auto& seg = _state->snake_A->getSegments()[i];
-				_state->arena->setCell(seg.x, seg.y, CellType::Snake_A);
+	if (head_A.x == foodPos.x && head_A.y == foodPos.y)
+	{
+		_state->snake_A->grow();
+		for (int i = 0; i < _state->snake_A->getLength(); i++) {
+			auto& seg = _state->snake_A->getSegments()[i];
+			_state->arena->setCell(seg.x, seg.y, CellType::Snake_A);
+		}
+		_state->score++;
+		_foodTracker++;
+
+		if (_foodTracker == 2) {
+			if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
+			_state->arena->transformArenaWithPreset(ArenaPresets::getRandomPreset());
+			updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
+			if (_state->snake_B)
+				updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
+			if (onArenaChangeSpawnCallBack)
+				onArenaChangeSpawnCallBack();
+		} else if (_foodTracker >= 6) {
+			if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
+			if (onArenaClearCallBack)
+				onArenaClearCallBack();
+			_foodTracker = 0;
+		}
+		
+		if (!_state->food->replaceInFreeSpace(_state)) {
+			_state->isRunning = false;
+			std::cout << "YOU WIN" << std::endl;
+		}
+	}
+
+	if (_state->config.mode != GameMode::SINGLE && _state->snake_B) {
+		Vec2	head_B = _state->snake_B->getSegments()[0];
+
+		if (head_B.x == foodPos.x && head_B.y == foodPos.y) {
+			_state->snake_B->grow();
+			for (int i = 0; i < _state->snake_B->getLength(); i++) {
+				auto& seg = _state->snake_B->getSegments()[i];
+				_state->arena->setCell(seg.x, seg.y, CellType::Snake_B);
 			}
-			_state->score++;	// Increment score when food is eaten
+			_state->scoreB++;
 			_foodTracker++;
 
 			if (_foodTracker == 2) {
@@ -156,50 +175,14 @@ void GameController::processNextInput() {
 					onArenaClearCallBack();
 				_foodTracker = 0;
 			}
-			
+							
 			if (!_state->food->replaceInFreeSpace(_state)) {
 				_state->isRunning = false;
 				std::cout << "YOU WIN" << std::endl;
 			}
 		}
-
-		if (_state->config.mode != GameMode::SINGLE && _state->snake_B) {
-			Vec2	head_B = _state->snake_B->getSegments()[0];
-
-			if (head_B.x == foodPos.x && head_B.y == foodPos.y) {
-				/* if (_state->audio)
-					_state->audio->playSound("sound:ñomñomñomñom"); // TODO: real sound implementation */
-					
-				_state->snake_B->grow();
-				for (int i = 0; i < _state->snake_B->getLength(); i++) {
-					auto& seg = _state->snake_B->getSegments()[i];
-					_state->arena->setCell(seg.x, seg.y, CellType::Snake_B);
-				}
-				_state->scoreB++;	// Increment score when food is eaten
-				_foodTracker++;
-
-				if (_foodTracker == 2) {
-					if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
-					_state->arena->transformArenaWithPreset(ArenaPresets::getRandomPreset());
-					updateSnakeInArena(*_state->snake_A, CellType::Snake_A);
-					if (_state->snake_B)
-						updateSnakeInArena(*_state->snake_B, CellType::Snake_B);
-					if (onArenaChangeSpawnCallBack)
-						onArenaChangeSpawnCallBack();
-				} else if (_foodTracker >= 6) {
-					if (_state->arena->isDespawning() || _state->arena->isSpawning()) return;
-					if (onArenaClearCallBack)
-						onArenaClearCallBack();
-					_foodTracker = 0;
-				}
-								
-				if (!_state->food->replaceInFreeSpace(_state)) {
-					_state->isRunning = false;
-					std::cout << "YOU WIN" << std::endl;
-				}
-			}
-		}
 	}
+}
 
 bool GameController::checkGameOverCollision() {
 	Vec2 nextPos_A = _state->snake_A->getNextHeadPosition();
@@ -244,15 +227,11 @@ bool GameController::checkGameOverCollision() {
 			}
 		}
 
-		// Cross-collision: check NEXT positions against each other
-		// A into B's next head OR current body (excluding tail that will move)
 		if (!_state->snake_A->isDead()) {
-			// Head-on
 			if (nextPos_A.x == nextPos_B.x && nextPos_A.y == nextPos_B.y) {
 				_state->snake_A->setAsDead(true);
 				_state->snake_B->setAsDead(true);
 			} else {
-				// A into B's body
 				int limit = _state->snake_B->getIsGrowing()
 					? _state->snake_B->getLength()
 					: _state->snake_B->getLength() - 1;
@@ -266,7 +245,6 @@ bool GameController::checkGameOverCollision() {
 			}
 		}
 
-		// B into A's body
 		if (!_state->snake_B->isDead()) {
 			int limit = _state->snake_A->getIsGrowing()
 				? _state->snake_A->getLength()
@@ -304,4 +282,77 @@ void GameController::updateSnakeInArena(Snake& snake, CellType type) {
 		Vec2 tail = snake.getDroppedTail();
 		arena.clearCell(tail.x, tail.y);
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Solidification handler — called by Arena::tickSpawnTimer the instant
+// SpawningSolid cells become Obstacle.
+//
+// For each snake, walks segments from head (index 0) forward to find the
+// first segment sitting on a newly-solidified cell.  Everything from that
+// index to the tail is destroyed: the arena cells are cleared, a blue
+// particle explosion fires on every destroyed segment, and the snake is
+// truncated.  If the head itself is the cut point the snake is marked dead
+// and the normal game-over path handles the rest next tick.
+// ---------------------------------------------------------------------------
+void GameController::onSolidify(const std::vector<std::pair<int,int>>& solidifiedPositions,
+								ParticleSystem& particles,
+								const Renderer& renderer)
+{
+	// Build a fast O(log n) lookup from the solidified game-coordinate list.
+	std::set<std::pair<int,int>> solidSet(solidifiedPositions.begin(),
+										solidifiedPositions.end());
+
+	// Vivid steel-blue, matching the spawning visual language.
+	const Color blueExplosion = {70, 130, 180, 255};
+
+	auto truncateSnake = [&](Snake* snake) {
+		if (!snake) return;
+
+		const Vec2* segs = snake->getSegments();
+		int len = snake->getLength();
+
+		// Find the first segment that landed on a solidified cell.
+		int cutIndex = -1;
+		for (int i = 0; i < len; i++) {
+			if (solidSet.count({segs[i].x, segs[i].y})) {
+				cutIndex = i;
+				break;
+			}
+		}
+
+		if (cutIndex < 0) return;	// snake is entirely clear — nothing to do
+
+		// Blast particles and clean up all condemned segments.
+		for (int i = cutIndex; i < len; i++) {
+			Vector2 screenPos = renderer.gridToScreen2D(segs[i].x, segs[i].y);
+			float cx = screenPos.x + renderer.getSquareSize() * 0.5f;
+			float cy = screenPos.y + renderer.getSquareSize() * 0.5f;
+
+			particles.spawnExplosion(cx, cy, 12);
+
+			// The cut-point cell is already Obstacle (solidified before this
+			// callback fired) — leave it alone.
+			// Body segments BEHIND the cut point are on normal cells still
+			// typed Snake_A/B; overwrite them to Empty directly.  We must NOT
+			// call clearCell() here because clearCell() has special restoration
+			// logic that would check _occupiedSpawning (now already cleared) and
+			// fall through to setting Obstacle incorrectly for non-solid cells.
+			if (i > cutIndex) {
+				_state->arena->setCell(segs[i].x, segs[i].y, CellType::Empty);
+			}
+		}
+
+		if (cutIndex == 0) {
+			// Head was crushed — mark dead and let the game-over path take over.
+			snake->setAsDead(true);
+		} else {
+			// Shrink the snake to the surviving prefix.
+			snake->truncateTo(cutIndex);
+		}
+	};
+
+	truncateSnake(_state->snake_A);
+	if (_state->config.mode != GameMode::SINGLE)
+		truncateSnake(_state->snake_B);
 }

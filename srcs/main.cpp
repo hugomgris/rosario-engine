@@ -125,9 +125,16 @@ int main(int argc, char **argv) {
 
 	float lineLifetime = 1.0f / animations.getTunnelConfig().animationSpeed;
 
+	// Single spawn callback: notifies animations, begins the spawn timer, and
+	// wires the solidification handler so snake bodies get truncated + blue
+	// particle explosions fire when SpawningSolid cells become Obstacle.
 	gameController.setOnArenaChangeSpawnCallback([&]() {
 		animations.notifyArenaSpawning();
 		arena.beginSpawn(lineLifetime);
+
+		arena.onSolidifyCallback = [&](const std::vector<std::pair<int,int>>& positions) {
+			gameController.onSolidify(positions, particles, renderer);
+		};
 	});
 
 	gameController.setOnArenaClearCallback([&]() {

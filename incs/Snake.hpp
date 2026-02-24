@@ -37,6 +37,7 @@ class Snake {
 
 		int getLength() const;
 		const Vec2* getSegments() const;
+		Vec2* getSegments();
 		const Vec2& getHead() const;
 		Direction getDirection() const;		// for testing
 		Vec2 getNextHeadPosition() const;	// predict next position without moving
@@ -49,6 +50,8 @@ class Snake {
 		void grow();
 		void reset(int width, int height);										// Reinitialize snake at new position
 		void resetAsMirrored(const Snake& otherSnake, int width, int height);  	// Reset as mirrored opponent
+
+		void truncateTo(int newLength);
 
 private:
 	void initializeAtRandomPosition(int width, int height);						// Common spawn logic

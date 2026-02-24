@@ -61,7 +61,6 @@ class Renderer {
 		int lastFoodY = -1;
 		
 		void calculate2DLayout();								// Helper to compute arena positioning
-		Vector2 gridToScreen2D(int gridX, int gridY) const;		// Convert grid coords to screen coords
 	
 		float	accumulatedTime;
 		
@@ -102,4 +101,6 @@ class Renderer {
 		void init(int width, int height);
 		void render3D(const GameState& state, float deltaTime);
 		void render2D(const GameState& state, float deltaTime, ParticleSystem& particles, AnimationSystem& animations, Color color);
+
+		Vector2 gridToScreen2D(int gridX, int gridY) const;		// Convert grid coords to screen coords
 };

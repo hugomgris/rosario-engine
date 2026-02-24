@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <functional>
 
 enum class CellType {
 	Empty,
@@ -36,6 +37,7 @@ class Arena {
 		int squareSize;
 
 		Vector2 foodPosition;
+		std::set<std::pair<int,int>> _occupiedSpawning;
 
 		float spawnTimer = 0.0f;
 		float spawnDuration = 0.0f;
@@ -87,4 +89,6 @@ class Arena {
 		void tickDespawnTimer(float deltaTime);
 		float getDespawnFadeProgress() const;
 		void startFadeOut();
+
+		std::function<void(const std::vector<std::pair<int,int>>&)> onSolidifyCallback;
 };

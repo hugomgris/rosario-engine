@@ -22,6 +22,26 @@ void Arena::setCell(int x, int y, CellType type) {
 		gx < 0 || gx >= gridWidth)
 		return;
 
+	CellType current = grid[gy][gx];
+
+	// Case 1: a snake segment moves onto a SpawningSolid cell.
+	// Remember it so clearCell() restores SpawningSolid when the tail leaves.
+	if (current == CellType::SpawningSolid &&
+		(type == CellType::Snake_A || type == CellType::Snake_B))
+	{
+		_occupiedSpawning.insert({gx, gy});
+	}
+
+	// Case 2: a preset writes SpawningSolid onto a cell already occupied by a
+	// snake segment.  The snake cell stays in the grid (snake wins visually),
+	// but we record it so clearCell() restores SpawningSolid when the tail leaves.
+	if (type == CellType::SpawningSolid &&
+		(current == CellType::Snake_A || current == CellType::Snake_B))
+	{
+		_occupiedSpawning.insert({gx, gy});
+		return;	// do NOT overwrite the snake cell
+	}
+
 	grid[gy][gx] = type;
 }
 
@@ -51,21 +71,6 @@ void Arena::setFoodCell(int x, int y) {
 	foodPosition.x = x;
 	foodPosition.y = y;
 	setCell(x, y, CellType::Food);
-
-	//DEBUG output
-	/* std::cout << "Food set at (" << x << ", " << y << ")" << std::endl;
-
-	int foodAmount = 0;
-	for (int i = 0; i < gridHeight; i++) {
-		for (int j = 0; j < gridWidth; j++) {
-			if (grid[i][j] == CellType::Food) {
-				foodAmount++;
-				std::cout << "Food found at grid[" << i << "][" << j << "]" << std::endl;
-			}
-		}
-	}
-
-	std::cout << "Total food in arena: " << foodAmount << std::endl; */
 }
 
 Vector2 Arena::getFoodPosition() const {
@@ -121,12 +126,35 @@ void Arena::growWall(int x, int y, int width, int height) {
 }
 
 void Arena::clearCell(int x, int y) {
-	setCell(x, y, CellType::Empty);
+	int gx = x + 1;
+	int gy = y + 1;
+
+	if (gy < 0 || gy >= gridHeight || gx < 0 || gx >= gridWidth)
+		return;
+
+	// If this cell was a SpawningSolid that a snake temporarily occupied,
+	// restore it to SpawningSolid instead of clearing to Empty.
+	auto key = std::make_pair(gx, gy);
+	if (_occupiedSpawning.count(key)) {
+		_occupiedSpawning.erase(key);
+		if (spawnTimer > 0.0f) {
+			// Still pre-solidification: restore so it can solidify normally.
+			grid[gy][gx] = CellType::SpawningSolid;
+		} else {
+			// Solidification already happened: this cell is part of the new
+			// obstacle layout — make sure it stays as Obstacle, not Empty.
+			grid[gy][gx] = CellType::Obstacle;
+		}
+		return;
+	}
+
+	grid[gy][gx] = CellType::Empty;
 }
 
 void Arena::clearArena() {
 	// Clear everything
 	grid.assign(gridHeight, std::vector<CellType>(gridWidth, CellType::Empty));
+	_occupiedSpawning.clear();
 
 	// Border walls (still direct access, but guaranteed safe)
 	for (int y = 0; y < gridHeight; y++) {
@@ -325,11 +353,30 @@ void Arena::tickSpawnTimer(float deltaTime) {
 		spawnTimer -= deltaTime;
 
 		if (spawnTimer <= 0.0f) {
-			// Solidify cells
-			for (int y = 1; y < gridHeight - 1; y++)
-				for (int x = 1; x < gridWidth - 1; x++)
-					if (grid[y][x] == CellType::SpawningSolid)
+			// Collect game-coordinate positions that are about to solidify
+			// so the callback can check snake segments against them.
+			std::vector<std::pair<int,int>> solidifiedPositions;
+
+			for (int y = 1; y < gridHeight - 1; y++) {
+				for (int x = 1; x < gridWidth - 1; x++) {
+					if (grid[y][x] == CellType::SpawningSolid) {
 						grid[y][x] = CellType::Obstacle;
+						solidifiedPositions.push_back({x - 1, y - 1});
+					}
+				}
+			}
+
+			// Snake-occupied cells that were pending SpawningSolid still show
+			// Snake_A/B in the grid — solidify them now and include them in the
+			// callback list so onSolidify can detect the overlap and truncate.
+			for (const auto& key : _occupiedSpawning) {
+				grid[key.second][key.first] = CellType::Obstacle;
+				solidifiedPositions.push_back({key.first - 1, key.second - 1});
+			}
+			_occupiedSpawning.clear();
+
+			if (onSolidifyCallback)
+				onSolidifyCallback(solidifiedPositions);
 
 			// launch the fade-in timer
 			fadeTimer = fadeDuration;

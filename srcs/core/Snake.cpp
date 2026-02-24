@@ -57,9 +57,6 @@ void Snake::initializeAtRandomPosition(int width, int height) {
 			_segments[3] = { headPosition.x - 3, headPosition.y };
 			break;
 	}
-
-	// DEBUG
-	//std::cout << "head snake coords:" << _segments[0].x << "-" << _segments[0].y << std::endl;
 }
 
 Snake::Snake(const Snake &otherSnake, int width, int height) : _length(otherSnake._length), _maxLength(otherSnake._maxLength) {
@@ -152,6 +149,8 @@ int Snake::getLength() const { return _length; }
 
 const Vec2 *Snake::getSegments() const { return _segments; }
 
+Vec2 *Snake::getSegments() { return _segments; }
+
 const Vec2& Snake::getHead() const { return _segments[0]; }
 
 Direction Snake::getDirection() const { return _direction; }
@@ -221,12 +220,21 @@ void Snake::changeDirection(Direction dir) {
 
 void Snake::grow() {
 	if (_length >= _maxLength) {
-		// Snake has filled the entire arena, which should trigger a win condition (will this ever happen to anyone tho?)
+		// Snake has filled the entire arena — should trigger a win condition
 		return;
 	}
 	_segments[_length] = Vec2{ _segments[_length - 1].x, _segments[_length - 1].y };
 	_length++;
 	_isGrowing = true;
+}
+
+void Snake::truncateTo(int newLength) {
+	if (newLength < 1) newLength = 1;
+	if (newLength >= _length) return;	// nothing to do
+
+	_length = newLength;
+	_isGrowing = false;
+	_didRemoveTail = false;	// suppress any stale tail-drop this tick
 }
 
 void Snake::reset(int width, int height) {
@@ -255,4 +263,3 @@ Vec2 Snake::getNextHeadPosition() const {
 	}
 	return nextPos;
 }
-
