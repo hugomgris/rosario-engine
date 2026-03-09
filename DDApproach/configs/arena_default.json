@@ -1,0 +1,19 @@
+{
+  "arena": {
+    "width": 20,
+    "height": 20,
+    "walls": {
+      "type": "solid",
+      "color": "white",
+      "thickness": 1
+    },
+    "food": {
+      "spawnRate": 5,
+      "nutritionalValue": 10
+    },
+    "snake": {
+      "initialLength": 3,
+      "growthRate": 1
+    }
+  }
+}

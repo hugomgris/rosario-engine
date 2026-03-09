@@ -1,0 +1,40 @@
+{
+  "game": {
+    "title": "Rosario Snake Game",
+    "version": "1.0",
+    "description": "A modern take on the classic snake game using a data-driven architecture.",
+    "difficulty": {
+      "easy": {
+        "snakeSpeed": 5,
+        "foodSpawnRate": 3
+      },
+      "medium": {
+        "snakeSpeed": 7,
+        "foodSpawnRate": 2
+      },
+      "hard": {
+        "snakeSpeed": 10,
+        "foodSpawnRate": 1
+      }
+    },
+    "controls": {
+      "up": "W",
+      "down": "S",
+      "left": "A",
+      "right": "D",
+      "pause": "ESC"
+    },
+    "graphics": {
+      "windowWidth": 800,
+      "windowHeight": 600,
+      "backgroundColor": "#000000",
+      "snakeColor": "#00FF00",
+      "foodColor": "#FF0000"
+    },
+    "audio": {
+      "backgroundMusic": "assets/music/background.mp3",
+      "foodSound": "assets/sounds/food.wav",
+      "gameOverSound": "assets/sounds/game_over.wav"
+    }
+  }
+}

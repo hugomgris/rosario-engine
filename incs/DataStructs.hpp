@@ -8,80 +8,31 @@ struct Vec2 {
 	int	y;
 };
 
-// Forward declarations
-class Arena;
-class Snake;
-class Food;
-class SnakeAI;
-
-enum class GameStateType {
-    Menu,
-    Playing,
-    Paused,
-    GameOver
+enum class Direction {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
 };
 
-enum class GameMode {
-	SINGLE,
-	MULTI,
-	AI
+enum class Input {
+	None,
+	Switch2D,
+	Switch3D,
+	Up_A,		// Player A Up
+	Down_A,		// Player A Down
+	Left_A,		// Player A Left
+	Right_A,	// Player A Right
+	Up_B,		// Player B Up
+	Down_B,		// Player B Down
+	Left_B,		// Player B Left
+	Right_B,	// Player B Right
+	Quit,
+	Pause,
+	Enter,
+	ToggleFS
 };
 
-enum class RenderMode {
-	ASCII,
-	MODE2D,
-	MODE3D
-};
-
-struct GameConfig {
-	GameMode	mode;
-};
-
-struct GameTiming {
-	float accumulator = 0.0f;
-	float fixedTimestep = 1.0f / 10.0f;
-	float lastFrameTime = 0.0f;
-};
-
-struct GameState {
-	int							width;
-	int							height;
-	Arena*						arena;
-	Snake*						snake_A;
-	Snake*						snake_B;
-	Food*						food;
-	bool						gameOver;
-	bool						isRunning;
-	bool						isPaused;
-	GameStateType				currentState;
-	int							score;
-	int							scoreB;
-	GameConfig					config;
-	GameTiming					timing;
-	RenderMode					renderMode;
-	std::unique_ptr<SnakeAI>	aiController;
-};
-
-struct AIConfig {
-	// this is were difficulty settings are, well, set
-	enum Difficulty { EASY, MEDIUM, HARD };
-	
-	Difficulty level;
-	
-	// Timing
-	int thinkDelay;			// Ticks between decisions (0 = every tick)
-	
-	// Pathfinding
-	int maxSearchDepth;		// Node expansion limit
-	bool useSafetyCheck;	// Tail reachability
-	bool predictOpponent;	// Consider opponent movement
-	
-	// Behavior
-	float randomMoveChance;	// 0.0 - 1.0 (for easy mode)
-	float aggressiveness;	// 0.0 = cautious, 1.0 = greedy
-	bool hasSurvivalMode;
-	
-	static AIConfig easy();
-	static AIConfig medium();
-	static AIConfig hard();
+enum class AIBehaviourState {
+    EASY, MEDIUM, HARD
 };

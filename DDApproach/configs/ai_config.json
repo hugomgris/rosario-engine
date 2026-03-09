@@ -1,0 +1,23 @@
+{
+  "ai": {
+    "decisionMaking": {
+      "maxDepth": 5,
+      "explorationFactor": 1.5,
+      "aggressionLevel": 2
+    },
+    "pathfinding": {
+      "gridSize": 64,
+      "diagonalMovement": true,
+      "heuristic": "manhattan"
+    },
+    "behavior": {
+      "idleTime": 2.0,
+      "chaseTime": 5.0,
+      "fleeTime": 3.0
+    },
+    "sensing": {
+      "visionRange": 128,
+      "hearingRange": 64
+    }
+  }
+}

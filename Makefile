@@ -21,37 +21,41 @@ INCDIR          := incs
 # -=-=-=-=-    SOURCE FILES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 MAIN_SRC        := main.cpp
-CORE_SRC        := core/GameController.cpp	\
-					core/InputManager.cpp	\
-					core/Arena.cpp			\
-					core/ArenaPresets.cpp	\
-					core/Snake.cpp			\
-					core/Food.cpp			\
-					core/Utils.cpp
 
-AI_SRC          := AI/AIConfig.cpp			\
-					AI/FloodFill.cpp		\
-					AI/Pathfinder.cpp		\
-					AI/SnakeAI.cpp			\
-					AI/GridHelper.cpp
+ECS_SRC         := ecs/Registry.cpp
 
-GRAPHICS_SRC    := graphics/Renderer.cpp				\
-					graphics/TextSystem.cpp				\
-					graphics/ParticleSystem.cpp			\
-					graphics/AnimationSystem.cpp		\
-					graphics/MenuSystem.cpp				\
-					graphics/RaylibColors.cpp			\
-					graphics/PostProcessingSystem.cpp
+AI_SRC          := AI/FloodFill.cpp		\
+					AI/GridHelper.cpp		\
+					AI/Pathfinder.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(CORE_SRC) $(AI_SRC) $(GRAPHICS_SRC)
+ARENA_SRC       := arena/ArenaGrid.cpp		\
+					arena/ArenaPresets.cpp
 
-SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
-OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))
-DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d))
+SYSTEMS_SRC     := systems/AISystem.cpp             \
+					systems/AnimationSystem.cpp      \
+					systems/CollisionSystem.cpp      \
+					systems/InputSystem.cpp          \
+					systems/MenuSystem.cpp           \
+					systems/MovementSystem.cpp       \
+					systems/ParticleSystem.cpp       \
+					systems/PostProcessingSystem.cpp \
+					systems/RenderSystem.cpp         \
+					systems/TextSystem.cpp
+
+GRAPHICS_SRC    := ../srcs_old/graphics/RaylibColors.cpp
+
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(AI_SRC) $(ARENA_SRC) $(SYSTEMS_SRC)
+GRAPHICS_SRCS   := srcs_old/graphics/RaylibColors.cpp
+
+SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC)) $(GRAPHICS_SRCS)
+OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o)) \
+                   $(OBJDIR)/RaylibColors.o
+DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d)) \
+                   $(DEPDIR)/RaylibColors.d
 
 # -=-=-=-=-    INCLUDES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
-INCLUDES        := -I$(INCDIR)
+INCLUDES        := -I$(INCDIR) -I$(SRCDIR)
 
 # -=-=-=-=-    FLAGS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
@@ -104,8 +108,9 @@ TEST_SRCS		:= $(wildcard $(TEST_DIR)/unit/*.cpp) \
 TEST_OBJS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_OBJDIR)/%.o,$(TEST_SRCS))
 TEST_DEPS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_DEPDIR)/%.d,$(TEST_SRCS))
 
-TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(SRCS))
-TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS))
+TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(addprefix $(SRCDIR)/, $(ALL_SRC)))
+TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS)) \
+				   $(OBJDIR)/RaylibColors.o
 
 TEST_CFLAGS		:= $(CFLAGS) $(GTEST_INCLUDES) $(RAYLIB_INCLUDES)
 TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
@@ -171,6 +176,13 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@echo "$(YELLOW)Compiling $<...$(DEF_COLOR)"
 	@$(CC) $(CFLAGS) $(ALL_INCLUDES) $(DEPFLAGS) -c $< -o $@ -MF $(DEPDIR)/$*.d
 
+# RaylibColors lives in srcs_old — special rule
+$(OBJDIR)/RaylibColors.o: srcs_old/graphics/RaylibColors.cpp
+	@mkdir -p $(OBJDIR)
+	@mkdir -p $(DEPDIR)
+	@echo "$(YELLOW)Compiling $<...$(DEF_COLOR)"
+	@$(CC) $(CFLAGS) $(ALL_INCLUDES) $(DEPFLAGS) -c $< -o $@ -MF $(DEPDIR)/RaylibColors.d
+
 -include $(DEPS)
 
 # -=-=-=-=-    TEST TARGETS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
@@ -228,6 +240,5 @@ info:
 	@echo "Compiler: $(CC)"
 	@echo "Flags:    $(CFLAGS)"
 	@echo "Raylib:   $(RAYLIB_LIBS)"
-	@echo "SDL2:     $(SDL_LIBS)"
 
 .PHONY: all clean fclean re test check_gtest check_raylib

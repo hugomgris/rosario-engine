@@ -1,84 +1,72 @@
-#include "../../incs/Pathfinder.hpp"
-#include "../../incs/Snake.hpp"
+#include "AI/Pathfinder.hpp"
+#include <set>
+#include <algorithm>
 
-void PathFinder::cleanAllNodes(std::vector<Node*> allNodes) {
-	for (Node* node : allNodes) {
+void Pathfinder::cleanNodes(std::vector<Node*>& nodes) const {
+    for (Node* node : nodes)
         delete node;
+    nodes.clear();
+}
+
+std::vector<Vec2> Pathfinder::reconstructPath(Node* goalNode) const {
+    std::vector<Vec2> path;
+    Node* current = goalNode;
+    while (current != nullptr && current->parent != nullptr) {
+        path.push_back(current->pos);
+        current = current->parent;
     }
+    std::reverse(path.begin(), path.end());
+    return path;
 }
 
-std::vector<Vec2> PathFinder::reconstructPath(Node *goalNode) {
-	std::vector<Vec2> path;
-	Node *current = goalNode;
+std::vector<Vec2> Pathfinder::findPath(const std::vector<std::vector<bool>>& blocked,
+                                        Vec2 start,
+                                        Vec2 goal,
+                                        int gridWidth,
+                                        int gridHeight,
+                                        int maxDepth,
+                                        const std::vector<Vec2>& ignorePositions) const {
+    std::multiset<Node*, CompareNode> openList;
+    std::vector<std::vector<bool>> visited(gridWidth, std::vector<bool>(gridHeight, false));
+    std::vector<Node*> allNodes;
 
-	// main idea -> follow parent nodes backwards
-	while (current != nullptr && current->parent != nullptr) {
-		path.push_back(current->pos);
-		current = current->parent;
-	}
+    Node* startNode = new Node{ start, 0, gridHelper.manhattanDistance(start, goal), nullptr };
+    openList.insert(startNode);
+    allNodes.push_back(startNode);
 
-	std::reverse(path.begin(), path.end());
+    int nodesExplored = 0;
 
-	return path;
-}
+    while (!openList.empty() && nodesExplored < maxDepth) {
+        ++nodesExplored;
+        Node* current = *openList.begin();
+        openList.erase(openList.begin());
 
-// TODO: snake needs to detect obstacles and growths in its pathfinding
-std::vector<Vec2> PathFinder::findPath(const GameState &state, Vec2 start, Vec2 goal, int maxDepth) {
-	std::multiset<Node*, CompareNode> openList;
-	std::vector<std::vector<bool>> visited(state.width, std::vector<bool>(state.height, false));
-	std::vector<Node*> allNodes;	//needed for clenaup
+        if (current->pos.x == goal.x && current->pos.y == goal.y) {
+            auto path = reconstructPath(current);
+            cleanNodes(allNodes);
+            return path;
+        }
 
-	Node *startNode = new Node {
-		start,
-		0,
-		manhattanDistance(start, goal),
-		nullptr
-	};
+        if (visited[current->pos.x][current->pos.y]) continue;
+        visited[current->pos.x][current->pos.y] = true;
 
-	openList.insert(startNode);
-	allNodes.push_back(startNode);
-	int nodesExplored = 0;
+        for (Vec2 neighborPos : gridHelper.getNeighbors(current->pos, gridWidth, gridHeight)) {
+            if (!gridHelper.isWalkable(blocked, neighborPos, gridWidth, gridHeight, ignorePositions))
+                continue;
+            if (visited[neighborPos.x][neighborPos.y])
+                continue;
 
-	while (!openList.empty() && nodesExplored < maxDepth) {
-		nodesExplored++;
+            Node* neighborNode = new Node{
+                neighborPos,
+                current->gCost + 1,
+                gridHelper.manhattanDistance(neighborPos, goal),
+                current
+            };
+            openList.insert(neighborNode);
+            allNodes.push_back(neighborNode);
+        }
+    }
 
-		Node *current = *openList.begin();
-		openList.erase(openList.begin()); // take the begin node because CompareNode sorts ascending, i.e. the one with lowest f-cost
-
-		if (current->pos.x == goal.x && current->pos.y == goal.y) {
-			// found the food
-			std::vector<Vec2> path = reconstructPath(current);
-
-			cleanAllNodes(allNodes);
-
-			return path;
-		}
-
-		visited[current->pos.x][current->pos.y] = true;
-
-		std::vector<Vec2> neighbors = getNeighbors(current->pos);
-
-		for (Vec2 neighborPos : neighbors) {
-			// skip non walkable and visited positions
-			if (!isWalkable(state, neighborPos)) continue;
-			if (visited[neighborPos.x][neighborPos.y]) continue;
-
-			int tentativeGCost = current->gCost + 1;	// minimum cost would be one step
-			int hCost = manhattanDistance(neighborPos, goal);
-
-			Node * neighborNode = new Node {
-				neighborPos,
-				tentativeGCost,
-				hCost,
-				current		//parent is current node
-			};
-
-			openList.insert(neighborNode);
-			allNodes.push_back(neighborNode);
-		}
-	}
-
-	cleanAllNodes(allNodes);
-
-	return {};
+    cleanNodes(allNodes);
+    return {};
 }

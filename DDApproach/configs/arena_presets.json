@@ -1,0 +1,54 @@
+{
+  "arenas": [
+    {
+      "name": "Classic Arena",
+      "width": 20,
+      "height": 20,
+      "walls": {
+        "type": "solid",
+        "color": "white"
+      },
+      "foodSpawnRate": 5,
+      "obstacles": []
+    },
+    {
+      "name": "Maze Arena",
+      "width": 30,
+      "height": 30,
+      "walls": {
+        "type": "maze",
+        "color": "gray"
+      },
+      "foodSpawnRate": 3,
+      "obstacles": [
+        {
+          "type": "rock",
+          "positions": [
+            {"x": 5, "y": 5},
+            {"x": 10, "y": 10},
+            {"x": 15, "y": 15}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dynamic Arena",
+      "width": 25,
+      "height": 25,
+      "walls": {
+        "type": "dynamic",
+        "color": "blue"
+      },
+      "foodSpawnRate": 4,
+      "obstacles": [
+        {
+          "type": "moving",
+          "positions": [
+            {"x": 12, "y": 12},
+            {"x": 13, "y": 12}
+          ]
+        }
+      ]
+    }
+  ]
+}

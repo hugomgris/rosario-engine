@@ -1,59 +1,29 @@
-#include "../../incs/GridHelper.hpp"
-#include "../../incs/Arena.hpp"
+#include "AI/GridHelper.hpp"
 
-int GridHelper::manhattanDistance(Vec2 a, Vec2 b) {
-	return (abs(a.x - b.x) + abs(a.y - b.y));
+std::vector<Vec2> GridHelper::getNeighbors(Vec2 pos, int gridWidth, int gridHeight) const {
+    std::vector<Vec2> result;
+    result.reserve(4);
+    if (pos.x > 0)              result.push_back({ pos.x - 1, pos.y });
+    if (pos.x < gridWidth - 1)  result.push_back({ pos.x + 1, pos.y });
+    if (pos.y > 0)              result.push_back({ pos.x,     pos.y - 1 });
+    if (pos.y < gridHeight - 1) result.push_back({ pos.x,     pos.y + 1 });
+    return result;
 }
 
-bool GridHelper::isWalkable(const GameState& state, Vec2 pos,
-							const std::vector<Vec2>& ignorePositions) {
-	int x = pos.x;
-	int y = pos.y;
-
-	// Check arena walls (includes bounds checking)
-	CellType cell = state.arena ? state.arena->getCell(x, y) : CellType::Empty;
-	if (cell == CellType::Wall || cell == CellType::Obstacle || cell == CellType::DespawningSolid) {
-		return false;
-	}
-	// Check if in ignore list first
-	for (const Vec2& ignored : ignorePositions) {
-		if (pos.x == ignored.x && pos.y == ignored.y)
-			return true;
-	}
-
-	// Check snake a collision
-	const Vec2* snakeA_body = state.snake_A->getSegments();
-	int snakeA_len = state.snake_A->getLength();
-	
-	for (int i = 0; i < snakeA_len; i++) {
-		if (snakeA_body[i].x == x && snakeA_body[i].y == y)
-			return false;
-	}
-
-	// Check snake b collision
-	if (state.snake_B) {
-		const Vec2* snakeB_body = state.snake_B->getSegments();
-		int snakeB_len = state.snake_B->getLength();
-		
-		for (int i = 0; i < snakeB_len; i++) {
-			if (snakeB_body[i].x == x && snakeB_body[i].y == y)
-				return false;
-		}
-	}
-
-	return true;
+int GridHelper::manhattanDistance(Vec2 a, Vec2 b) const {
+    return std::abs(a.x - b.x) + std::abs(a.y - b.y);
 }
 
-std::vector<Vec2> GridHelper::getNeighbors(Vec2 pos) {
-	std::vector<Vec2> neighbors;
+bool GridHelper::isWalkable(const std::vector<std::vector<bool>>& blocked,
+                             Vec2 pos,
+                             int gridWidth,
+                             int gridHeight,
+                             const std::vector<Vec2>& ignorePositions) const {
+    if (pos.x < 0 || pos.x >= gridWidth || pos.y < 0 || pos.y >= gridHeight)
+        return false;
 
-	int x = pos.x;
-	int y = pos.y;
+    for (const auto& ign : ignorePositions)
+        if (pos.x == ign.x && pos.y == ign.y) return true;
 
-	neighbors.push_back({x - 1, y});	//left
-	neighbors.push_back({x + 1, y});	//right
-	neighbors.push_back({x, y - 1});	//up
-	neighbors.push_back({x, y + 1});	//down
-
-	return neighbors;
+    return !blocked[pos.x][pos.y];
 }
