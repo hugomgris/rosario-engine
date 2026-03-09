@@ -31,7 +31,10 @@ class Registry {
 		void addComponent(Entity entity, T component);
 
 		template<typename T>
-		T& getComponent(Entity entity) const;
+		T& getComponent(Entity entity);
+
+		template<typename T>
+		const T& getComponent(Entity entity) const;
 
 		template<typename T>
 		bool hasComponent(Entity entity) const;
@@ -51,7 +54,12 @@ void Registry::addComponent(Entity entity, T component) {
 }
 
 template<typename T>
-T& Registry::getComponent(Entity entity) const {
+T& Registry::getComponent(Entity entity) {
+	return getPool<T>().get(entity);
+}
+
+template<typename T>
+const T& Registry::getComponent(Entity entity) const {
 	return getPool<T>().get(entity);
 }
 
@@ -85,7 +93,7 @@ template<typename... T>
 std::vector<Entity> Registry::view() const {
 	// get the pool of the first type, which is always the smallest iterator needed
 	// then, filter by the remaining types to avoid scanning all entities
-	using FirstType = std::typle_element_t<0, std::type<T...>>;
+	using FirstType = std::tuple_element_t<0, std::tuple<T ...>>;
 	const auto key = std::type_index(typeid(FirstType));
 	auto it = _componentPools.find(key);
 	if (it == _componentPools.end()) return {};
@@ -94,7 +102,7 @@ std::vector<Entity> Registry::view() const {
 	std::vector<Entity> result;
 	result.reserve(firstPool.size());
 	for (Entity entity : firstPool.entities()) {
-		if (hasComponent<T>(entity) && ...)
+		if ((hasComponent<T>(entity) && ...))
 			result.push_back(entity);
 	}
 

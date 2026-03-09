@@ -24,10 +24,10 @@ class ComponentPool {
 		}
 
 		T& get(Entity entity) {
-			const auto id = entity.getId();
+			const auto id = entity.getID();
 			auto it = _entityToIndex.find(id);
 			if (it == _entityToIndex.end())
-				throw std::runtime_error("Entity does not have component")
+				throw std::runtime_error("Entity does not have component");
 			return _components[it->second];
 		}
 
@@ -58,12 +58,12 @@ class ComponentPool {
 				}
 			}
 
-			components.pop_back();
-			entityList.pop_back();
-			entityToIndex.erase(it);
+			_components.pop_back();
+			_entityList.pop_back();
+			_entityToIndex.erase(it);
 		}
 
-		size_t size() const { return components.size(); }
+		size_t size() const { return _components.size(); }
 
 		const std::vector<Entity>& entities() const { return _entityList; }
 };

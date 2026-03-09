@@ -21,46 +21,43 @@ INCDIR          := incs
 # -=-=-=-=-    SOURCE FILES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 MAIN_SRC        := main.cpp
-CORE_SRC        := core/GameController.cpp	\
-					core/InputManager.cpp	\
-					core/Arena.cpp			\
-					core/ArenaPresets.cpp	\
-					core/Snake.cpp			\
-					core/Food.cpp			\
-					core/Utils.cpp
 
-AI_SRC          := AI/AIConfig.cpp			\
-					AI/FloodFill.cpp		\
-					AI/Pathfinder.cpp		\
-					AI/SnakeAI.cpp			\
-					AI/GridHelper.cpp
+ECS_SRC         := ecs/Registry.cpp
 
-GRAPHICS_SRC    := graphics/Renderer.cpp				\
-					graphics/TextSystem.cpp				\
-					graphics/ParticleSystem.cpp			\
-					graphics/AnimationSystem.cpp		\
-					graphics/MenuSystem.cpp				\
-					graphics/RaylibColors.cpp			\
-					graphics/PostProcessingSystem.cpp
+#AI_SRC          := AI/FloodFill.cpp		\
+					AI/GridHelper.cpp		\
+					AI/Pathfinder.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(CORE_SRC) $(AI_SRC) $(GRAPHICS_SRC)
+#ARENA_SRC       := arena/ArenaGrid.cpp		\
+					arena/ArenaPresets.cpp
 
-SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
-OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))
-DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d))
+SYSTEMS_SRC     := systems/InputSystem.cpp          \
+					systems/MovementSystem.cpp       \
+					systems/RenderSystem.cpp         \
+
+GRAPHICS_SRC    := srcs/helpers/RaylibColors.cpp
+
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) #$(AI_SRC) $(ARENA_SRC)
+
+GRAPHICS_SRCS   := srcs/helpers/RaylibColors.cpp
+SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC)) $(GRAPHICS_SRCS)
+OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o)) \
+                   $(OBJDIR)/RaylibColors.o
+DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d)) \
+                   $(DEPDIR)/RaylibColors.d
 
 # -=-=-=-=-    INCLUDES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
-INCLUDES        := -I$(INCDIR)
+INCLUDES        := -I$(INCDIR) -I$(SRCDIR)
 
 # -=-=-=-=-    FLAGS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 CC              := c++
-CFLAGS := -std=c++20 -g3 -O0 -Wall -Wextra \
-			-Wno-unused-parameter \
-			-Wno-unused-variable \
-			-Wno-sign-compare \
-			$(INCLUDES)
+CFLAGS			:= -std=c++20 -g3 -O0 -Wall -Wextra \
+					-Wno-unused-parameter \
+					-Wno-unused-variable \
+					-Wno-sign-compare \
+					$(INCLUDES)
 
 # PRODUCTION FLAGS#
 #CFLAGS := -std=c++20 -g3 -O0 -Wall -Wextra -Werror \
@@ -104,8 +101,9 @@ TEST_SRCS		:= $(wildcard $(TEST_DIR)/unit/*.cpp) \
 TEST_OBJS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_OBJDIR)/%.o,$(TEST_SRCS))
 TEST_DEPS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_DEPDIR)/%.d,$(TEST_SRCS))
 
-TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(SRCS))
-TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS))
+TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(addprefix $(SRCDIR)/, $(ALL_SRC)))
+TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS)) \
+				   $(OBJDIR)/RaylibColors.o
 
 TEST_CFLAGS		:= $(CFLAGS) $(GTEST_INCLUDES) $(RAYLIB_INCLUDES)
 TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
@@ -115,13 +113,13 @@ TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
 all: $(RAYLIB_SRC_DIR)/libraylib.a $(NAME)
 
 game: all
-	./rosario 31 31
+	./rosario
 
 gamere: re
-	./rosario 31 31
+	./rosario
 
 gamecheck: re
-	valgrind --leak-check=full --track-origins=yes --show-leak-kinds=all ./rosario 30 30
+	valgrind --leak-check=full --track-origins=yes --show-leak-kinds=all ./rosario 31 31
 
 check_gtest:
 	@if [ ! -f "$(GTEST_LIB)" ]; then \
@@ -170,6 +168,13 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $(DEPDIR)/$*.d)
 	@echo "$(YELLOW)Compiling $<...$(DEF_COLOR)"
 	@$(CC) $(CFLAGS) $(ALL_INCLUDES) $(DEPFLAGS) -c $< -o $@ -MF $(DEPDIR)/$*.d
+
+# RaylibColors specal rule
+$(OBJDIR)/RaylibColors.o: srcs/helpers/RaylibColors.cpp
+	@mkdir -p $(OBJDIR)
+	@mkdir -p $(DEPDIR)
+	@echo "$(YELLOW)Compiling $<...$(DEF_COLOR)"
+	@$(CC) $(CFLAGS) $(ALL_INCLUDES) $(DEPFLAGS) -c $< -o $@ -MF $(DEPDIR)/RaylibColors.d
 
 -include $(DEPS)
 
@@ -228,6 +233,5 @@ info:
 	@echo "Compiler: $(CC)"
 	@echo "Flags:    $(CFLAGS)"
 	@echo "Raylib:   $(RAYLIB_LIBS)"
-	@echo "SDL2:     $(SDL_LIBS)"
 
 .PHONY: all clean fclean re test check_gtest check_raylib

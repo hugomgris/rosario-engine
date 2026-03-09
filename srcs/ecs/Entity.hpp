@@ -4,7 +4,8 @@
 
 // Simple entity class: just an ID (number) with necessary == and != operators
 class Entity {
-	using ID = std::uint32_t;
+	public:
+		using ID = std::uint32_t;
 
 	private:
 		ID _id;

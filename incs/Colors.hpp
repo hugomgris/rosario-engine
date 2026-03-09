@@ -20,6 +20,4 @@ struct SetColors {
     BaseColor snakeAColor = { 135, 206, 250, 255 };
     BaseColor snakeBColor = { 218, 112, 21, 255 };
     BaseColor snakeAIColor = { 46, 179, 113, 255 };
-
-
 };
