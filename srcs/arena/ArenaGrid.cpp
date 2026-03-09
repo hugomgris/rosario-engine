@@ -118,8 +118,7 @@ std::vector<std::vector<Vector2>> ArenaGrid::getAllOutlines(int offsetX, int off
 
 	auto isWall = [&](int c, int r) -> bool {
 		if (r < 0 || r >= _gridHeight || c < 0 || c >= _gridWidth) return true;
-		return grid[r][c] != CellType::Empty &&
-			grid[r][c] != CellType::Food;
+		return grid[r][c] != CellType::Empty;
 	};
 
 	std::map<IVec2, IVec2> next;

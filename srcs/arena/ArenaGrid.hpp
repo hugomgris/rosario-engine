@@ -12,7 +12,6 @@ enum class CellType {
 	Empty,
 	Wall,
 	Obstacle,
-	Food,
 	SpawningSolid,
 	DespawningSolid
 };
