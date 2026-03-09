@@ -3,4 +3,4 @@
 
 struct PositionComponent {
 	Vec2 position;
-}
+};
