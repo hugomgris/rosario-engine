@@ -24,20 +24,21 @@ MAIN_SRC        := main.cpp
 
 ECS_SRC         := ecs/Registry.cpp
 
-#AI_SRC          := AI/FloodFill.cpp		\
+#AI_SRC			:= AI/FloodFill.cpp		\
 					AI/GridHelper.cpp		\
 					AI/Pathfinder.cpp
 
-#ARENA_SRC       := arena/ArenaGrid.cpp		\
+ARENA_SRC		:= arena/ArenaGrid.cpp		\
 					arena/ArenaPresets.cpp
 
-SYSTEMS_SRC     := systems/InputSystem.cpp          \
-					systems/MovementSystem.cpp       \
-					systems/RenderSystem.cpp         \
+SYSTEMS_SRC     := systems/InputSystem.cpp			\
+					systems/MovementSystem.cpp		\
+					systems/RenderSystem.cpp		\
+					systems/CollisionSystem.cpp		\
 
 GRAPHICS_SRC    := srcs/helpers/RaylibColors.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) #$(AI_SRC) $(ARENA_SRC)
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) #$(AI_SRC)
 
 GRAPHICS_SRCS   := srcs/helpers/RaylibColors.cpp
 SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC)) $(GRAPHICS_SRCS)

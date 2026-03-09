@@ -13,21 +13,21 @@
 #include "components/InputComponent.hpp"
 //#include "components/AIComponent.hpp"
 #include "components/RenderComponent.hpp"
-//#include "components/CollisionResultComponent.hpp"
+#include "components/CollisionResultComponent.hpp"
 #include "components/SolidTag.hpp"
 #include "components/FoodTag.hpp"
 #include "systems/InputSystem.hpp"
 //#include "systems/AISystem.hpp"
 #include "systems/MovementSystem.hpp"
-//#include "systems/CollisionSystem.hpp"
+#include "systems/CollisionSystem.hpp"
 #include "systems/RenderSystem.hpp"
 //#include "systems/ParticleSystem.hpp"
 //#include "systems/TextSystem.hpp"
 //#include "systems/AnimationSystem.hpp"
 //#include "systems/MenuSystem.hpp"
 //#include "systems/PostProcessingSystem.hpp"
-//#include "arena/ArenaGrid.hpp"
-//#include "arena/ArenaPresets.hpp"
+#include "arena/ArenaGrid.hpp"
+#include "arena/ArenaPresets.hpp"
 //#include "core/GameState.hpp"
 
 // constants
@@ -56,7 +56,7 @@ static Entity spawnPlayerSnake(Registry& registry,
 	registry.addComponent(e, MovementComponent{ Direction::RIGHT, 0.0f, 0.1f });
 	registry.addComponent(e, InputComponent{});
 	registry.addComponent(e, RenderComponent{ color });
-	//registry.addComponent(e, CollisionResultComponent{});
+	registry.addComponent(e, CollisionResultComponent{});
 	inputSystem.assignSlot(e, slot);
 	return e;
 } 
@@ -72,30 +72,38 @@ static Entity spawnFood(Registry& registry, Vec2 pos) {
 }
 
 static void relocateFood(Registry& registry, Entity foodEntity,
-						int gridWidth, int gridHeight /*const ArenaGrid* arena = nullptr*/) {
+						int gridWidth, int gridHeight,
+						const ArenaGrid* arena = nullptr) {
 	std::vector<Vec2> snakeOccupied;
-	for (auto e : registry.view<SnakeComponent>()) {
-		for (const auto& seg : registry.getComponent<SnakeComponent>(e).segments) {
+	for (auto e : registry.view<SnakeComponent>())
+		for (const auto& seg : registry.getComponent<SnakeComponent>(e).segments)
 			snakeOccupied.push_back(seg.position);
-		}
-	}
 
 	auto isSnakeOccupied = [&](Vec2 p) {
-		for (const auto& o : snakeOccupied) {
+		for (const auto& o : snakeOccupied)
 			if (o.x == p.x && o.y == p.y) return true;
-		}
 		return false;
 	};
 
-	std::vector<Vec2> solidOccupied;
-	for (auto e : registry.view<SolidTag, PositionComponent>()) {
-		solidOccupied.push_back(registry.getComponent<PositionComponent>(e).position);
+	if (arena) {
+		auto cells = arena->getAvailableCells();
+		for (int tries = 0; tries < static_cast<int>(cells.size()); ++tries) {
+			Vec2 c = cells[static_cast<size_t>(std::rand()) % cells.size()];
+			if (!isSnakeOccupied(c)) {
+				registry.getComponent<PositionComponent>(foodEntity).position = c;
+				return;
+			}
+		}
+		return;
 	}
 
+	std::vector<Vec2> solidOccupied;
+	for (auto e : registry.view<SolidTag, PositionComponent>())
+		solidOccupied.push_back(registry.getComponent<PositionComponent>(e).position);
+
 	auto isOccupied = [&](Vec2 p) {
-		for (const auto& o : solidOccupied) {
+		for (const auto& o : solidOccupied)
 			if (o.x == p.x && o.y == p.y) return true;
-		}
 		return isSnakeOccupied(p);
 	};
 
@@ -103,6 +111,7 @@ static void relocateFood(Registry& registry, Entity foodEntity,
 		Vec2 candidate = { std::rand() % gridWidth, std::rand() % gridHeight };
 		if (!isOccupied(candidate)) {
 			registry.getComponent<PositionComponent>(foodEntity).position = candidate;
+			return;
 		}
 	}
 }
@@ -110,8 +119,8 @@ static void relocateFood(Registry& registry, Entity foodEntity,
 static void resetGame(Registry& registry,
 						InputSystem& inputSystem,
 						Entity& playerSnake, Entity& aiSnake, Entity& food,
-						int gridWidth, int gridHeight
-						/*, ArenaGrid& arena*/) {
+						int gridWidth, int gridHeight,
+						ArenaGrid& arena) {
 	// wipe the registry and re-create
 	registry = Registry{};
 
@@ -130,12 +139,11 @@ static void resetGame(Registry& registry,
 
 	food = spawnFood(registry, { gridWidth / 4, gridHeight / 4 });
 
-	/*arena.ClearArena();
+	arena.clearArena();
 
-	WallPPreset preset = ArenaPresets::getRandomPreset();
+	/* WallPreset preset = ArenaPresets::getRandomPreset();
 	arena.transformArenaWithPreset(preset);
-	arena.beginSpawn(1.2f);
-	*/
+	arena.beginSpawn(1.2f); */ //TO DO
 }
 
 int main() {
@@ -148,13 +156,15 @@ int main() {
 	InputSystem			inputSystem;
 	//AISystem			aiSystem(GRID_W, GRID_H);
 	MovementSystem		movementSystem;
-	//CollisionSystem	collisionSystem;
+	CollisionSystem	collisionSystem;
 	RenderSystem		renderSystem;
 	renderSystem.init(GRID_W, GRID_H);
 
 	// initial world
+	ArenaGrid arena(GRID_W, GRID_H);
 	Entity playerSnake(0u), aiSnake(0u), food(0u); // TODO: ai snake
-	resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H/*, arena*/);
+	resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H, arena);
+	RenderMode renderMode = RenderMode::MODE2D;
 
 	// state machine
 	//TODO
@@ -162,15 +172,44 @@ int main() {
 	while (true) {
 		if (WindowShouldClose()) break;
 
+		DrawFPS(SCREEN_W - 95, 10);
+
 		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f); // TODO: why this?
 
 		if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: ?
 
 		inputSystem.update(registry);
 		movementSystem.update(registry, dt);
+		collisionSystem.update(registry, &arena);
+
+		bool playerDied = false;
+		for (auto entity : registry.view<CollisionResultComponent>()) {
+			auto& result = registry.getComponent<CollisionResultComponent>(entity);
+			switch (result.result) {
+				case CollisionType::Food:
+					relocateFood(registry, food, GRID_W, GRID_H, &arena);
+					result.result = CollisionType::None;
+					break;
+
+				case CollisionType::Wall:
+				case CollisionType::Self:
+				case CollisionType::Snake:
+					if (entity == playerSnake) playerDied = true;
+					result.result = CollisionType::None;
+					break;
+
+				case CollisionType::None:
+					break;
+			}
+		}
+
+		if (playerDied) {
+			std::cout << "PLAYER DIED" << std::endl; // TODO: menu mangling
+			break;
+		}
 
 		// render
-		renderSystem.render(registry, RenderMode::MODE2D, dt); // TODO: add arena
+		renderSystem.render(registry, renderMode, dt); // TODO: add arena
 	}
 
 	CloseWindow();
