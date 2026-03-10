@@ -583,13 +583,58 @@ float size  = static_cast<float>(squareSize) * 0.7f * pulse;
 **3D pipeline**: isometric orthographic view using Raylib's `Camera3D`. Camera position is derived from grid diagonal to ensure the whole arena fits in frame regardless of arena size, using a quadratic fit for the FOV value that was calibrated to match a visually comfortable frame at various sizes. The checkerboard ground plane, walls, food, and snakes all use `drawCubeCustomFaces` — a low-level function that draws a cube by submitting six quads directly via `rlgl`, one per face, each with its own color. This preserves the per-face shading from the old OOP renderer, which `Raylib`'s built-in `DrawCube` can't do since it applies a single color to all faces.
 
 <br>
+
+### `FoodSystem` && `DeathSystem` — Collision Processers
+These two systems emerged while thinking about the processing of detected collisions. Remember: `CollisionSystem` just stores collisions, it doesn't do anything with them. So the logic following what happens when a snake eats or collides with a solid cell or with itself needs to be defined elsewhere. These two systems are nothing too remarcable, they just comb through the component pools, fetch their corresponding collision results, do stuff when they detect them.
+
+<br>
 <br>
 
 ## 3.6 New Main, New Me
 Everything needed for a Data Driven *Snake* game is done, except for the new `Main` entry point for the program. So let's do that!
 
-First, we're going to need to build some **`Factories`**, a collection of static functions to create and store `Entities` (snakes, food), and to manage some stuff (food relocation, game reset). 
+First, we're going to need to build some **`Factories`**, a collection of static functions to create and store `Entities` (snakes, food), and to manage some stuff (food relocation, game reset). We're also going to need some general state management function (like `resetGame()`) and food management (`relocateFood`). Here, the OOP instincts kick in, and call for a `GameManager`, but that would be... WRONG! Because we're not OOPing, we're DDing, therefore things need to be, codewise but also logically, managed differently. What we need is:
+- An extra system for food, `FoodSystem`, that updates after collisions and is responsible for what *snake eating apple* means and entrails.
+    - This will be a simple check for `CollisionResultComponent` and `SnakeComponent` to trigger the `grow()` and the `relocateFood()`.
+- A new file for world/general data related code (core?), just somewhere to store the `resetGame()` logic.
+- UPDATE TO/FROM SELF: while building the `FoodSystem`, the handling of player death caused by collisions raised another corncerned, which suggested the necessity of yet another new system, so we're going to have to welcome `DeathSystem` to the family.
 
+> *I'm going to retroactively add the two new systems above, so if you have been reading this document you might find things weird right now. You might even think that I'm finally losing what was left of my mind. Both things are true.*
+
+After the new system detour, `Factories.hpp/cpp` and `GameState.hpp/cpp` are built and stored in `/helpers`. Again, simple and straightforward stuff, go check their files if you want specific code implementations. What we really need to focus is in the `main` game loop. The advantage of a pure ECS system is that said loop just needs a (correctly ordered) sequential update call to all existing systems:
+```cpp
+while (true) {
+		if (WindowShouldClose()) break;
+
+		DrawFPS(SCREEN_W - 95, 10);
+
+		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f); // TODO: why this?
+
+		if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: ?
+
+		bool playerDied = false;
+
+		// update and management system phase
+		inputSystem.update(registry);
+		movementSystem.update(registry, dt);
+		collisionSystem.update(registry, &arena);
+		foodSystem.update(registry, &arena, GRID_W, GRID_H);
+		deathSystem.update(registry, playerSnake, &playerDied);
+
+		if (playerDied) {
+			std::cout << "PLAYER DIED" << std::endl; // TODO: menu mangling
+			break;
+		}
+
+		// render phase
+		renderSystem.render(registry, renderMode, dt);
+	}
+
+	CloseWindow();
+	return 0;
+```
+
+This, with a lack of energy and words, works. The *snake* is alive and, according to my research, it's doing so in a fully ECS re-structure. The next item in the to-do list is the port of the rest of the original OOP functionality into the pending systems, but first I wanted to explore a further step in the Data Driven Direction: **store and load collisions rules in JSON files**.
 
 ---
 ---

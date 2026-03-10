@@ -113,7 +113,7 @@ void CollisionSystem::checkFoodCollisions(Registry& registry) {
 		for (const auto& foodPos : foodPositions) {
 			if (head.x == foodPos.x && head.y == foodPos.y) {
 				result.result = CollisionType::Food;
-				registry.getComponent<SnakeComponent>(entity).growing = true;
+				//registry.getComponent<SnakeComponent>(entity).growing = true;
 				break;
 			}
 		}

@@ -12,21 +12,21 @@ void ArenaGrid::setCell(int x, int y, CellType type) {
 	int gx = x + 1;
 	int gy = y + 1;
 	if (gy <  0 || gy >= _gridHeight || gx < 0 || gx >= _gridWidth) return;
-	grid[gy][gx] = type;
+	_grid[gy][gx] = type;
 }
 
 CellType ArenaGrid::getCell(int x, int y) const {
 	if (y < 0 || y >= _gridWidth || x < 0 || x >= _gridWidth - 2) {
 		return CellType::Wall;
 	}
-	return grid[y + 1][x + 1];
+	return _grid[y + 1][x + 1];
 }
 
 bool ArenaGrid::isWalkable(int x, int y) const {
 	if (y < 0 || y >= _gridHeight - 2 || x < 0 || x >= _gridWidth - 2) {
 		return false;
 	}
-	return grid[y + 1][x + 1] == CellType::Empty;
+	return _grid[y + 1][x + 1] == CellType::Empty;
 };
 
 std::vector<Vec2> ArenaGrid::getAvailableCells() const {
@@ -34,13 +34,15 @@ std::vector<Vec2> ArenaGrid::getAvailableCells() const {
 
 	for (int y = 1; y < _gridHeight - 1; ++y) {
 		for (int x = 1; x < _gridHeight - 1; ++x) {
-			if (grid[y][x] == CellType::Empty) {
+			if (_grid[y][x] == CellType::Empty) {
 				free.push_back({ x - 1, y - 1 });
 			}
 		}
 	}
 	return free;
 }
+
+std::vector<std::vector<CellType>> ArenaGrid::getGrid() const { return _grid; }
 
 // obstacle placement
 void ArenaGrid::spawnObstacle(int x, int y, int w, int h) {
@@ -80,11 +82,11 @@ void ArenaGrid::clearCell(int x, int y) {
 }
 
 void ArenaGrid::clearArena() {
-	grid.assign(_gridHeight, std::vector<CellType>(_gridWidth, CellType::Empty));
+	_grid.assign(_gridHeight, std::vector<CellType>(_gridWidth, CellType::Empty));
 	for (int y = 0; y < _gridHeight; ++y)
 		for (int x = 0; x < _gridWidth; ++x)
 			if (x == 0 || x == _gridWidth - 1 || y == 0 || y == _gridHeight - 1)
-				grid[y][x] = CellType::Wall;
+				_grid[y][x] = CellType::Wall;
 }
 
 // preset dispatchng
@@ -118,7 +120,7 @@ std::vector<std::vector<Vector2>> ArenaGrid::getAllOutlines(int offsetX, int off
 
 	auto isWall = [&](int c, int r) -> bool {
 		if (r < 0 || r >= _gridHeight || c < 0 || c >= _gridWidth) return true;
-		return grid[r][c] != CellType::Empty;
+		return _grid[r][c] != CellType::Empty;
 	};
 
 	std::map<IVec2, IVec2> next;
@@ -208,8 +210,8 @@ void ArenaGrid::tickSpawnTimer(float dt) {
 		if (_spawnTimer <= 0.0f) {
 			for (int y = 1; y < _gridHeight - 1; ++y)
 				for (int x = 1; x < _gridWidth - 1; ++x)
-					if (grid[y][x] == CellType::SpawningSolid)
-						grid[y][x] = CellType::Obstacle;
+					if (_grid[y][x] == CellType::SpawningSolid)
+						_grid[y][x] = CellType::Obstacle;
 			_fadeTimer = _fadeDuration;
 		}
 		return;
@@ -231,8 +233,8 @@ float ArenaGrid::getSpawnFadeProgress() const {
 void ArenaGrid::beginDespawn(float delay) {
 	for (int y = 1; y < _gridHeight - 1; ++y)
 		for (int x = 1; x < _gridWidth - 1; ++x)
-			if (grid[y][x] == CellType::Obstacle)
-				grid[y][x] = CellType::DespawningSolid;
+			if (_grid[y][x] == CellType::Obstacle)
+				_grid[y][x] = CellType::DespawningSolid;
 	_despawnTimer = delay;
 }
 
@@ -248,8 +250,8 @@ void ArenaGrid::tickDespawnTimer(float dt) {
 		if (_fadeOutTimer <= 0.0f) {
 			for (int y = 1; y < _gridHeight - 1; ++y)
 				for (int x = 1; x < _gridWidth - 1; ++x)
-					if (grid[y][x] == CellType::DespawningSolid)
-						grid[y][x] = CellType::Empty;
+					if (_grid[y][x] == CellType::DespawningSolid)
+						_grid[y][x] = CellType::Empty;
 		}
 	}
 }

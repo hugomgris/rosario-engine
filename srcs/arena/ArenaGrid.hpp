@@ -30,6 +30,21 @@ enum class WallPreset {
 };
 
 class ArenaGrid {
+	private:
+		std::vector<std::vector<CellType>> _grid;
+		
+		int _gridWidth;
+		int _gridHeight;
+
+		float _spawnTimer		= 0.0f;
+		float _spawnDuration	= 0.0f;
+		float _fadeTimer		= 0.0f;
+		float _fadeDuration		= 0.1f;
+
+		float _despawnTimer		= 0.0f;
+		float _fadeOutTimer		= 0.0f;
+		float _fadeOutDuration	= 0.15f;
+
 	public:
 		ArenaGrid(int width, int height);
 
@@ -38,6 +53,7 @@ class ArenaGrid {
 		bool		isWalkable(int x, int y) const;
 
 		std::vector<Vec2> getAvailableCells() const;
+		std::vector<std::vector<CellType>> getGrid() const;
 
 		void spawnObstacle(int x, int y, int w, int h);
 
@@ -65,20 +81,4 @@ class ArenaGrid {
 		void	tickDespawnTimer(float dt);
 		bool	isDespawning() const;
 		float	getDespawnFadeProgress() const; // 0-1
-
-	
-	private:
-		std::vector<std::vector<CellType>> grid;
-		
-		int _gridWidth;
-		int _gridHeight;
-
-		float _spawnTimer	= 0.0f;
-		float _spawnDuration	= 0.0f;
-		float _fadeTimer		= 0.0f;
-		float _fadeDuration	= 0.1f;
-
-		float _despawnTimer		= 0.0f;
-		float _fadeOutTimer		= 0.0f;
-		float _fadeOutDuration	= 0.15f;
 };

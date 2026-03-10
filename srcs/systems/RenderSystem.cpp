@@ -29,14 +29,14 @@ void RenderSystem::init(int gridWidth, int gridHeight) {
 }
 
 // entry point
-void RenderSystem::render(Registry& registry, RenderMode mode, float deltaTime) {
+void RenderSystem::render(Registry& registry, RenderMode mode, float deltaTime, const ArenaGrid* arena) {
 	(void)mode;
 	_accumulatedTime += deltaTime;
 
 	BeginDrawing();
 	ClearBackground(customBlack);
 
-	render2D(registry); // TODO: 3D pipeline and arena
+	render2D(registry, arena); // TODO: 3D pipeline and arena
 
 	EndDrawing();
 }
@@ -63,7 +63,7 @@ Color RenderSystem::baseColorToRaylib(const BaseColor& c) const {
 }
 
 // 2D pipeline
-void RenderSystem::render2D(Registry& registry) {
+void RenderSystem::render2D(Registry& registry, const ArenaGrid* arena) {
 	BeginMode2D(_camera2D);
 
 	// Arena Border;
@@ -73,12 +73,52 @@ void RenderSystem::render2D(Registry& registry) {
 		wallColor
 	); 
 
-	drawWalls2D(registry); // TODO: switch to arena management
+	drawArena2D(*arena);
+	//drawWalls2D(registry); // TODO: switch to arena management
 
 	drawFood2D(registry);
 	drawSnakes2D(registry);
 
 	EndMode2D();
+}
+
+void RenderSystem::drawArena2D(const ArenaGrid& arena) const {
+	const bool  spawning   = arena.isSpawning();
+	const bool  despawning = arena.isDespawning();
+	const float spawnAlpha = spawning   ? arena.getSpawnFadeProgress()   : 1.0f;
+	const float despAlpha  = despawning ? arena.getDespawnFadeProgress() : 1.0f;
+
+	const int fw = arena.getFullWidth();
+	const int fh = arena.getFullHeight();
+	const auto& grid = arena.getGrid();
+
+	for (int gy = 0; gy < fh; ++gy) {
+		for (int gx = 0; gx < fw; ++gx) {
+			CellType cell = grid[gy][gx];
+			if (cell == CellType::Empty || cell == CellType::SpawningSolid) continue;
+
+			// Convert full-grid coords back to screen coords
+			// Full grid: (1,1) == game (0,0)
+			int gameX = gx - 1;
+			int gameY = gy - 1;
+
+			Color c = wallColor;
+			if (cell == CellType::Obstacle) {
+				if (spawning) c.a = static_cast<unsigned char>(spawnAlpha * 255.0f);
+			} else if (cell == CellType::DespawningSolid) {
+				c.a = static_cast<unsigned char>(despAlpha * 255.0f);
+			} else if (cell == CellType::Wall) {
+				// Border walls are drawn via DrawRectangleLinesEx — skip here
+				continue;
+			}
+
+			Vector2 screen = gridToScreen2D(gameX, gameY);
+			DrawRectangle(
+				static_cast<int>(screen.x), static_cast<int>(screen.y),
+				_squareSize, _squareSize, c
+			);
+		}
+	}
 }
 
 void RenderSystem::drawWalls2D(Registry& registry) const {

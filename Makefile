@@ -35,9 +35,12 @@ SYSTEMS_SRC     := systems/InputSystem.cpp			\
 					systems/MovementSystem.cpp		\
 					systems/RenderSystem.cpp		\
 					systems/CollisionSystem.cpp		\
+					systems/FoodSystem.cpp			\
+					systems/DeathSystem.cpp
 
 GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
-					helpers/Factories.cpp
+					helpers/Factories.cpp	\
+					helpers/GameState.cpp
 
 ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) #$(AI_SRC)
 

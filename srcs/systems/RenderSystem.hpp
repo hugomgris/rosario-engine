@@ -4,6 +4,7 @@
 #include "../../incs/DataStructs.hpp"
 #include "../../incs/RaylibColors.hpp"
 #include "../../incs/Colors.hpp"
+#include "../arena/ArenaGrid.hpp"
 
 enum class RenderMode {
 	MODE2D,
@@ -31,14 +32,14 @@ class RenderSystem {
 		Camera2D _camera2D = {};
 
 		// pipelines
-		void render2D(Registry& registry);
+		void render2D(Registry& registry, const ArenaGrid* arena);
 		//void render2D(Registry& registry);
 
 		// 2D helpers
 		void drawSnakes2D(Registry& registry) const;
 		void drawFood2D(Registry& registry) const;
 		void drawWalls2D(Registry  &registry) const;
-		//void drawArena2D(const ArenaGrid& arena) const;
+		void drawArena2D(const ArenaGrid& arena) const;
 
 		// utilities
 		void	calculate2DLayout();
@@ -47,5 +48,5 @@ class RenderSystem {
 
 	public:
 		void init(int gridWidth, int gridHeight);
-		void render(Registry& registry, RenderMode mode, float deltaTime);
+		void render(Registry& registry, RenderMode mode, float deltaTime, const ArenaGrid* arena);
 };

@@ -20,6 +20,8 @@
 //#include "systems/AISystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/CollisionSystem.hpp"
+#include "systems/FoodSystem.hpp"
+#include "systems/DeathSystem.hpp"
 #include "systems/RenderSystem.hpp"
 //#include "systems/ParticleSystem.hpp"
 //#include "systems/TextSystem.hpp"
@@ -30,6 +32,7 @@
 #include "arena/ArenaPresets.hpp"
 //#include "core/GameState.hpp"
 #include "helpers/Factories.hpp"
+#include "helpers/GameState.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -48,14 +51,16 @@ int main() {
 	InputSystem			inputSystem;
 	//AISystem			aiSystem(GRID_W, GRID_H);
 	MovementSystem		movementSystem;
-	CollisionSystem	collisionSystem;
+	CollisionSystem		collisionSystem;
+	FoodSystem			foodSystem;
+	DeathSystem			deathSystem;
 	RenderSystem		renderSystem;
 	renderSystem.init(GRID_W, GRID_H);
 
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
 	Entity playerSnake(0u), aiSnake(0u), food(0u); // TODO: ai snake
-	Factories::resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H, arena);
+	GameState::resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H, arena);
 	RenderMode renderMode = RenderMode::MODE2D;
 
 	// state machine
@@ -70,38 +75,22 @@ int main() {
 
 		if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: ?
 
+		bool playerDied = false;
+
+		// update and management system phase
 		inputSystem.update(registry);
 		movementSystem.update(registry, dt);
 		collisionSystem.update(registry, &arena);
-
-		bool playerDied = false;
-		for (auto entity : registry.view<CollisionResultComponent>()) {
-			auto& result = registry.getComponent<CollisionResultComponent>(entity);
-			switch (result.result) {
-				case CollisionType::Food:
-					Factories::relocateFood(registry, food, GRID_W, GRID_H, &arena);
-					result.result = CollisionType::None;
-					break;
-
-				case CollisionType::Wall:
-				case CollisionType::Self:
-				case CollisionType::Snake:
-					if (entity == playerSnake) playerDied = true;
-					result.result = CollisionType::None;
-					break;
-
-				case CollisionType::None:
-					break;
-			}
-		}
+		foodSystem.update(registry, &arena, GRID_W, GRID_H);
+		deathSystem.update(registry, playerSnake, &playerDied);
 
 		if (playerDied) {
 			std::cout << "PLAYER DIED" << std::endl; // TODO: menu mangling
 			break;
 		}
 
-		// render
-		renderSystem.render(registry, renderMode, dt); // TODO: add arena
+		// render phase
+		renderSystem.render(registry, renderMode, dt, &arena);
 	}
 
 	CloseWindow();
