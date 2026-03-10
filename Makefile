@@ -36,16 +36,14 @@ SYSTEMS_SRC     := systems/InputSystem.cpp			\
 					systems/RenderSystem.cpp		\
 					systems/CollisionSystem.cpp		\
 
-GRAPHICS_SRC    := srcs/helpers/RaylibColors.cpp
+GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
+					helpers/Factories.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) #$(AI_SRC)
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) #$(AI_SRC)
 
-GRAPHICS_SRCS   := srcs/helpers/RaylibColors.cpp
-SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC)) $(GRAPHICS_SRCS)
-OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o)) \
-                   $(OBJDIR)/RaylibColors.o
-DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d)) \
-                   $(DEPDIR)/RaylibColors.d
+SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
+OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))
+DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d))
 
 # -=-=-=-=-    INCLUDES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 

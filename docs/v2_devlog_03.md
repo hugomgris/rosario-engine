@@ -5,7 +5,8 @@
 2. [Data Driven Programming 101](#32---data-driven-programming-101)
 3. [Transition = Plan](#33-transition--plan)
 4. [Carefully Composing Components](#34-carefully-composing-components)
-5. [Writing the Systems](#35-writing-the-systems)
+5. [Swiftly Systematizing Systems](#35-writing-the-systems)
+6. [New Main, New Me](#36-new-main-new-me)
 
 <br>
 <br>
@@ -112,19 +113,22 @@ With some basics in our backpack, it's time to plan how to make the transition f
 1. **Build the ECS Core**: Write `Entity`, `ComponentPool<T>`, and `Registry` from scratch. Nothing game-specific yet. This is the foundation.
 2. **Port Components**: Take the existing data (position, direction, body segments, etc) and pull them out of the classes into pure structs.
 3. **Port Systems**: Take the existing logic (movement, collision, AI, rendering) and rewrite them as systems that query the registry.
+    - *This will be done in two batches, first I'll port the esential gameplay systems, then I'll go through with the flair: AISystem, AnimationSystem, PostProcessingSystem and TextSystem(menuing)*
 4. **Port the Arena**: The `Arena` class is actually already quite data-driven in spirit (the grid is, after all, pure data). It mostly needs to learn to talk to the `registry`. 
 5. **External Config**: move hardcoded values (speeds, sizes, colors, arena layouts) into `JSON` files. Systems read config at startup.
 
 #### The Starting Point:
-Before writing a single game-specific line of code, we need a working `Registry`. That's the heart of this whole new thing, and a minimal one needs to:
+Before writing a single game-specific line of code, we need a working `Registry`. That's the heart of this whole new thing, the heart the core and the holy spirit, the one thing that will be passed around to poll/query the existing entities and their components from systems and wherever else its needed. A minimal `Registry` needs to:
 1. Create and destroy entities
 2. Add/remove components to entitities
 3. Query "give me all entities with components X, and Y, and Z, and..."
 
+Obviously, this is going to ask for a pre-created `Entity` class and, just to have a hinge container to manage components, a `ComponentPool` class. We'll start from those, then build the registry and after contemplating our new ECS baby, we'll be ready to start building quering systems and a simple `Main` that recovers the basic *snake* game at the core of this project.
+
 > Also, a side note, the refactoring/remaking of the whole project is going to also co-locate definition and implementation files, i.e. `.hpp` and `.cpp` files are going to be stored alongisde in their new, corresponding directories. Apparently, this is a more modern approach than the (C-inherited, really) `incs/`/`srcs/` way of structuring a project, a tendency, even, so let's adhere to it. Because why not.
 
 ### 3.3.1 The ECS Foundation implementation
-Three files. That's all the foundation is: `Entity.hpp`, `ComponentPool.hpp` and `Registry.hpp` + `Registry.cpp`. Let's down each one.
+As stated before: three files. That's all the foundation is: `Entity.hpp`, `ComponentPool.hpp` and `Registry.hpp` + `Registry.cpp`. Let's jot down each one.
 
 #### `Entity.hpp`: The Simple ID
 
@@ -174,8 +178,8 @@ private:
 
 This is where the cache-friendliness mentioned in section 3.2 actually lives. The design is:
 - One `ComponentPool<T>` exists per component type. All `PositionComponent`s live in one pool, all `MovementComponent`s in another. Never mixed.
-- `components` is a packed `std::vector<T>`. No gaps, no nullptrs, no indirection. Just the data, lined up.
-- `entityToIndex` maps an entity's ID to its index in `components`. This is how we go from "I want Snake A's position" to "position is at index 3 in the array".
+- `components` is a packed `std::vector<T>`. No gaps, no nullptrs, no indirection. Just the data, lined up, cache's BFF.
+- `entityToIndex` maps an entity's ID to its index in `components`. This is how we go from "I want Snake A's position" to "position is at index 3 in the array". I.e. a way to avoid excesive, iterative lookups.
 
 The most interesting part is `remove()`. Naively, removing from the middle of a vector means either leaving a gap (bad, breaks the packing) or shifting everything after it (slow). The solution: **swap with the last element, then pop**:
 
@@ -196,23 +200,25 @@ void remove(Entity entity) {
 }
 ```
 
-Order in the vector is not preserved, but order doesn't matter here. What matters is that the array stays packed and that `pop_back()` is O(1). The only cost is the loop to find who owned the last slot, which is a minor thing at game scale.
+Order in the vector is not preserved, but order doesn't matter here, remember that we're mapping IDs and their index in `components`. What matters is that the array stays packed and that `pop_back()` is O(1). The only cost is the loop to find who owned the last slot, which is a minor thing at game scale.
 
-One thing that was *not* done here: a `Component` base class. An earlier draft of this file had one, with a virtual destructor and everything, inherited by all components. That's an OOP reflex that needs (I need) to be consciously unlearned (by me). Components are pure data. No base class, no virtual anything, no inheritance. If a component starts having methods and a hierarchy, it's no longer a component, it's a class, and we're back to OOP.
+One thing that was *not* done here: a `Component` base class. An earlier draft of this file had one, with a virtual destructor and everything, inherited by all components. That's an OOP reflex that needs (I need) to be consciously unlearned (by me). Components are pure data. No base class, no virtual anything, no inheritance. If a component starts having methods and a hierarchy, it's no longer a component, it's a class, and we're (I am) back to OOP.
 
-#### `Registry.hpp` + `Registry.cpp`: The Glue
+#### `Registry.hpp` + `Registry.cpp`: The Beating Heart of a Bright Future
 
-The registry is what everything else talks to. Entities are created here, components are added here, and systems query here. Its private layout:
+The registry is what everything else talks to. Entities are created here, components are added here, and systems query here. The center of our new code universe, it's Alpha and its Omega, were everything comes from and where everything looks to. Its private layout:
 
 ```cpp
 private:
-    std::vector<Entity>                                         entities;
-    std::unordered_map<std::type_index, std::shared_ptr<void>> componentPools;
-    size_t                                                      entityCount = 0;
+        std::vector<Entity>											_entities;
+		std::unordered_map<std::type_index, std::shared_ptr<void>>	_componentPools;
+		size_t														_entityCount = 0;
 ```
 
 - `entities` is just a list of all living entities.
-- `componentPools` maps a component type (via `std::type_index`) to its pool. The pool is stored as `shared_ptr<void>` because the registry needs to hold pools of different types in the same map, and C++ doesn't let you have a `map<type_index, ComponentPool<?>>` without type erasure. The actual typed pointer is recovered via `static_pointer_cast<ComponentPool<T>>` whenever a typed operation is needed.
+- `componentPools` maps a component type (via `std::type_index`) to its pool.
+    - The pool is stored as `shared_ptr<void>` because the registry needs to hold pools of different types in the same map, and C++ doesn't let you have a `map<type_index, ComponentPool<?>>` without type erasure.
+    - The actual typed pointer is recovered via `static_pointer_cast<ComponentPool<T>>` whenever a typed operation is needed.
 - `entityCount` is a monotonically increasing counter. Each new entity gets the next ID. Simple and sufficient for now (no recycling of destroyed IDs yet, but that's a future concern).
 
 The public interface resolves to five operations: `createEntity`, `destroyEntity`, `addComponent<T>`, `getComponent<T>`, `removeComponent<T>`, and the querying method, `view<T...>()`:
@@ -220,18 +226,65 @@ The public interface resolves to five operations: `createEntity`, `destroyEntity
 ```cpp
 template<typename... T>
 std::vector<Entity> Registry::view() const {
-    std::vector<Entity> result;
-    for (const auto& entity : entities) {
-        if ((hasComponent<T>(entity) && ...))
-            result.push_back(entity);
-    }
-    return result;
+	// get the pool of the first type, which is always the smallest iterator needed
+	// then, filter by the remaining types to avoid scanning all entities
+	using FirstType = std::tuple_element_t<0, std::tuple<T ...>>;
+	const auto key = std::type_index(typeid(FirstType));
+	auto it = _componentPools.find(key);
+	if (it == _componentPools.end()) return {};
+
+	const auto& firstPool = *std::static_pointer_cast<ComponentPool<FirstType>>(it->second);
+	std::vector<Entity> result;
+	result.reserve(firstPool.size());
+	for (Entity entity : firstPool.entities()) {
+		if ((hasComponent<T>(entity) && ...))
+			result.push_back(entity);
+	}
+
+	return result;
 }
 ```
 
-The `(hasComponent<T>(entity) && ...)` part is a **C++17 fold expression**: the compiler expands it at compile time into a chain of `&&` checks, one per type in the pack. So `view<PositionComponent, MovementComponent>()` expands to `hasComponent<PositionComponent>(entity) && hasComponent<MovementComponent>(entity)`. Short-circuits on the first `false`. This is what systems will call every frame to get their working set of entities, which means it needs to be fast. For the scale of this game, iterating over the full entity list is fine. A more advanced registry would maintain per-component bitsets to make this a bitwise AND operation, but that's something to be implemented *if* necessary down the line.
+- The `(hasComponent<T>(entity) && ...)` part is a **C++17 fold expression**: the compiler expands it at compile time into a chain of `&&` checks, one per type in the pack. So `view<PositionComponent, MovementComponent>()` expands to `hasComponent<PositionComponent>(entity) && hasComponent<MovementComponent>(entity)`.
+    - Short-circuits on the first `false`.
+    - This is what systems will call every frame to get their working set of entities, which means it needs to be fast. For the scale of this game, iterating over the full entity list is fine. A more advanced registry would maintain per-component bitsets to make this a bitwise AND operation, but that's something to be implemented *if* necessary down the line.
+- `<typename... T>` is the C++ way of writing a **variadic template**. The `...` (parameter pack) allows the template to accept any number of type arguments.
+    - This means that this function can be called like: `registry.view<PositionComponent>()`, `registry.view<PositionComponent, MovementComponent>()`, `registry.view<PositionComponent, MovementComponent, RenderComponent>()`, etc.
+        - Very useful to 1) Make multi-component queries and make sure that an entity has ALL the needed components by a system, and 2) to fetch components from an entity to then work with them inside the systems.
+- Inside `view()`, there are **two key variadic expansions**:
+    1. `using FirstType = std::tuple_element_t<0, std::tuple<T...>>;` → Wraps the pack into a `std::tuple` just to extract the first type at index `0`.
+    2. `if ((hasComponent<T>(entity) && ...))` → The fold expression mentioned above.
+        - Together, the logic is:
+            - Use the **first type's pool** as the base iterator (smallest set)
+            - Then filter entities that have **all** the requested component types
 
-The non-template bits — `createEntity`, `destroyEntity`, and `getEntities` — live in `Registry.cpp`:
+> Let's break down the query process with a specific example:
+> `registry.view<SnakeComponent, PositionComponent, CollisionResultComponent>()`
+> 1. **Identifying `FirstType`**
+>   - `using FirstType = std::tuple_element_t<0, st::tuple<T...>>;`
+>   - `T...` = `<SnakeComponent, PositionComponent, CollisionResultComponent>`
+>   - `FirstType` = `SnakeComponent` (index 0);
+>   - *In HUMAN: this picks `SnakeComponent` as the starting pool to iterate over*
+>
+> 2. **Find that pool**
+>   - `const auto key = std::type_index(typeid(SnakeComponent));`
+>   - `auto it = _componentPools.find(key);`
+>   - *HUMAN: this looks up the `ComponentPool<SnakeComponent>` in the map. If it doesn't exist, returns `{}`;
+>
+> 3. **Iterate over entities in that pool**
+>   - `const auto& firstPool = *std::static_pointer_cast<ComponentPool<FirstType>>(it->second);` → **type recovering casting**
+>   - `for (Entity entity : firstPool.entities())`
+>   - *We'll imagine that `SnakeComponent` pool has entities `{1, 2, 3}`, and therefore this loops over those three*
+>
+> 4. **Filter with the fold expression**
+>   - `if (hasComponent<T>(entity) && ...)` → expands to: `if (hasComponent<SnakeComponent>(entity) && hasComponent<PositionComponent>(entity) && hasComponent<CollisionResultComponent>(entity))`
+>   - **HUMAN: for each entity in `{1, 2, 3}` this checks if **all three components** exist on that entity**. Only matching entities are added to the `result` vector.
+>
+>  - *NOTE: The reason why this starts from `SnakeComponent`, i.e. the first type, is a **performance assumption** (and a founded notion that this is **OK**). In practice, we'd want to put the **rarest/smallest component first** to minimize iterations, as the `FirstPool` would be the smallest possible considering the initial pack of components*
+
+<br>
+
+Moving on, the non-template bits — `createEntity`, `destroyEntity`, and `getEntities` — live in `Registry.cpp`:
 
 ```cpp
 Entity Registry::createEntity() {
@@ -246,15 +299,16 @@ void Registry::destroyEntity(Entity entity) {
 }
 ```
 
-The `static_cast<Entity::ID>` in `createEntity` is required because the `Entity` constructor is `explicit`. Everything template-related stays in the header: this is non-negotiable with C++ templates, since the compiler needs to see the full template definition at the point of instantiation, not just a declaration. Splitting them like some earlier drafts attempted would have resulted in linker errors that, while eventually diagnosable, are the kind of thing that idnaps hours of your life.
+- The `static_cast<Entity::ID>` in `createEntity` is required because the `Entity` constructor is `explicit`.
+- Everything template-related stays in the header: this is non-negotiable with C++ templates, since the compiler needs to see the full template definition at the point of instantiation, not just a declaration.
 
-With this, the ECS core is complete. Three files, a handful of concepts, and now the rest of the engine has somewhere to stand. And I shall move on to start writing components.
+With this, the ECS core is complete. Three files, a handful of concepts, and now the rest of the engine has somewhere to stand. And I shall move on to start writing specific components.
 
 <br>
 <br>
 
 ## 3.4 Carefully Composing Components
-Nice aliteration. Anyway, we can start thinking about how to write the component structure and the components themselves by thinking about the core-most entity of a *Snake* game. You guessed it right again, the `snake`, which remember, it's no longer a class in itself, just **an entity (i.e., an ID) with a collection of components attached to it, including a `SnakeComponent`**, this specific one being the one that conceptually defines it as a snake (I guess??? Maybe this thought should be tossed away completely when trying to get rid of OOP thoughts in favor of DD feelings). So, what would a snake entity's components be? (*Since the question for the snake component is going to be the more complex one, we'll leave it for last*)
+*Nice aliteration*. Anyway, we can start thinking about how to write the component structure and the components themselves by thinking about the core-most entity of a *Snake* game. You guessed it right again, the `snake`, which remember, it's no longer a class in itself, just **an entity (i.e., an ID) with a collection of components attached to it, including a `SnakeComponent`**, this specific one being the one that conceptually defines it as a snake (I guess??? Maybe this thought should be tossed away completely when trying to get rid of OOP thoughts in favor of DD feelings). So, what would a snake entity's components be? (*Since the question for a snake component is going to be the more complex one, we'll leave it for last*)
 - `PositionComponent`: this one is instant and unambiguous, as **every entity that lives on the grid needs a position (X-Y)**.
 - `RenderComponent`: kind of self-explanatory, too, as everything that needs to be displayed in game needs information about how to be drawn, like color, visual state flags, etc
 - `MovementComponent`: direction, move timer and move interval information. Remember, the *act* of moving will be managed by a system, that will be its job, so what this component holds is just the state needed to *perform* a move.
@@ -262,20 +316,20 @@ Nice aliteration. Anyway, we can start thinking about how to write the component
 - `AIComponent`: path, target, behavior state of an AI controlle snake
 	- *Note: the component structure makes some thing "easier" to manage, at least to immediately read: a snake either has an `InputComponent` or an `AIComponent`, never both. This way, systems can cleanly work on them.*
 
-Now, from this point, two different things need to be considered: **how to handle collision information** and **how to constitute a snake**. Regarding the former, my immediate idea was to make a `CollisionComponent`, but if you think about it... **What would be the information inside such collision component?** Let's put ourselves in situation: a snake is happily frolicking around, eating apples, and its head collides into a wall or an obstacle. The collision itself, at least up until this point, is defined by position superposition, i.e. if the head's XY values are the same as a wall/obstacle cell, collision happened (and right now, death follows). So, then again, when that collision is detected... Is there any info to be parsed? After some consideration, at this very moment my answer would be no (or maybe with some tint of question, something like "no??"; I'm insecure like that).
+Now, from this point, two different things need to be considered: **how to handle collision information** and **how to constitute a snake component**. Regarding the former, my immediate idea was to make a `CollisionComponent`, but if you think about it... **What would be the information inside such collision component?** Let's put ourselves in situation: a snake is happily frolicking around, eating apples, and its head collides into a wall or an obstacle. The collision itself, at least up until this point, is defined by coordiate superposition, i.e. if the head's XY values are the same as a wall/obstacle cell, collision happened (and right now, death follows). So, then again, when that collision is detected... **Is there any info to be parsed?** After some consideration, at this very moment my answer would be no (most definately with some tint of question, something like *"no??"*; I'm insecure like that).
 
-Then, what does that mean for our ECS dreams and hopes? Nothing to worry about! We'll just have an empty struct, kind of a way to just detect that something *should* trigger a collision, some sort of... **TAG**! And lo and behold, this is something that is apparently usual in ECS approaches, **Tags that give statuses to entities just o that they are caught by systems**. In our case, the most straight forward thing you could ever imagine:
+Then, what does that mean for our ECS dreams and hopes? Nothing to worry about! We'll just have an empty struct, kind of a way to just detect that something *should* trigger a collision, some sort of... **TAG**! And lo and behold, this is something that is apparently usual in ECS approaches, **Tags that give statuses to entities just so that they are caught by systems**. In our case, the most straight forward thing you could ever imagine:
 ```cpp
 struct SolidTag {};
 ```
 
-And that's it! Anything that collides is, by definition here, *solid*! So by having the `SolidTag`, a `PhysicsSystem` (or `CollisionSystem`, we'll see) will fish it out of the pool and act on it. Very nice!
+And regarding the initial collision setup, that's it! Anything that collides is, by definition here, *solid*! So by having the `SolidTag`, a `PhysicsSystem` (or `CollisionSystem`, we'll see) will fish it out of the pool and act on it. Very nice!
 
-On the snake side of things, things are obviously not going to be that simple. Some d e c i s i o n s need to be made, some scrutiny needs to mediate between us and the cosmos (the code). So, how to think about the snale? What information would go into an hypothetical `SnakeComponent`? We could think about something along the line of a **list of body segments**, but this comes with second degree questions: **Is the body a single component? Or should each segment be its own entity?**. We could lay out two main ways of going around it:
-- **Body as data inside one component**: much simpler, based on a `SnakeComponent` holding an `std::vector<Vec2> segments` list. One entity per snake. Easier to reason about for a small cale game like what we're initially building. 
+On the snake side of reality, things are obviously not going to be that simple. Some d e c i s i o n s need to be made, some scrutiny needs to mediate between us and the cosmos (the code). So, how to think about the snake? **What information would go into an hypothetical `SnakeComponent`?** We could think about something along the line of a **list of body segments**, but this comes with second degree questions: **Is the body a single component? Or should each segment be its own entity?**. Well, we could lay out two main ways of going around it:
+- **Body as data inside one component**: much simpler, based on a `SnakeComponent` holding an `std::vector<Vec2> segments` list. One entity per snake. Easier to reason about for a small scale game like what we're initially building. 
 - **Each segment as its own entity**: much purer ECS, with each segment being an entity itself with a `PositionComponent` and a `SegmentComponent` that links it to its parent snake. More flexible, but tickling that sixth sense that lights up when it feels an overkill lurking in the shadows.
 
-Instinct says: for what we're building, **one entity per snake, body stored inside the compoent** is the right call. A `SnakeComponent` holding the segment list, the growing flag, maybe the current length. BUT WAIT, there's more to consider, because we're in the middle of a rebuild, but further plans are still laid out, specifically those regarding the **bead mechanics**. So knowing that, we should try to avoid any decision that gets in the way of it in the future, hich calls for a deeper preview of the two possible models
+Instinct whispers: for what we're building, **one entity per snake, body stored inside the component** is the right call. A `SnakeComponent` holding the segment list, the growing flag, maybe the current length. BUT WAIT, there's more to consider, because we're in the middle of a rebuild, but further plans are still laid out, specifically those regarding the **bead mechanics**. So knowing that, we should try to avoid any decision that gets in the way of it in the future, which calls for a deeper preview of the two possible models.
 
 #### Model A: Bead as component on segment entities
 This would mean splitting the snake body into **per-segment entities**, each with its own components.
@@ -309,18 +363,76 @@ Well, let's keep putting questions on top of the table: **do beads need to inter
 
 Yeah, at this point this just sounds like me fighting against the demons of complexity, but for a first implementation I think that Model B is the sane approach. It's simpler, nothing is really lost and it maps cleanly to how the game actually will think about snakes (**one snake, one entity, body is internal structure**). I can always migrate to model A later if bead complexity demands it, and one of the tradeoffs of all this transition is that said migration would be quite easier because the systems will we fully decoupled. So why deal with a per-bead complexity layer before even having beads, first, and coming to the conclusion that they need their component independence, later?
 
-In conclusion: **Model B with `BeadType` as an `enum class` in its own header, code-wise separated from `SnakeComponent`. This way, if the bead logic grows it has a natural home to expand into without touching the snake component itself. We'll see if future-me ends up hating me :D
+In conclusion: **Model B with `BeadType` as an `enum class` in its own header, code-wise separated from `SnakeComponent`**. This way, if the bead logic grows it has a natural home to expand into without touching the snake component itself. We'll see if future-me ends up hating me :D
 
 #### A Snake's Worth of Components
+Following up, I'll list the initial design of the components needed for a basic *Snake* setup, the first kernel of the port from the OOP version. If you arrive to this point with the thought of this being a complex paradigm, while still true, it might dilute a little bit after checking out how simple the components are.
+```cpp
+struct PositionComponent {
+	Vec2 position;
+};
+```
+```cpp
+struct MovementComponent {
+	Direction	direction;
+	float		moveTimer;
+	float		moveInterval;
+};
+```
+```cpp
+struct RenderComponent {
+	BaseColor color;
+};
+```
+```cpp
+struct InputComponent {
+	std::queue<Input> inputBuffer;
+};
+```
+```cpp
+enum class CollisionType {
+	None,
+	Wall,
+	Self,
+	Snake,
+	Food,
+};
+
+struct CollisionResultComponent {
+	CollisionType result = CollisionType::None;
+};
+```
+```cpp
+enum class BeadType { None, Shield, Speed, Ghost, Ram };
+
+struct Segment {
+	Vec2 position;
+	BeadType bead = BeadType::None;
+};
+
+struct SnakeComponent {
+	std::deque<Segment> segments;
+	bool growing = false;
+};
+```
+```cpp
+struct FoodTag {};
+```
+```cpp
+struct SolidTag {};
+```
+
+With this laid down, it's time for system building. We're getting close to having a working build!!
 
 <br>
 <br>
 
-## 3.5 Writing the Systems
-
-With components defined and the registry working, it was time for the other half of the ECS equation: **systems**. Five of them, covering the full game loop. The update order matters: `Input → AI → Movement → Collision → Render`. Each one must run in that sequence every frame, and each one only knows about the registry — no direct references between systems.
+## 3.5 Swiftly Systematizing Systems
+*I just wanted to have another aliteration, sorry*. With components defined and the registry working, it is time for the other half of the ECS equation: **systems**. As advance way up in this document, we'll start with the essential ones, those tied to the game loop. And we'll do so while having in mind that **the update order matters** (although this is more a `Main` concern): `Input → Movement → Collision → Render`. Each one must run in that sequence every frame, and each one only knows about the registry. Concisely: **NO direct references between systems**. Because there is no need and that's the whole point!
 
 ### `InputSystem` — Catching Keypresses
+
+The input system's job is narrow, and specifically tailored with regards of the bottom-most engine layer: poll Raylib for keypresses each frame and push them into the relevant entity's `InputComponent::inputBuffer` queue. It knows nothing about movement, nothing about what happens with those inputs, its sole purpose is to record them.
 
 ```cpp
 class InputSystem {
@@ -334,14 +446,51 @@ private:
 };
 ```
 
-The input system's job is narrow: poll Raylib for keypresses each frame and push them into the relevant entity's `InputComponent::inputBuffer` queue. It knows nothing about movement, nothing about what happens with those inputs — it just records them.
+Becase the game needs to work both in a multiplayer and a vsAI state, a key design decision is made here: the system maintains an internal `slotMap` that associates entity IDs to `PlayerSlot` (A or B). When `update()` iterates over `view<InputComponent>()`, it skips any entity that hasn't been assigned a slot. This is how AI-controlled snakes stay out of the input pipeline: they simply have no slot. No flags, no special cases in the logic, just an absence of a map entry. Thanks, Data Driven Programming!
 
-A key design decision here: the system maintains an internal `slotMap` that associates entity IDs to `PlayerSlot` (A or B). When `update()` iterates over `view<InputComponent>()`, it skips any entity that hasn't been assigned a slot. This is how AI-controlled snakes stay out of the input pipeline — they simply have no slot. No flags, no special cases in the logic, just an absence of a map entry.
+The input buffer is a `std::queue<Input>` on the component. Pushing to the queue here and consuming from it in `MovementSystem` means that if the player presses two keys in the same frame (which can and does happen), neither is lost. The movement system will process them one per tick. This is the classic way of making snake input feel responsive without allowing the player to reverse 180° and kill itself by pressing two keys in rapid succession.
 
-The input buffer is a `std::queue<Input>` on the component. Pushing to the queue here and consuming from it in `MovementSystem` means that if the player presses two keys in the same frame (which can and does happen), neither is lost. The movement system will process them one per tick. This is the classic way of making snake input feel responsive without allowing the player to reverse 180° by pressing two keys in rapid succession.
+As will be the general case across systems, **the main, public entry point for this `InputSystem` is its `update()` function**, which goes like this:
+```cpp
+void InputSystem::update(Registry& registry) {
+	for (auto entity : registry.view<InputComponent>()) {
+		auto it = slotMap.find(entity.getID());
+		if (it == slotMap.end())
+			continue;
 
-### `MovementSystem` — The Two-Phase Tick
+		switch (it->second) {
+			case PlayerSlot::A: pollPlayerA(registry, entity); break;
+			case PlayerSlot::B: pollPlayerB(registry, entity); break;
+		}
+	}
+}
+```
+And following this first system and its `update()` core, we can break down how their general functionality goes:
+1. Query the registry for the targetted components
+2. Fetch the necessary components from returned entities
+3. Do stuff
 
+> So simple, so fresh, so awe-inducing
+
+<br>
+
+### `MovementSystem` — The One-Two Punch (ok, Tick)
+
+Systems, as one can see, are pretty self explanatory in their names (not that they are fundamentally complex in this project, really, so they're quite easy to condense in one word). What I mean by this is that this system's job is, well, moving things. It targets both `InputComponent` and `MovementComponent` and splits its processing into two phases: **direction update** and **position advance**.
+```cpp
+class MovementSystem {
+	private:
+		void processInput(Registry& registry);
+		void advanceSnake(Registry& registry, float deltaTime);
+
+		Vec2 directionToVec2(Direction dir) const;
+	
+	public:
+		void update(Registry& registry, float deltaTime);
+};
+```
+As seen above, and in unison with what `InputSystem` does, the query here is multi-component, fetching every entity that has the two mentioned targetted components. If an entity meets the requirements, its `inputBuffer` is checked. If its empty, nothing happens, and if there are buffered inputs, movement occurs. A translation from `Input` into `Direction` mediates the processing, and then everything is pretty much streamlined.
+> If future implementations mean different movement logics, this will obviously have to change, but right now the only thing that *moves*, exclusing animated stuff, is the `snake`.
 ```cpp
 void MovementSystem::update(Registry& registry, float deltaTime) {
     processInput(registry);
@@ -349,18 +498,14 @@ void MovementSystem::update(Registry& registry, float deltaTime) {
 }
 ```
 
-Movement splits into two phases: direction update, then position advance.
-
 **`processInput`** reads one input from each snake's buffer, validates it (no 180° reversals — checked by summing the current and requested direction vectors; if they cancel to zero, it's a reversal), and updates `MovementComponent::direction`. The reversal guard is:
-
 ```cpp
 const bool isReversal = (currentVec.x + requestedVec.x == 0) &&
                          (currentVec.y + requestedVec.y == 0);
 ```
-
 Simple and branchless. A snake moving right has `currentVec = {1, 0}`, and requesting left gives `requestedVec = {-1, 0}`. They sum to zero — reversal detected, input discarded.
 
-**`advanceSnake`** is where the snake actually moves. The algorithm:
+**`advanceSnake`** is where the snake actually moves, all based on the algorithm:
 
 ```cpp
 snake.segments.push_front({ newHead, BeadType::None });
@@ -373,27 +518,82 @@ if (snake.growing) {
 }
 ```
 
-`segments` is a `std::deque<Segment>`. `push_front` + `pop_back` are both O(1), and they preserve the length of the snake exactly: add a head, remove a tail, net change of zero. When the snake has just eaten, `growing` is `true` (set by `CollisionSystem` the previous frame), so `pop_back` is skipped and the snake gains one segment.
+- `segments` is a `std::deque<Segment>` and `push_front` + `pop_back` are both O(1), both preserving the length of the snake exactly: add a head, remove a tail, net change of zero. (As a reminder, `std::vector` doesn't admit front insertion, hence the `deque`)
+    - When the snake has just eaten, `growing` is `true` (set by `CollisionSystem` the previous frame), so `pop_back` is skipped and the snake gains one segment.
 
-One thing that burned some time here: an earlier version of this method shifted segment positions in-place in a loop, then called `pop_back`. The "shift" was updating position values inside existing `Segment` elements — but it never actually added a new element at the head. So the deque size decreased by one on every tick, and the snake melted. The fix was conceptually simple but easy to miss: **push a new element, then pop the old tail**. Don't try to simulate insertion by shifting values.
+One thing that burned some time here: an earlier version of this method shifted segment positions in-place in a loop, then called `pop_back`. The "shift" was updating position values inside existing `Segment` elements, but it never actually added a new element at the head. So the deque size decreased by one on every tick, and the snake melted, disappearing into nothingness (*ah, the dream*). The fix was conceptually simple but easy to miss: **push a new element, then pop the old tail**. I.e. don't try to simulate insertion by shifting values!
 
 A second thing worth noting: `moveTimer` resets to `0.0f` (not `moveTimer -= moveInterval`). The subtractive approach lets residual time carry over to the next tick, which sounds right in theory but in practice causes multi-tick bursts when there's a frame time spike (e.g., during window initialization). Resetting cleanly to zero means one move per timer expiry, no exceptions.
 
+<br>
+
 ### `CollisionSystem` — Priority Queue of Deaths
 
-The collision system has a clear job: after movement has resolved, check if any snake's head is now occupying a bad cell, and record what it hit in `CollisionResultComponent`. It doesn't do anything *about* the collision — that's for the game loop to decide. It just writes a result.
-
-The check order is intentional priority:
-
+The collision system has, too, a clear job: after movement has resolved, check if any snake's head is now occupying a *bad* cell, and record what it hit in `CollisionResultComponent`. It doesn't do anything *about* the collision itself, because that's for the game loop to decide. It just writes a result. Besides that, the check order is intentional priority:
 ```
 clearResults → Wall → Self → Snake → Food
 ```
 
+Which gets 1:1 translated into the `update()`:
+```cpp
+void CollisionSystem::update(Registry& registry, const ArenaGrid* arena) {
+	clearResults(registry);
+	checkWallCollisions(registry, arena);
+	checkSelfCollisions(registry);
+	checkSnakeCollisions(registry);
+	checkFoodCollisions(registry);
+}
+```
+
 Each check short-circuits if a result is already written. So if a snake hits a wall and its own body simultaneously (possible at corners), wall wins. The reason to care about this order becomes obvious once you think about game logic: you don't want "food eaten" to fire when the snake is also dead.
 
-The wall check is the most interesting performance-wise. It builds a flat `std::vector<Vec2>` of all solid positions once, then iterates snakes against it. Doing a `view<SolidTag>()` per snake entity would mean re-fetching the same solid list for each snake. By gathering them once first, it's one registry query instead of N.
+The wall check is the most interesting performance-wise. It builds a flat `std::vector<Vec2>` of all solid positions once, then iterates snakes against it. Doing a `view<SolidTag>()` per snake entity would mean re-fetching the same solid list for each snake. By gathering them once first, it's one registry query instead of N. (This was one source of performance tanking in a previous set up during the WIP).
 
-Food collision is the one side effect this system is allowed: it sets `snake.growing = true` directly on the `SnakeComponent`. Everything else — food relocation, score updates, game over — is left to the game loop reading the `CollisionResultComponent` each frame.
+Food collision is the one side effect this system is allowed: it sets `snake.growing = true` directly on the `SnakeComponent`. Everything else (food relocation, score updates, game over) is left to the game loop reading the `CollisionResultComponent` each frame, and will surely end up being handled by either a new, specific system or by a `GameManager`.
+
+<br>
+
+### `RenderSystem` — Two Pipelines
+
+The render system is the only one that touches `Raylib` directly. Because of that, it is also the only one that goes through an `init()` method. Alongside that, instead of an `update()` it has a `render()` public interface, which could not be the case but this way we signal the particularity of this system (and the fact that *rendering* is a very specific, important step in a videogame pipeline):
+
+```cpp
+void RenderSystem::render(Registry& registry, RenderMode mode, float deltaTime) {
+	(void)mode;
+	_accumulatedTime += deltaTime;
+
+	BeginDrawing();
+	ClearBackground(customBlack);
+
+	render2D(registry); // TODO: 3D pipeline and arena
+
+	EndDrawing();
+}
+```
+- A very straightforward process: update the accumulated time (for some animation), call `Raylib` necessary set up functions, go through the rendering pipeline (for now, just 2D; in the future, optionally 3D).
+- `RenderMode` is an enum (`MODE2D` / `MODE3D`). The 2D and 3D pipelines are completely separate internal methods, i.e. no shared draw calls, no conditional branching inside draw functions.
+
+**2D pipeline**: flat grid, square cells, centered arena. The layout is calculated at `init()` time from `gridWidth`, `gridHeight`, `squareSize`, and `borderThickness`. `gridToScreen2D(x, y)` converts grid coordinates to pixel coordinates for any given cell. Food gets a sine-wave pulse driven by `accumulatedTime`:
+
+```cpp
+float pulse = 1.0f + sinf(accumulatedTime * 3.0f) * 0.1f;
+float size  = static_cast<float>(squareSize) * 0.7f * pulse;
+```
+
+**3D pipeline**: isometric orthographic view using Raylib's `Camera3D`. Camera position is derived from grid diagonal to ensure the whole arena fits in frame regardless of arena size, using a quadratic fit for the FOV value that was calibrated to match a visually comfortable frame at various sizes. The checkerboard ground plane, walls, food, and snakes all use `drawCubeCustomFaces` — a low-level function that draws a cube by submitting six quads directly via `rlgl`, one per face, each with its own color. This preserves the per-face shading from the old OOP renderer, which `Raylib`'s built-in `DrawCube` can't do since it applies a single color to all faces.
+
+<br>
+<br>
+
+## 3.6 New Main, New Me
+Everything needed for a Data Driven *Snake* game is done, except for the new `Main` entry point for the program. So let's do that!
+
+First, we're going to need to build some **`Factories`**, a collection of static functions to create and store `Entities` (snakes, food), and to manage some stuff (food relocation, game reset). 
+
+
+---
+---
+---
 
 ### `AISystem` — The Decision Hierarchy
 
@@ -423,22 +623,3 @@ void AISystem::update(Registry& registry) {
 `buildBlockedGrid` does two registry queries and fills a `vector<vector<bool>>[x][y]`. Everything downstream — A*, flood fill, `isSafeMove` — does direct `blocked[x][y]` array access. Zero allocations, zero hash map lookups inside the search loops. The same performance fix was applied to `GridHelper::isWalkable`, `Pathfinder::findPath`, and both `FloodFill` methods, which all now take the pre-built grid by const reference instead of a registry.
 
 At the same time, `getNeighbors` was updated to filter out-of-bounds positions at the point of generation (it now takes `gridWidth` and `gridHeight`), rather than letting the caller handle boundary checking after the fact.
-
-### `RenderSystem` — Two Pipelines
-
-The render system is the only one that touches Raylib directly. It exposes a single entry point:
-
-```cpp
-void render(Registry& registry, RenderMode mode, float deltaTime);
-```
-
-`RenderMode` is an enum (`MODE2D` / `MODE3D`). The 2D and 3D pipelines are completely separate internal methods — no shared draw calls, no conditional branching inside draw functions.
-
-**2D pipeline**: flat grid, square cells, centered arena. The layout is calculated at `init()` time from `gridWidth`, `gridHeight`, `squareSize`, and `borderThickness`. `gridToScreen2D(x, y)` converts grid coordinates to pixel coordinates for any given cell. Food gets a sine-wave pulse driven by `accumulatedTime`:
-
-```cpp
-float pulse = 1.0f + sinf(accumulatedTime * 3.0f) * 0.1f;
-float size  = static_cast<float>(squareSize) * 0.7f * pulse;
-```
-
-**3D pipeline**: isometric orthographic view using Raylib's `Camera3D`. Camera position is derived from grid diagonal to ensure the whole arena fits in frame regardless of arena size, using a quadratic fit for the FOV value that was calibrated to match a visually comfortable frame at various sizes. The checkerboard ground plane, walls, food, and snakes all use `drawCubeCustomFaces` — a low-level function that draws a cube by submitting six quads directly via `rlgl`, one per face, each with its own color. This preserves the per-face shading from the old OOP renderer, which Raylib's built-in `DrawCube` can't do since it applies a single color to all faces.
