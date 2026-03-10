@@ -11,28 +11,21 @@
 #include "components/MovementComponent.hpp"
 #include "components/SnakeComponent.hpp"
 #include "components/InputComponent.hpp"
-//#include "components/AIComponent.hpp"
 #include "components/RenderComponent.hpp"
-#include "components/CollisionResultComponent.hpp"
 #include "components/SolidTag.hpp"
 #include "components/FoodTag.hpp"
 #include "systems/InputSystem.hpp"
-//#include "systems/AISystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/CollisionSystem.hpp"
-#include "systems/FoodSystem.hpp"
-#include "systems/DeathSystem.hpp"
 #include "systems/RenderSystem.hpp"
-//#include "systems/ParticleSystem.hpp"
-//#include "systems/TextSystem.hpp"
-//#include "systems/AnimationSystem.hpp"
-//#include "systems/MenuSystem.hpp"
-//#include "systems/PostProcessingSystem.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "arena/ArenaPresets.hpp"
-//#include "core/GameState.hpp"
 #include "helpers/Factories.hpp"
 #include "helpers/GameState.hpp"
+#include "collision/CollisionRule.hpp"
+#include "collision/CollisionRuleLoader.hpp"
+#include "collision/CollisionEffectDispatcher.hpp"
+#include "collision/CollisionEffects.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -42,57 +35,62 @@ static constexpr int GRID_W = 32;
 static constexpr int GRID_H = 32;
 
 int main() {
-	std::srand(static_cast<unsigned>(std::time(nullptr)));
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-	// ECS core
-	Registry registry;
+    CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.JSON");
 
-	// Gameplay systems
-	InputSystem			inputSystem;
-	//AISystem			aiSystem(GRID_W, GRID_H);
-	MovementSystem		movementSystem;
-	CollisionSystem		collisionSystem;
-	FoodSystem			foodSystem;
-	DeathSystem			deathSystem;
-	RenderSystem		renderSystem;
-	renderSystem.init(GRID_W, GRID_H);
+    CollisionEffectDispatcher dispatcher;
+    dispatcher.registerDefaults();
 
-	// initial world
-	ArenaGrid arena(GRID_W, GRID_H);
-	Entity playerSnake(0u), aiSnake(0u), food(0u); // TODO: ai snake
-	GameState::resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H, arena);
-	RenderMode renderMode = RenderMode::MODE2D;
+    // ECS core
+    Registry registry;
 
-	// state machine
-	//TODO
+    // Gameplay systems
+    InputSystem     inputSystem;
+    MovementSystem  movementSystem;
+    CollisionSystem collisionSystem;
+    RenderSystem    renderSystem;
+    renderSystem.init(GRID_W, GRID_H);
 
-	while (true) {
-		if (WindowShouldClose()) break;
+    // initial world
+    ArenaGrid arena(GRID_W, GRID_H);
+    Entity playerSnake(0u), aiSnake(0u), food(0u);
+    GameState::resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H, arena);
+    RenderMode renderMode = RenderMode::MODE2D;
 
-		DrawFPS(SCREEN_W - 95, 10);
+    while (true) {
+        if (WindowShouldClose()) break;
 
-		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f); // TODO: why this?
+        DrawFPS(SCREEN_W - 95, 10);
 
-		if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: ?
+        const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
-		bool playerDied = false;
+        if (IsKeyPressed(KEY_F)) ToggleFullscreen();
 
-		// update and management system phase
-		inputSystem.update(registry);
-		movementSystem.update(registry, dt);
-		collisionSystem.update(registry, &arena);
-		foodSystem.update(registry, &arena, GRID_W, GRID_H);
-		deathSystem.update(registry, playerSnake, &playerDied);
+        bool playerDied = false;
 
-		if (playerDied) {
-			std::cout << "PLAYER DIED" << std::endl; // TODO: menu mangling
-			break;
-		}
+        // fresh context
+        CollisionEffects::EffectContext ctx {
+            &arena,         // arena
+            GRID_W,         // gridWidth
+            GRID_H,         // gridHeight
+            &playerDied     // playerDied — KillSnake writes here
+        };
 
-		// render phase
-		renderSystem.render(registry, renderMode, dt, &arena);
-	}
+        // update phase
+        inputSystem.update(registry);
+        movementSystem.update(registry, dt);
+        collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 
-	CloseWindow();
-	return 0;
+        if (playerDied) {
+            std::cout << "PLAYER DIED" << std::endl;
+            break;
+        }
+
+        // render phase
+        renderSystem.render(registry, renderMode, dt, &arena);
+    }
+
+    CloseWindow();
+    return 0;
 }

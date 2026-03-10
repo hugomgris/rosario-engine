@@ -1,16 +1,30 @@
 #pragma once
 
 #include "../ecs/Registry.hpp"
-#include "arena/ArenaGrid.hpp"
+#include "../arena/ArenaGrid.hpp"
+#include "../collision/CollisionRule.hpp"
+#include "../collision/CollisionEffectDispatcher.hpp"
+#include "../collision/CollisionEffects.hpp"
 
 class CollisionSystem {
-	private:
-		void clearResults(Registry& registry);
-		void checkWallCollisions(Registry& registry, const ArenaGrid* arena);
-		void checkSelfCollisions(Registry& registry);
-		void checkSnakeCollisions(Registry& registry);
-		void checkFoodCollisions(Registry& registry);
+private:
+	void checkWallCollisions  (Registry& registry, const CollisionRuleTable& table, const CollisionEffectDispatcher& dispatcher, const CollisionEffects::EffectContext& ctx);
+	void checkSelfCollisions  (Registry& registry, const CollisionRuleTable& table, const CollisionEffectDispatcher& dispatcher, const CollisionEffects::EffectContext& ctx);
+	void checkSnakeCollisions (Registry& registry, const CollisionRuleTable& table, const CollisionEffectDispatcher& dispatcher, const CollisionEffects::EffectContext& ctx);
+	void checkFoodCollisions  (Registry& registry, const CollisionRuleTable& table, const CollisionEffectDispatcher& dispatcher, const CollisionEffects::EffectContext& ctx);
 
-	public:
-		void update(Registry& registry, const ArenaGrid* arena = nullptr);
+	void resolveCollision(const std::string& subjectType,
+						const std::string& objectType,
+						Entity subject,
+						Entity object,
+						Registry& registry,
+						const CollisionRuleTable& table,
+						const CollisionEffectDispatcher& dispatcher,
+						const CollisionEffects::EffectContext& ctx);
+
+public:
+	void update(Registry& registry,
+				const CollisionRuleTable& table,
+				const CollisionEffectDispatcher& dispatcher,
+				const CollisionEffects::EffectContext& ctx);
 };

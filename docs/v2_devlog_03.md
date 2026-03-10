@@ -5,8 +5,9 @@
 2. [Data Driven Programming 101](#32---data-driven-programming-101)
 3. [Transition = Plan](#33-transition--plan)
 4. [Carefully Composing Components](#34-carefully-composing-components)
-5. [Swiftly Systematizing Systems](#35-writing-the-systems)
+5. [Swiftly Systematizing Systems](#35-swiftly-systematizing-systems)
 6. [New Main, New Me](#36-new-main-new-me)
+7. [Collisions, But Make Them Data](#37-collisions-but-make-them-data)
 
 <br>
 <br>
@@ -259,10 +260,10 @@ std::vector<Entity> Registry::view() const {
             - Then filter entities that have **all** the requested component types
 
 > Let's break down the query process with a specific example:
-> `registry.view<SnakeComponent, PositionComponent, CollisionResultComponent>()`
+> `registry.view<SnakeComponent, PositionComponent, ScoreComponent>()`
 > 1. **Identifying `FirstType`**
 >   - `using FirstType = std::tuple_element_t<0, st::tuple<T...>>;`
->   - `T...` = `<SnakeComponent, PositionComponent, CollisionResultComponent>`
+>   - `T...` = `<SnakeComponent, PositionComponent, ScoreComponent>`
 >   - `FirstType` = `SnakeComponent` (index 0);
 >   - *In HUMAN: this picks `SnakeComponent` as the starting pool to iterate over*
 >
@@ -277,7 +278,7 @@ std::vector<Entity> Registry::view() const {
 >   - *We'll imagine that `SnakeComponent` pool has entities `{1, 2, 3}`, and therefore this loops over those three*
 >
 > 4. **Filter with the fold expression**
->   - `if (hasComponent<T>(entity) && ...)` → expands to: `if (hasComponent<SnakeComponent>(entity) && hasComponent<PositionComponent>(entity) && hasComponent<CollisionResultComponent>(entity))`
+>   - `if (hasComponent<T>(entity) && ...)` → expands to: `if (hasComponent<SnakeComponent>(entity) && hasComponent<PositionComponent>(entity) && hasComponent<ScoreComponent>(entity))`
 >   - **HUMAN: for each entity in `{1, 2, 3}` this checks if **all three components** exist on that entity**. Only matching entities are added to the `result` vector.
 >
 >  - *NOTE: The reason why this starts from `SnakeComponent`, i.e. the first type, is a **performance assumption** (and a founded notion that this is **OK**). In practice, we'd want to put the **rarest/smallest component first** to minimize iterations, as the `FirstPool` would be the smallest possible considering the initial pack of components*
@@ -316,16 +317,7 @@ With this, the ECS core is complete. Three files, a handful of concepts, and now
 - `AIComponent`: path, target, behavior state of an AI controlle snake
 	- *Note: the component structure makes some thing "easier" to manage, at least to immediately read: a snake either has an `InputComponent` or an `AIComponent`, never both. This way, systems can cleanly work on them.*
 
-Now, from this point, two different things need to be considered: **how to handle collision information** and **how to constitute a snake component**. Regarding the former, my immediate idea was to make a `CollisionComponent`, but if you think about it... **What would be the information inside such collision component?** Let's put ourselves in situation: a snake is happily frolicking around, eating apples, and its head collides into a wall or an obstacle. The collision itself, at least up until this point, is defined by coordiate superposition, i.e. if the head's XY values are the same as a wall/obstacle cell, collision happened (and right now, death follows). So, then again, when that collision is detected... **Is there any info to be parsed?** After some consideration, at this very moment my answer would be no (most definately with some tint of question, something like *"no??"*; I'm insecure like that).
-
-Then, what does that mean for our ECS dreams and hopes? Nothing to worry about! We'll just have an empty struct, kind of a way to just detect that something *should* trigger a collision, some sort of... **TAG**! And lo and behold, this is something that is apparently usual in ECS approaches, **Tags that give statuses to entities just so that they are caught by systems**. In our case, the most straight forward thing you could ever imagine:
-```cpp
-struct SolidTag {};
-```
-
-And regarding the initial collision setup, that's it! Anything that collides is, by definition here, *solid*! So by having the `SolidTag`, a `PhysicsSystem` (or `CollisionSystem`, we'll see) will fish it out of the pool and act on it. Very nice!
-
-On the snake side of reality, things are obviously not going to be that simple. Some d e c i s i o n s need to be made, some scrutiny needs to mediate between us and the cosmos (the code). So, how to think about the snake? **What information would go into an hypothetical `SnakeComponent`?** We could think about something along the line of a **list of body segments**, but this comes with second degree questions: **Is the body a single component? Or should each segment be its own entity?**. Well, we could lay out two main ways of going around it:
+Now, from this point, one thing needs to be considered before moving forward: **how to constitute a snake component**. Some d e c i s i o n s need to be made, some scrutiny needs to mediate between us and the cosmos (the code). So, how to think about the snake? **What information would go into an hypothetical `SnakeComponent`?** We could think about something along the line of a **list of body segments**, but this comes with second degree questions: **Is the body a single component? Or should each segment be its own entity?**. Well, we could lay out two main ways of going around it:
 - **Body as data inside one component**: much simpler, based on a `SnakeComponent` holding an `std::vector<Vec2> segments` list. One entity per snake. Easier to reason about for a small scale game like what we're initially building. 
 - **Each segment as its own entity**: much purer ECS, with each segment being an entity itself with a `PositionComponent` and a `SegmentComponent` that links it to its parent snake. More flexible, but tickling that sixth sense that lights up when it feels an overkill lurking in the shadows.
 
@@ -390,16 +382,8 @@ struct InputComponent {
 };
 ```
 ```cpp
-enum class CollisionType {
-	None,
-	Wall,
-	Self,
-	Snake,
-	Food,
-};
-
-struct CollisionResultComponent {
-	CollisionType result = CollisionType::None;
+struct ScoreComponent {
+    int score = 0;
 };
 ```
 ```cpp
@@ -529,27 +513,47 @@ A second thing worth noting: `moveTimer` resets to `0.0f` (not `moveTimer -= mov
 
 ### `CollisionSystem` — Priority Queue of Deaths
 
-The collision system has, too, a clear job: after movement has resolved, check if any snake's head is now occupying a *bad* cell, and record what it hit in `CollisionResultComponent`. It doesn't do anything *about* the collision itself, because that's for the game loop to decide. It just writes a result. Besides that, the check order is intentional priority:
+The collision system's job is to detect overlaps and fire the appropriate reactions immediately. After movement has resolved, it checks whether any snake's head now occupies a cell that belongs to a wall, its own body, another snake, or food. The check order is intentional priority:
 ```
-clearResults → Wall → Self → Snake → Food
+Wall → Self → Snake → Food
 ```
 
 Which gets 1:1 translated into the `update()`:
 ```cpp
-void CollisionSystem::update(Registry& registry, const ArenaGrid* arena) {
-	clearResults(registry);
-	checkWallCollisions(registry, arena);
-	checkSelfCollisions(registry);
-	checkSnakeCollisions(registry);
-	checkFoodCollisions(registry);
+void CollisionSystem::update(Registry& registry,
+                             const CollisionRuleTable& table,
+                             const CollisionEffectDispatcher& dispatcher,
+                             const CollisionEffects::EffectContext& ctx) {
+    checkWallCollisions (registry, table, dispatcher, ctx);
+    checkSelfCollisions (registry, table, dispatcher, ctx);
+    checkSnakeCollisions(registry, table, dispatcher, ctx);
+    checkFoodCollisions (registry, table, dispatcher, ctx);
 }
 ```
 
-Each check short-circuits if a result is already written. So if a snake hits a wall and its own body simultaneously (possible at corners), wall wins. The reason to care about this order becomes obvious once you think about game logic: you don't want "food eaten" to fire when the snake is also dead.
+The priority order still matters for the same reason it always did: if a snake simultaneously hits a wall and food (possible at arena edges), wall should win, because firing food-eating effects on a dead snake would be wrong. The difference now is that there is no stale component to clear each frame and no subsequent systems waiting to read a stored result. Detection and reaction happen in the same call, sequentially, in order. If no rule is defined in the table for a given pair, `resolveCollision` silently returns — the absence of a rule is itself a valid design choice.
 
-The wall check is the most interesting performance-wise. It builds a flat `std::vector<Vec2>` of all solid positions once, then iterates snakes against it. Doing a `view<SolidTag>()` per snake entity would mean re-fetching the same solid list for each snake. By gathering them once first, it's one registry query instead of N. (This was one source of performance tanking in a previous set up during the WIP).
+The internal `resolveCollision` is where all checks converge:
+```cpp
+void CollisionSystem::resolveCollision(const std::string& subjectType,
+                                       const std::string& objectType,
+                                       Entity subject,
+                                       Entity object,
+                                       Registry& registry,
+                                       const CollisionRuleTable& table,
+                                       const CollisionEffectDispatcher& dispatcher,
+                                       const CollisionEffects::EffectContext& ctx) {
+    const CollisionRule* rule = table.find(subjectType, objectType);
+    if (!rule) return;
 
-Food collision is the one side effect this system is allowed: it sets `snake.growing = true` directly on the `SnakeComponent`. Everything else (food relocation, score updates, game over) is left to the game loop reading the `CollisionResultComponent` each frame, and will surely end up being handled by either a new, specific system or by a `GameManager`.
+    for (const auto& effectName : rule->effects)
+        dispatcher.execute(effectName, registry, subject, object, ctx);
+}
+```
+
+Type strings like `"Snake"`, `"Wall"`, `"Food"`, and `"Self"` are resolved from the entity's components at detection time, and then passed to `table.find()`. The collision table does the matching. The dispatcher does the firing. The system itself knows nothing about what any of those strings mean.
+
+The wall check builds a flat `std::vector<Vec2>` of all solid positions once before iterating over snakes, keeping it to one registry query per frame rather than one per snake entity. Food collision now stores `{entity, position}` pairs instead of positions alone, because `RelocateFood` needs the actual food entity to act on, not just the coordinate where the head landed.
 
 <br>
 
@@ -584,57 +588,199 @@ float size  = static_cast<float>(squareSize) * 0.7f * pulse;
 
 <br>
 
-### `FoodSystem` && `DeathSystem` — Collision Processers
-These two systems emerged while thinking about the processing of detected collisions. Remember: `CollisionSystem` just stores collisions, it doesn't do anything with them. So the logic following what happens when a snake eats or collides with a solid cell or with itself needs to be defined elsewhere. These two systems are nothing too remarcable, they just comb through the component pools, fetch their corresponding collision results, do stuff when they detect them.
-
 <br>
 <br>
 
 ## 3.6 New Main, New Me
 Everything needed for a Data Driven *Snake* game is done, except for the new `Main` entry point for the program. So let's do that!
 
-First, we're going to need to build some **`Factories`**, a collection of static functions to create and store `Entities` (snakes, food), and to manage some stuff (food relocation, game reset). We're also going to need some general state management function (like `resetGame()`) and food management (`relocateFood`). Here, the OOP instincts kick in, and call for a `GameManager`, but that would be... WRONG! Because we're not OOPing, we're DDing, therefore things need to be, codewise but also logically, managed differently. What we need is:
-- An extra system for food, `FoodSystem`, that updates after collisions and is responsible for what *snake eating apple* means and entrails.
-    - This will be a simple check for `CollisionResultComponent` and `SnakeComponent` to trigger the `grow()` and the `relocateFood()`.
-- A new file for world/general data related code (core?), just somewhere to store the `resetGame()` logic.
-- UPDATE TO/FROM SELF: while building the `FoodSystem`, the handling of player death caused by collisions raised another corncerned, which suggested the necessity of yet another new system, so we're going to have to welcome `DeathSystem` to the family.
+First, we're going to need to build some **`Factories`**, a collection of static functions to create and store `Entities` (snakes, food), and to manage some stuff (food relocation, game reset). We're also going to need some general state management function (like `resetGame()`) and food management (`relocateFood`). Here, the OOP instincts kick in, and call for a `GameManager`, but that would be... WRONG! Because we're not OOPing, we're DDing, therefore things need to be, codewise but also logically, managed differently. What we need is a new file for world/general data related code (core?), just somewhere to store the `resetGame()` logic.
 
-> *I'm going to retroactively add the two new systems above, so if you have been reading this document you might find things weird right now. You might even think that I'm finally losing what was left of my mind. Both things are true.*
-
-After the new system detour, `Factories.hpp/cpp` and `GameState.hpp/cpp` are built and stored in `/helpers`. Again, simple and straightforward stuff, go check their files if you want specific code implementations. What we really need to focus is in the `main` game loop. The advantage of a pure ECS system is that said loop just needs a (correctly ordered) sequential update call to all existing systems:
+After that, `Factories.hpp/cpp` and `GameState.hpp/cpp` are built and stored in `/helpers`. Again, simple and straightforward stuff, go check their files if you want specific code implementations. What we really need to focus is in the `main` game loop. The advantage of a pure ECS system is that said loop just needs a (correctly ordered) sequential update call to all existing systems:
 ```cpp
 while (true) {
 		if (WindowShouldClose()) break;
 
 		DrawFPS(SCREEN_W - 95, 10);
 
-		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f); // TODO: why this?
+		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
-		if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: ?
+		if (IsKeyPressed(KEY_F)) ToggleFullscreen();
 
 		bool playerDied = false;
+
+		CollisionEffects::EffectContext ctx {
+			&arena,
+			GRID_W,
+			GRID_H,
+			&playerDied
+		};
 
 		// update and management system phase
 		inputSystem.update(registry);
 		movementSystem.update(registry, dt);
-		collisionSystem.update(registry, &arena);
-		foodSystem.update(registry, &arena, GRID_W, GRID_H);
-		deathSystem.update(registry, playerSnake, &playerDied);
+		collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 
 		if (playerDied) {
-			std::cout << "PLAYER DIED" << std::endl; // TODO: menu mangling
+			std::cout << "PLAYER DIED" << std::endl;
 			break;
 		}
 
 		// render phase
-		renderSystem.render(registry, renderMode, dt);
+		renderSystem.render(registry, renderMode, dt, &arena);
 	}
 
 	CloseWindow();
 	return 0;
 ```
 
-This, with a lack of energy and words, works. The *snake* is alive and, according to my research, it's doing so in a fully ECS re-structure. The next item in the to-do list is the port of the rest of the original OOP functionality into the pending systems, but first I wanted to explore a further step in the Data Driven Direction: **store and load collisions rules in JSON files**.
+This works. The *snake* is alive and doing so in a fully ECS structure. The next item on the to-do list is the port of the rest of the original OOP functionality, but first, and because this is the whole point of this branch, a further step in the data driven direction: **store and load collision rules in JSON files, and have the code know nothing about when to apply them**.
+
+<br>
+<br>
+
+## 3.7 Collisions, But Make Them Data
+
+The ECS snake that just started running has hardcoded collision reactions. `CollisionSystem` detects overlap, then directly sets a flag or calls a function based on what it found. The logic of *what to do when snake hits food* lives in C++, is written in C++, and can only change by recompiling C++. This is fine for a two-rule game but it does not scale, and more importantly it does not reflect the kind of data-driven thinking this whole project is meant to practice.
+
+The goal is to get to a state where **the code describes how to apply effects, and a JSON file describes when to apply them**. Adding a new collision type should mean writing one C++ function and adding one line to a file. Nothing else.
+
+### The Problem With The Previous Setup
+
+The original `CollisionSystem` wrote a `CollisionType` enum value into a `CollisionResultComponent` on each snake entity. A `FoodSystem` read that component every frame and reacted to `Food`. A `DeathSystem` read it and reacted to `Wall`, `Self`, and `Snake`. This meant:
+- Three places to look at to understand what one collision does
+- `clearResults()` had to run every frame to wipe stale state before detection
+- Adding a new collision type required touching `CollisionResultComponent`, `CollisionSystem`, and at least one downstream system
+- The component was a communication channel, not actual data about the entity
+
+The new setup collapses all of this.
+
+### The Architecture
+
+Four new files under `srcs/collision/`:
+
+**`CollisionRule.hpp`** is pure data. It mirrors the JSON exactly:
+```cpp
+struct CollisionRule {
+    std::string                 subject;
+    std::string                 object;
+    std::vector<std::string>    effects;
+};
+
+struct CollisionRuleTable {
+    std::vector<CollisionRule> rules;
+
+    const CollisionRule* find(const std::string& subject,
+                              const std::string& object) const;
+};
+```
+No logic, no methods beyond the lookup. One source of truth for what the rules are.
+
+**`CollisionRuleLoader`** reads the JSON and fills the table. It uses `nlohmann/json`, a single-header library dropped into `incs/third_party/`. The entire job of this class is one static function: file in, table out.
+```cpp
+CollisionRuleTable CollisionRuleLoader::load(const std::string& path);
+```
+
+**`CollisionEffects`** is where the actual game logic lives, extracted from what were previously `FoodSystem` and `DeathSystem`. Every effect is a free function in a namespace, and every function shares the exact same signature:
+```cpp
+namespace CollisionEffects {
+
+    struct EffectContext {
+        const ArenaGrid*    arena;
+        int                 gridWidth;
+        int                 gridHeight;
+        bool*               playerDied;
+    };
+
+    using EffectFn = void(*)(Registry&, Entity subject, Entity object, const EffectContext&);
+
+    void GrowSnake      (Registry&, Entity subject, Entity object, const EffectContext&);
+    void RelocateFood   (Registry&, Entity subject, Entity object, const EffectContext&);
+    void IncrementScore (Registry&, Entity subject, Entity object, const EffectContext&);
+    void KillSnake      (Registry&, Entity subject, Entity object, const EffectContext&);
+
+}
+```
+
+The uniform signature is load-bearing. The dispatcher can only work if every function looks the same to it. `EffectContext` bundles all the world state that any effect might need, so individual functions do not need extra parameters and the dispatcher does not need to know anything about what any specific effect actually does.
+
+`KillSnake` sets `*ctx.playerDied = true`. `GrowSnake` sets `snake.growing = true`. `RelocateFood` calls `GameState::relocateFood` with the food entity passed as `object`. `IncrementScore` increments `ScoreComponent::score` on the subject. Each function is ten lines or fewer, does one thing, and is entirely independent of the others.
+
+**`CollisionEffectDispatcher`** is the string-to-function map:
+```cpp
+class CollisionEffectDispatcher {
+public:
+    void registerEffect(const std::string& name, CollisionEffects::EffectFn fn);
+    void execute(const std::string& name, Registry&, Entity subject, Entity object,
+                 const CollisionEffects::EffectContext&) const;
+    void registerDefaults();
+
+private:
+    std::unordered_map<std::string, CollisionEffects::EffectFn> _effects;
+};
+```
+
+`registerDefaults()` wires up all four known effects by name. `execute()` looks up the name and calls the function. If the name is not registered, it throws — a missing effect name is a bug, not a silent no-op.
+
+### The JSON File
+
+```json
+{
+    "collisionRules": [
+        {
+            "subject": "Snake",
+            "object": "Food",
+            "effects": ["GrowSnake", "RelocateFood", "IncrementScore"]
+        },
+        {
+            "subject": "Snake",
+            "object": "Wall",
+            "effects": ["KillSnake"]
+        },
+        {
+            "subject": "Snake",
+            "object": "Self",
+            "effects": ["KillSnake"]
+        },
+        {
+            "subject": "Snake",
+            "object": "Snake",
+            "effects": ["KillSnake"]
+        }
+    ]
+}
+```
+
+`"Self"` and `"Snake"` are separate object types because the detection code distinguishes them: `Self` is a snake hitting its own body, `Snake` is a snake hitting a different snake's body. They are both valid rule subjects and they both happen to map to the same effect right now, but they do not have to, and the JSON makes that distinction explicit and changeable without touching any code.
+
+### How Main Wires It Together
+
+At startup, before the game loop:
+```cpp
+CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.JSON");
+
+CollisionEffectDispatcher dispatcher;
+dispatcher.registerDefaults();
+```
+
+Inside the loop, the context is built fresh each frame with a stable pointer to a local `bool`:
+```cpp
+bool playerDied = false;
+
+CollisionEffects::EffectContext ctx { &arena, GRID_W, GRID_H, &playerDied };
+
+collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+
+if (playerDied) { ... }
+```
+
+The context pointer to `playerDied` is valid for the duration of the frame. `KillSnake` writes through it, the check reads it. No component, no deferred state, no system that needs to run after collision to find out what happened.
+
+### What Was Gained
+
+`FoodSystem` and `DeathSystem` no longer exist. `CollisionResultComponent` no longer exists. `clearResults()` no longer exists. The collision system does not set any state on entities and does not know what any effect string means. The three downstream concerns that used to require three separate files and a communication component are now three lines in a JSON array.
+
+The more interesting gain is forward-looking: adding, let's say, a poison food type that kills the snake requires writing one C++ function (`ApplyPoison`) and adding one JSON rule. The detection code does not change. The dispatcher does not change. The existing rules do not change. The file that describes *when* effects happen is the only thing that changes, and that file is not C++.
 
 ---
 ---

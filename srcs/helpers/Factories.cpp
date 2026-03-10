@@ -18,7 +18,7 @@ Entity Factories::spawnPlayerSnake(Registry& registry,
 	registry.addComponent(e, MovementComponent{ Direction::RIGHT, 0.0f, 0.1f });
 	registry.addComponent(e, InputComponent{});
 	registry.addComponent(e, RenderComponent{ color });
-	registry.addComponent(e, CollisionResultComponent{});
+	registry.addComponent(e, ScoreComponent{});
 	inputSystem.assignSlot(e, slot);
 	return e;
 } 

@@ -7,7 +7,7 @@
 #include "../components/MovementComponent.hpp"
 #include "../components/InputComponent.hpp"
 #include "../components/RenderComponent.hpp"
-#include "../components/CollisionResultComponent.hpp"
+#include "../components/ScoreComponent.hpp"
 #include "../components/FoodTag.hpp"
 #include "../components/SolidTag.hpp"
 #include "../arena/ArenaGrid.hpp"
