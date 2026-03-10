@@ -4,6 +4,7 @@
 #include "../ecs/Entity.hpp"
 #include "../systems/InputSystem.hpp"
 #include "../arena/ArenaGrid.hpp"
+#include "../AI/AIPresetLoader.hpp"
 #include "../../incs/Colors.hpp"
 #include "Factories.hpp"
 
@@ -13,7 +14,8 @@ class GameState {
 								InputSystem& inputSystem,
 								Entity& playerSnake, Entity& aiSnake, Entity& food,
 								int gridWidth, int gridHeight,
-								ArenaGrid& arena);
+								ArenaGrid& arena,
+								const AIPresetLoader::PresetTable& AIPresets);
 
 		static void relocateFood(Registry& registry, Entity foodEntity,
 								int gridWidth, int gridHeight,

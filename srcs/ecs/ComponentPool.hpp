@@ -31,6 +31,14 @@ class ComponentPool {
 			return _components[it->second];
 		}
 
+		const T& get(Entity entity) const {
+			const auto id = entity.getID();
+			auto it = _entityToIndex.find(id);
+			if (it == _entityToIndex.end())
+				throw std::runtime_error("Entity does not have component");
+			return _components[it->second];
+		}
+
 		bool has(Entity entity) const {
 			return _entityToIndex.count(entity.getID()) > 0;
 		}

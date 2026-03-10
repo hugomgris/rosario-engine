@@ -285,7 +285,7 @@ std::vector<Entity> Registry::view() const {
 
 <br>
 
-Moving on, the non-template bits — `createEntity`, `destroyEntity`, and `getEntities` — live in `Registry.cpp`:
+Moving on, the non-template bits (`createEntity`, `destroyEntity`, and `getEntities`) live in `Registry.cpp`:
 
 ```cpp
 Entity Registry::createEntity() {
@@ -414,7 +414,7 @@ With this laid down, it's time for system building. We're getting close to havin
 ## 3.5 Swiftly Systematizing Systems
 *I just wanted to have another aliteration, sorry*. With components defined and the registry working, it is time for the other half of the ECS equation: **systems**. As advance way up in this document, we'll start with the essential ones, those tied to the game loop. And we'll do so while having in mind that **the update order matters** (although this is more a `Main` concern): `Input → Movement → Collision → Render`. Each one must run in that sequence every frame, and each one only knows about the registry. Concisely: **NO direct references between systems**. Because there is no need and that's the whole point!
 
-### `InputSystem` — Catching Keypresses
+### `InputSystem`: Catching Keypresses
 
 The input system's job is narrow, and specifically tailored with regards of the bottom-most engine layer: poll Raylib for keypresses each frame and push them into the relevant entity's `InputComponent::inputBuffer` queue. It knows nothing about movement, nothing about what happens with those inputs, its sole purpose is to record them.
 
@@ -458,7 +458,7 @@ And following this first system and its `update()` core, we can break down how t
 
 <br>
 
-### `MovementSystem` — The One-Two Punch (ok, Tick)
+### `MovementSystem`: The One-Two Punch (ok, Tick)
 
 Systems, as one can see, are pretty self explanatory in their names (not that they are fundamentally complex in this project, really, so they're quite easy to condense in one word). What I mean by this is that this system's job is, well, moving things. It targets both `InputComponent` and `MovementComponent` and splits its processing into two phases: **direction update** and **position advance**.
 ```cpp
@@ -482,12 +482,12 @@ void MovementSystem::update(Registry& registry, float deltaTime) {
 }
 ```
 
-**`processInput`** reads one input from each snake's buffer, validates it (no 180° reversals — checked by summing the current and requested direction vectors; if they cancel to zero, it's a reversal), and updates `MovementComponent::direction`. The reversal guard is:
+**`processInput`** reads one input from each snake's buffer, validates it (no 180° reversals, checked by summing the current and requested direction vectors; if they cancel to zero, it's a reversal), and updates `MovementComponent::direction`. The reversal guard is:
 ```cpp
 const bool isReversal = (currentVec.x + requestedVec.x == 0) &&
                          (currentVec.y + requestedVec.y == 0);
 ```
-Simple and branchless. A snake moving right has `currentVec = {1, 0}`, and requesting left gives `requestedVec = {-1, 0}`. They sum to zero — reversal detected, input discarded.
+Simple and branchless. A snake moving right has `currentVec = {1, 0}`, and requesting left gives `requestedVec = {-1, 0}`. They sum to zero: reversal detected, input discarded.
 
 **`advanceSnake`** is where the snake actually moves, all based on the algorithm:
 
@@ -511,7 +511,7 @@ A second thing worth noting: `moveTimer` resets to `0.0f` (not `moveTimer -= mov
 
 <br>
 
-### `CollisionSystem` — Priority Queue of Deaths
+### `CollisionSystem`: Priority Queue of Deaths
 
 The collision system's job is to detect overlaps and fire the appropriate reactions immediately. After movement has resolved, it checks whether any snake's head now occupies a cell that belongs to a wall, its own body, another snake, or food. The check order is intentional priority:
 ```
@@ -531,7 +531,7 @@ void CollisionSystem::update(Registry& registry,
 }
 ```
 
-The priority order still matters for the same reason it always did: if a snake simultaneously hits a wall and food (possible at arena edges), wall should win, because firing food-eating effects on a dead snake would be wrong. The difference now is that there is no stale component to clear each frame and no subsequent systems waiting to read a stored result. Detection and reaction happen in the same call, sequentially, in order. If no rule is defined in the table for a given pair, `resolveCollision` silently returns — the absence of a rule is itself a valid design choice.
+The priority order still matters for the same reason it always did: if a snake simultaneously hits a wall and food (possible at arena edges), wall should win, because firing food-eating effects on a dead snake would be wrong. The difference now is that there is no stale component to clear each frame and no subsequent systems waiting to read a stored result. Detection and reaction happen in the same call, sequentially, in order. If no rule is defined in the table for a given pair, `resolveCollision` silently returns. The absence of a rule is itself a valid design choice, or so I think.
 
 The internal `resolveCollision` is where all checks converge:
 ```cpp
@@ -557,7 +557,7 @@ The wall check builds a flat `std::vector<Vec2>` of all solid positions once bef
 
 <br>
 
-### `RenderSystem` — Two Pipelines
+### `RenderSystem`: Two Pipelines
 
 The render system is the only one that touches `Raylib` directly. Because of that, it is also the only one that goes through an `init()` method. Alongside that, instead of an `update()` it has a `render()` public interface, which could not be the case but this way we signal the particularity of this system (and the fact that *rendering* is a very specific, important step in a videogame pipeline):
 
@@ -584,7 +584,7 @@ float pulse = 1.0f + sinf(accumulatedTime * 3.0f) * 0.1f;
 float size  = static_cast<float>(squareSize) * 0.7f * pulse;
 ```
 
-**3D pipeline**: isometric orthographic view using Raylib's `Camera3D`. Camera position is derived from grid diagonal to ensure the whole arena fits in frame regardless of arena size, using a quadratic fit for the FOV value that was calibrated to match a visually comfortable frame at various sizes. The checkerboard ground plane, walls, food, and snakes all use `drawCubeCustomFaces` — a low-level function that draws a cube by submitting six quads directly via `rlgl`, one per face, each with its own color. This preserves the per-face shading from the old OOP renderer, which `Raylib`'s built-in `DrawCube` can't do since it applies a single color to all faces.
+**3D pipeline**: isometric orthographic view using Raylib's `Camera3D`. Camera position is derived from grid diagonal to ensure the whole arena fits in frame regardless of arena size, using a quadratic fit for the FOV value that was calibrated to match a visually comfortable frame at various sizes. The checkerboard ground plane, walls, food, and snakes all use `drawCubeCustomFaces`, a low-level function that draws a cube by submitting six quads directly via `rlgl`, one per face, each with its own color. This preserves the per-face shading from the old OOP renderer, which `Raylib`'s built-in `DrawCube` can't do since it applies a single color to all faces.
 
 <br>
 
@@ -720,7 +720,7 @@ private:
 };
 ```
 
-`registerDefaults()` wires up all four known effects by name. `execute()` looks up the name and calls the function. If the name is not registered, it throws — a missing effect name is a bug, not a silent no-op.
+`registerDefaults()` wires up all four known effects by name. `execute()` looks up the name and calls the function. If the name is not registered, it throws: a missing effect name is a bug, not a silent no-op.
 
 ### The JSON File
 
@@ -776,41 +776,10 @@ if (playerDied) { ... }
 
 The context pointer to `playerDied` is valid for the duration of the frame. `KillSnake` writes through it, the check reads it. No component, no deferred state, no system that needs to run after collision to find out what happened.
 
-### What Was Gained
+### A Cause for Celebration
 
 `FoodSystem` and `DeathSystem` no longer exist. `CollisionResultComponent` no longer exists. `clearResults()` no longer exists. The collision system does not set any state on entities and does not know what any effect string means. The three downstream concerns that used to require three separate files and a communication component are now three lines in a JSON array.
 
 The more interesting gain is forward-looking: adding, let's say, a poison food type that kills the snake requires writing one C++ function (`ApplyPoison`) and adding one JSON rule. The detection code does not change. The dispatcher does not change. The existing rules do not change. The file that describes *when* effects happen is the only thing that changes, and that file is not C++.
 
----
----
----
-
-### `AISystem` — The Decision Hierarchy
-
-The AI system is the most involved one. It decides what direction an AI-controlled snake should move and writes it directly into `MovementComponent::direction`. No input buffer — AI doesn't go through the input queue.
-
-The decision hierarchy for each AI entity, in order:
-
-1. **Easy mode random roll**: if configured, occasionally skip food-hunting entirely and just maximize space.
-2. **`goToFood`**: A* pathfind to the nearest food. If the path is found but the safety check (flood fill reachability from the endpoint) fails, fall into survival mode.
-3. **`survivalMode`**: A* pathfind to the snake's own tail. The tail is always a valid target because it will have moved by the time the head arrives. If unreachable, fall into maximize space.
-4. **`maximizeSpace`**: check all four cardinal neighbors, flood-fill each to count reachable cells, pick the direction with the most space.
-
-The biggest performance issue in the original implementation: `goToFood`, `survivalMode`, and `maximizeSpace` all called `isWalkable(registry, ...)` per node during pathfinding and flood fill. `isWalkable` queried `view<SolidTag>()` and `view<SnakeComponent>()` — i.e., two full entity-list scans and two heap allocations per *node* during A*. On a 31×31 grid with `maxDepth=200`, a single AI decision could trigger thousands of allocations per frame. The game ran at something like 2-3 moves per second.
-
-The fix: **build the blocked grid once per AI entity per update, pass it everywhere**.
-
-```cpp
-void AISystem::update(Registry& registry) {
-    for (auto entity : registry.view<AIComponent, ...>()) {
-        const BlockedGrid blocked = buildBlockedGrid(registry);
-        Direction dir = decideDirection(registry, entity, blocked);
-        registry.getComponent<MovementComponent>(entity).direction = dir;
-    }
-}
-```
-
-`buildBlockedGrid` does two registry queries and fills a `vector<vector<bool>>[x][y]`. Everything downstream — A*, flood fill, `isSafeMove` — does direct `blocked[x][y]` array access. Zero allocations, zero hash map lookups inside the search loops. The same performance fix was applied to `GridHelper::isWalkable`, `Pathfinder::findPath`, and both `FloodFill` methods, which all now take the pre-built grid by const reference instead of a registry.
-
-At the same time, `getNeighbors` was updated to filter out-of-bounds positions at the point of generation (it now takes `gridWidth` and `gridHeight`), rather than letting the caller handle boundary checking after the fact.
+> *It's time to port the remaining systems, but this log has been logging for to long, so let's move to the next one!*

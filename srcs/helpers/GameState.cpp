@@ -4,22 +4,22 @@ void GameState::resetGame(Registry& registry,
 						InputSystem& inputSystem,
 						Entity& playerSnake, Entity& aiSnake, Entity& food,
 						int gridWidth, int gridHeight,
-						ArenaGrid& arena) {
+						ArenaGrid& arena,
+						const AIPresetLoader::PresetTable& AIPresets) {
 	// wipe the registry and re-create
 	registry = Registry{};
 
 	const BaseColor snakeAColor = { 135, 206, 250, 255 }; // TODO: un-hardcode this
-	const BaseColor snakeAiColor = { 46, 179, 113, 255 };
+	const BaseColor snakeAIColor = { 46, 179, 113, 255 };
 
 	playerSnake = Factories::spawnPlayerSnake(registry, inputSystem,
 									{ gridWidth / 2, gridHeight / 2},
 									4, snakeAColor, PlayerSlot::A);
 
-	/*
-	aiSnake     = spawnAISnake(registry,
+	aiSnake = Factories::spawnAISnake(registry,
 								{ gridWidth / 2 + 6,  gridHeight / 2 },
-								4, snakeAIColor, AIComponent::medium());
-	*/
+								4, snakeAIColor, "medium", AIPresets);
+	
 
 	food = Factories::spawnFood(registry, { gridWidth / 4, gridHeight / 4 });
 

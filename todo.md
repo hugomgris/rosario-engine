@@ -1,6 +1,5 @@
 ## Todo list
 
-- Log the initial ECS -> System layout
 - Port 3D pipeline
 - Port the AISystem
 - Port the animation system
