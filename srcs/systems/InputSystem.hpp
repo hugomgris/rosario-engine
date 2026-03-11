@@ -2,12 +2,8 @@
 
 #include <unordered_map>
 #include "../ecs/Registry.hpp"
+#include "../components/SnakeComponent.hpp"
 #include "../../incs/DataStructs.hpp"
-
-enum class PlayerSlot {
-	A,
-	B,
-};
 
 class InputSystem {
 	private:

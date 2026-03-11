@@ -25,7 +25,7 @@
 #include "collision/CollisionRule.hpp"
 #include "collision/CollisionRuleLoader.hpp"
 #include "collision/CollisionEffectDispatcher.hpp"
-#include "collision/CollisionEffects.hpp"
+#include "../incs/FrameContext.hpp"
 #include "AI/AIPresetLoader.hpp"
 #include "systems/AISystem.hpp"
 
@@ -62,7 +62,7 @@ int main() {
     ArenaGrid arena(GRID_W, GRID_H);
     Entity playerSnake(0u), secondSnake(0u), food(0u);
     GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::SINGLE);
-    RenderMode renderMode = RenderMode::MODE2D;
+    RenderMode renderMode = RenderMode::MODE3D;
 
     while (true) {
         if (WindowShouldClose()) break;
@@ -71,31 +71,31 @@ int main() {
 
         const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
-        if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: SHould this be in loop or in a system?
+        if (IsKeyPressed(KEY_F)) ToggleFullscreen();
+        if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
+        if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
 
-        bool playerDied = false;
-
-        // fresh context
-        CollisionEffects::EffectContext ctx {
-            &arena,         // arena
-            GRID_W,         // gridWidth
-            GRID_H,         // gridHeight
-            &playerDied     // playerDied (KillSnake writes here)
-        };
-
+        // fresh context each frame
+        FrameContext ctx;
+        ctx.arena       = &arena;
+        ctx.gridWidth   = GRID_W;
+        ctx.gridHeight  = GRID_H;
+        ctx.renderMode  = &renderMode;
+        ctx.playerDied  = false;
+        
         // update phase
         inputSystem.update(registry);
-        aiSystem.update(registry, &arena);
+        aiSystem.update(registry, ctx);
         movementSystem.update(registry, dt);
         collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 
-        if (playerDied) {
+        if (ctx.playerDied) {
             std::cout << "PLAYER DIED" << std::endl;
             break;
         }
 
         // render phase
-        renderSystem.render(registry, renderMode, dt, &arena);
+        renderSystem.render(registry, dt, ctx);
     }
 
     CloseWindow();

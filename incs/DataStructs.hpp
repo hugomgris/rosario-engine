@@ -42,3 +42,8 @@ enum class GameMode {
 	MULTI,
 	VSAI
 };
+
+enum class PlayerSlot {
+	A,
+	B,
+};

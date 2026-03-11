@@ -3,6 +3,7 @@
 #include "../components/InputComponent.hpp"
 #include "../components/PositionComponent.hpp"
 #include "../components/SnakeComponent.hpp"
+#include <iostream>
 
 Vec2 MovementSystem::directionToVec2(Direction dir) const {
 	switch (dir) {
@@ -16,14 +17,9 @@ Vec2 MovementSystem::directionToVec2(Direction dir) const {
 
 // reads each entity's InputComponent and updates its Movement Component direction.
 // ignores inputs that would reverse the current direction and discards invalid buffers (silently)
-void MovementSystem::processInput(Registry& registry) {
-	for (auto entity : registry.view<InputComponent, MovementComponent>()) {
-		auto& input	= registry.getComponent<InputComponent>(entity);
-		auto& move 	= registry.getComponent<MovementComponent>(entity);
-
-		if (input.inputBuffer.empty())
-			continue;
-
+// lastDirection is the direction the snake last actually moved (not the buffered one)
+void MovementSystem::processInput(Registry& registry, Direction lastDirection, MovementComponent& move, InputComponent& input) {
+	while (!input.inputBuffer.empty()) {
 		const Input next = input.inputBuffer.front();
 		input.inputBuffer.pop();
 
@@ -41,20 +37,21 @@ void MovementSystem::processInput(Registry& registry) {
 			default: break;
 		}
 
-		const Vec2 currentVec = directionToVec2(move.direction);
+		const Vec2 lastVec      = directionToVec2(lastDirection);
 		const Vec2 requestedVec = directionToVec2(requested);
-		
-		bool isReversal = (currentVec.x + requestedVec.x == 0) &&
-							(currentVec.y + requestedVec.y == 0);
+
+		bool isReversal = (lastVec.x + requestedVec.x == 0) &&
+						  (lastVec.y + requestedVec.y == 0);
 
 		if (!isReversal) {
 			move.direction = requested;
+			break; // only apply one valid direction per move tick
 		}
 	}
 }
 
-// advences the mve timer for each snake entity.
-// when timer exceeds interval, snake moves one grid cell in its current direction
+// advances the move timer for each snake entity.
+// when timer exceeds interval, consumes input and moves one grid cell
 void MovementSystem::advanceSnake(Registry& registry, float deltaTime) {
 	for (auto entity : registry.view<MovementComponent, PositionComponent, SnakeComponent>()) {
 		auto& move	= registry.getComponent<MovementComponent>(entity);
@@ -62,19 +59,24 @@ void MovementSystem::advanceSnake(Registry& registry, float deltaTime) {
 		auto& snake	= registry.getComponent<SnakeComponent>(entity);
 
 		move.moveTimer += deltaTime;
-		if (move.moveTimer < move.moveInterval) {
+		if (move.moveTimer < move.moveInterval)
 			continue;
-		}
 		move.moveTimer = 0.0f;
 
-		if (snake.segments.empty()) {
+		if (snake.segments.empty())
 			continue;
+
+		// consume input only when the snake is about to move,
+		// using the last committed direction as the reversal reference
+		if (registry.hasComponent<InputComponent>(entity)) {
+			auto& input = registry.getComponent<InputComponent>(entity);
+			processInput(registry, move.direction, move, input);
 		}
 
 		const Vec2 delta	= directionToVec2(move.direction);
 		const Vec2 newHead	= { snake.segments.front().position.x + delta.x,
 								snake.segments.front().position.y + delta.y };
-		
+
 		snake.segments.push_front({ newHead, BeadType::None });
 		pos.position = newHead;
 
@@ -87,6 +89,5 @@ void MovementSystem::advanceSnake(Registry& registry, float deltaTime) {
 }
 
 void MovementSystem::update(Registry& registry, float deltaTime) {
-	processInput(registry);
 	advanceSnake(registry, deltaTime);
 }

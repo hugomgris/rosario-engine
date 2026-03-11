@@ -13,4 +13,5 @@ struct Segment {
 struct SnakeComponent {
 	std::deque<Segment> segments;
 	bool growing = false;
+	PlayerSlot slot;
 };

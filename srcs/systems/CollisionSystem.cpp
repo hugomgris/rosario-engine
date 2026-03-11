@@ -1,3 +1,4 @@
+#include "../../incs/FrameContext.hpp"
 #include "CollisionSystem.hpp"
 #include "../components/PositionComponent.hpp"
 #include "../components/SnakeComponent.hpp"
@@ -11,7 +12,7 @@ void CollisionSystem::resolveCollision(const std::string& subjectType,
 									Registry& registry,
 									const CollisionRuleTable& table,
 									const CollisionEffectDispatcher& dispatcher,
-									const CollisionEffects::EffectContext& ctx) {
+									FrameContext& ctx) {
 	const CollisionRule* rule = table.find(subjectType, objectType);
 	if (!rule) return; // no rule defined for this pair, so ignore silently
 	
@@ -25,7 +26,7 @@ void CollisionSystem::resolveCollision(const std::string& subjectType,
 void CollisionSystem::checkWallCollisions(Registry& registry,
 										const CollisionRuleTable& table,
 										const CollisionEffectDispatcher& dispatcher,
-										const CollisionEffects::EffectContext& ctx) {
+										FrameContext& ctx) {
 	if (ctx.arena) {
 		for (auto entity : registry.view<SnakeComponent, PositionComponent>()) {
 			const Vec2 head = registry.getComponent<PositionComponent>(entity).position;
@@ -54,7 +55,7 @@ void CollisionSystem::checkWallCollisions(Registry& registry,
 void CollisionSystem::checkSelfCollisions(Registry& registry,
 										const CollisionRuleTable& table,
 										const CollisionEffectDispatcher& dispatcher,
-										const CollisionEffects::EffectContext& ctx) {
+										FrameContext& ctx) {
 	for (auto entity : registry.view<SnakeComponent>()) {
 		const auto& snake = registry.getComponent<SnakeComponent>(entity);
 		if (snake.segments.size() < 2) continue;
@@ -63,6 +64,9 @@ void CollisionSystem::checkSelfCollisions(Registry& registry,
 		for (size_t i = 1; i < snake.segments.size(); ++i) {
 			if (head.x == snake.segments[i].position.x &&
 				head.y == snake.segments[i].position.y) {
+				// DEBUG
+				std::cout << head.x << "-" << head.y << " VS " << snake.segments[i].position.x << "-" << snake.segments[i].position.y << std::endl;
+				
 				resolveCollision("Snake", "Self", entity, entity, registry, table, dispatcher, ctx);
 				break;
 			}
@@ -73,7 +77,7 @@ void CollisionSystem::checkSelfCollisions(Registry& registry,
 void CollisionSystem::checkSnakeCollisions(Registry& registry,
 										const CollisionRuleTable& table,
 										const CollisionEffectDispatcher& dispatcher,
-										const CollisionEffects::EffectContext& ctx) {
+										FrameContext& ctx) {
 	auto snakes = registry.view<SnakeComponent, PositionComponent>();
 
 	for (auto entityA : snakes) {
@@ -96,7 +100,7 @@ void CollisionSystem::checkSnakeCollisions(Registry& registry,
 void CollisionSystem::checkFoodCollisions(Registry& registry,
 										const CollisionRuleTable& table,
 										const CollisionEffectDispatcher& dispatcher,
-										const CollisionEffects::EffectContext& ctx) {
+										FrameContext& ctx) {
 	std::vector<std::pair<Entity, Vec2>> foodEntities;
 	for (auto food : registry.view<FoodTag, PositionComponent>())
 		foodEntities.push_back({ food, registry.getComponent<PositionComponent>(food).position });
@@ -116,7 +120,7 @@ void CollisionSystem::checkFoodCollisions(Registry& registry,
 void CollisionSystem::update(Registry& registry,
 							const CollisionRuleTable& table,
 							const CollisionEffectDispatcher& dispatcher,
-							const CollisionEffects::EffectContext& ctx) {
+							FrameContext& ctx) {
 	checkWallCollisions (registry, table, dispatcher, ctx);
 	checkSelfCollisions (registry, table, dispatcher, ctx);
 	checkSnakeCollisions(registry, table, dispatcher, ctx);

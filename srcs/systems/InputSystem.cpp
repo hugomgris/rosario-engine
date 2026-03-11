@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include "InputSystem.hpp"
 #include "../components/InputComponent.hpp"
+#include <iostream>
 
 void InputSystem::assignSlot(Entity entity, PlayerSlot slot) {
 	slotMap[entity.getID()] = slot;
@@ -11,6 +12,8 @@ void InputSystem::assignSlot(Entity entity, PlayerSlot slot) {
 void InputSystem::pollPlayerA(Registry& registry, Entity entity) {
 	auto& input = registry.getComponent<InputComponent>(entity);
 
+	if (input.inputBuffer.size() >= 4) return; // TODO: should this be limited?
+
 	if (IsKeyPressed(KEY_UP))    input.inputBuffer.push(Input::Up_B);
 	if (IsKeyPressed(KEY_DOWN))  input.inputBuffer.push(Input::Down_B);
 	if (IsKeyPressed(KEY_LEFT))  input.inputBuffer.push(Input::Left_B);
@@ -20,6 +23,8 @@ void InputSystem::pollPlayerA(Registry& registry, Entity entity) {
 // p2 -> arrows
 void InputSystem::pollPlayerB(Registry& registry, Entity entity) {
 	auto& input = registry.getComponent<InputComponent>(entity);
+
+	if (input.inputBuffer.size() >= 4) return; // TODO: should this be limited?
 
 	if (IsKeyPressed(KEY_W))     input.inputBuffer.push(Input::Up_A);
 	if (IsKeyPressed(KEY_S))     input.inputBuffer.push(Input::Down_A);

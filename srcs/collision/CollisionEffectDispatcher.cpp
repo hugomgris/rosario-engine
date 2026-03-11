@@ -8,7 +8,7 @@ void CollisionEffectDispatcher::execute(const std::string& name,
 										Registry& registry,
 										Entity subject,
 										Entity object,
-										const CollisionEffects::EffectContext& ctx) const {
+										FrameContext& ctx) const {
 	auto it = _effects.find(name);
 	if (it == _effects.end())
 		throw std::runtime_error("CollisionEffectDispatcher: unknown effect: " + name);

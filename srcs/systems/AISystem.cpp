@@ -126,9 +126,9 @@ Direction AISystem::decideDirection(Registry& registry, Entity entity, const Blo
     return goToFood(registry, entity, blocked);
 }
 
-void AISystem::update(Registry& registry, const ArenaGrid* arena) {
+void AISystem::update(Registry& registry, const FrameContext& ctx) {
     for (auto entity : registry.view<AIComponent, MovementComponent, PositionComponent, SnakeComponent>()) {
-        const BlockedGrid blocked = buildBlockedGrid(registry, arena);
+        const BlockedGrid blocked = buildBlockedGrid(registry, ctx.arena);
         Direction dir = decideDirection(registry, entity, blocked);
         registry.getComponent<MovementComponent>(entity).direction = dir;
     }

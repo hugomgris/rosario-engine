@@ -7,6 +7,7 @@
 #include "../AI/GridHelper.hpp"
 #include "../arena/ArenaGrid.hpp"
 #include "../../incs/DataStructs.hpp"
+#include "../../incs/FrameContext.hpp"
 
 using BlockedGrid = std::vector<std::vector<bool>>;
 
@@ -33,5 +34,5 @@ class AISystem {
 		AISystem(int gridWidth, int gridHeight)
 			: _gridWidth(gridWidth), _gridHeight(gridHeight) {}
 
-		void update(Registry& registry, const ArenaGrid* arena = nullptr);
+		void update(Registry& registry, const FrameContext& ctx);
 };

@@ -165,3 +165,116 @@ Entity Factories::spawnPlayerSnake(Registry& registry,
 > *On a side note, the way the snake spawning factory function knows if it's dealing with a first or a second snake is by checking if the registry's `SnakeComponent` pool is empty. If it is, first snake. If it's not, second snake. Method works after the fact that, as of today, there will never be more than 2 snakes. If that fact changes, this function shall too.*
 
 > *On another sidenote, I added a `GameMode` enum in `DataStructs.hpp`, which is now sent to the `reset()` function in `GameState` for it to know if the (re)initialization of the game needs one or two snakes, and what type of snake if the latter is the case.*
+
+### Re-Diced and Re-Sliced
+Having ported the `2D` rendering pipeline and having the OOP version's `3D` rendering functions in the rearview mirror, recovering the `3D` drawings in the new structure is easy peasy. The process mimics the registry query of the `2D` version and builds `Vector3` based positions to draw the checkerboard ground, the snakes and the food pip. There are no walls here, nor is there implemented a obstacle translation from the `2D` side of the game, as that is a future implementation, past the current porting phase. This process is quite unimportant, and one of the new `3D` drawing functions suffices as an illustration:
+```cpp
+void RenderSystem::drawSnakes3D(Registry& registry) const {
+	for (auto entity : registry.view<SnakeComponent, RenderComponent>()) {
+		const auto& snake = registry.getComponent<SnakeComponent>(entity);
+		const auto& render = registry.getComponent<RenderComponent>(entity);
+
+		float offsetX = (_gridWidth * _cubeSize) / 2.0f;
+		float offsetZ = (_gridHeight * _cubeSize) / 2.0f;
+
+		for (size_t i = 0; i < snake.segments.size(); i++) {
+			Vector3 position = {
+				snake.segments[i].position.x * _cubeSize - offsetX,
+				_cubeSize,
+				snake.segments[i].position.y * _cubeSize - offsetZ
+			};
+
+			float size = (i == 0) ? _cubeSize : _cubeSize * 0.8f;
+			if (i > 0) position.y  *= 0.8f;
+			
+			if (i % 2 == 0) {
+				drawCubeCustomFaces(position, size, size, size, snakeALightFront, snakeAHidden, snakeALightTop, snakeAHidden, snakeALightSide, snakeAHidden);
+			} else {
+				drawCubeCustomFaces(position, size, size, size, snakeADarkFront, snakeAHidden, snakeADarkTop, snakeAHidden, snakeADarkSide, snakeAHidden);
+			}
+		}
+	}
+}
+```
+
+What actually is more interesting is... A new B U G emerged! Nothing related to the `3D`, really, just something I noticed while testing it. The error triggered if a player's inputs were too fast and contained a 180 degree reversal. For example, with a player controlled right bound snake, if its owner quickly input `UP` and `LEFT`, say at the same time, it could be the case that the two inputs be processed before a movement tick, resulting in a bypassing of the 180 degree guard. In other words, before the snake moved one position (cell/cube), `UP` and then `LEFT` were processed, and because `LEFT` was processed after direction was switched to `UP`, the guard failed, and when the movement tick arrived, the snake went from `RIGHT` to `LEFT`, colliding into itself. The solution to this was twofold:
+- Call `processInput` inside `advanceSnake`, right before the movement happens and **consuming input only at move tick time**
+- **Make Reversal check use `lastDirection` (the direction AT THE MOMENT of movement), instead of `move.direction` (which may have already been updated by a previous buffered input)**.
+    - The `break` after accepting a valid direction also ensures only **one** direction change is applied per tick, discarding the rest of the buffer.
+```cpp
+// reads each entity's InputComponent and updates its Movement Component direction.
+// ignores inputs that would reverse the current direction and discards invalid buffers (silently)
+// lastDirection is the direction the snake last actually moved (not the buffered one)
+void MovementSystem::processInput(Registry& registry, Direction lastDirection, MovementComponent& move, InputComponent& input) {
+	while (!input.inputBuffer.empty()) {
+		const Input next = input.inputBuffer.front();
+		input.inputBuffer.pop();
+
+		Direction requested = move.direction;
+
+		switch (next) {
+			case Input::Up_A:    requested = Direction::UP;    break;
+			case Input::Down_A:  requested = Direction::DOWN;  break;
+			case Input::Left_A:  requested = Direction::LEFT;  break;
+			case Input::Right_A: requested = Direction::RIGHT; break;
+			case Input::Up_B:    requested = Direction::UP;    break;
+			case Input::Down_B:  requested = Direction::DOWN;  break;
+			case Input::Left_B:  requested = Direction::LEFT;  break;
+			case Input::Right_B: requested = Direction::RIGHT; break;
+			default: break;
+		}
+
+		const Vec2 lastVec      = directionToVec2(lastDirection);
+		const Vec2 requestedVec = directionToVec2(requested);
+
+		bool isReversal = (lastVec.x + requestedVec.x == 0) &&
+						  (lastVec.y + requestedVec.y == 0);
+
+		if (!isReversal) {
+			move.direction = requested;
+			break; // only apply one valid direction per move tick
+		}
+	}
+}
+```
+```cpp
+// advances the move timer for each snake entity.
+// when timer exceeds interval, consumes input and moves one grid cell
+void MovementSystem::advanceSnake(Registry& registry, float deltaTime) {
+	for (auto entity : registry.view<MovementComponent, PositionComponent, SnakeComponent>()) {
+		auto& move	= registry.getComponent<MovementComponent>(entity);
+		auto& pos	= registry.getComponent<PositionComponent>(entity);
+		auto& snake	= registry.getComponent<SnakeComponent>(entity);
+
+		move.moveTimer += deltaTime;
+		if (move.moveTimer < move.moveInterval)
+			continue;
+		move.moveTimer = 0.0f;
+
+		if (snake.segments.empty())
+			continue;
+
+		// consume input only when the snake is about to move,
+		// using the last committed direction as the reversal reference
+		if (registry.hasComponent<InputComponent>(entity)) {
+			auto& input = registry.getComponent<InputComponent>(entity);
+			processInput(registry, move.direction, move, input);
+		}
+
+		const Vec2 delta	= directionToVec2(move.direction);
+		const Vec2 newHead	= { snake.segments.front().position.x + delta.x,
+								snake.segments.front().position.y + delta.y };
+
+		snake.segments.push_front({ newHead, BeadType::None });
+		pos.position = newHead;
+
+		if (snake.growing) {
+			snake.growing = false;
+		} else {
+			snake.segments.pop_back();
+		}
+	}
+}
+```
+
+And with this, it appears that the snake is no longer killing itself, which is good news.

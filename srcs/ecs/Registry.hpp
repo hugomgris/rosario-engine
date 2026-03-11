@@ -68,6 +68,8 @@ const T& Registry::getComponent(Entity entity) const {
 
 template<typename T>
 bool Registry::hasComponent(Entity entity) const {
+	const auto key = std::type_index(typeid(T));
+	if (_componentPools.find(key) == _componentPools.end()) return false;
 	return getPool<T>().has(entity);
 }
 
@@ -94,7 +96,10 @@ ComponentPool<T>& Registry::getPool(){
 template<typename T>
 const ComponentPool<T>& Registry::getPool() const {
 	const auto key = std::type_index(typeid(T));
-	return *std::static_pointer_cast<ComponentPool<T>>(_componentPools.at(key));
+	auto it = _componentPools.find(key);
+	if (it == _componentPools.end())
+		throw std::out_of_range("Registry::getPool() const: pool not found for type");
+	return *std::static_pointer_cast<const ComponentPool<T>>(it->second);
 }
 
 // the main, entity polling function in this registry

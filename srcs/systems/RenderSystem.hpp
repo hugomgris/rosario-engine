@@ -4,6 +4,7 @@
 #include "../../incs/DataStructs.hpp"
 #include "../../incs/RaylibColors.hpp"
 #include "../../incs/Colors.hpp"
+#include "../../incs/FrameContext.hpp"
 #include "../arena/ArenaGrid.hpp"
 
 enum class RenderMode {
@@ -28,18 +29,33 @@ class RenderSystem {
 		float	_gameAreaY			= 0.0f;
 		float	_accumulatedTime	= 0.0f;
 
+		// 3D attributes
+		float	_cubeSize			= 2.0f;
+		float	_cameraSize			= 0.0f;
+		float	_customFov			= 0.0f;
+
 		// cameras
 		Camera2D _camera2D = {};
+		Camera3D _camera3D = {};
 
 		// pipelines
-		void render2D(Registry& registry, const ArenaGrid* arena);
-		//void render2D(Registry& registry);
+		void render2D(Registry& registry, const FrameContext& ctx);
+		void render3D(Registry& registry, const FrameContext& ctx);
 
 		// 2D helpers
 		void drawSnakes2D(Registry& registry) const;
 		void drawFood2D(Registry& registry) const;
-		void drawWalls2D(Registry  &registry) const;
 		void drawArena2D(const ArenaGrid& arena) const;
+
+		// 3D helpers
+		void setupCamera3D();
+		void drawArena3D(const ArenaGrid& arena) const;
+		void drawGroundPlane3D() const;
+		void drawWalls3D() const;
+		void drawSnakes3D(Registry& registry) const;
+		void drawFood3D(Registry& registry) const;
+		void drawCubeCustomFaces(Vector3 position, float width, float height, float length,
+								Color front, Color back, Color top, Color bottom, Color right, Color left) const;
 
 		// utilities
 		void	calculate2DLayout();
@@ -48,5 +64,5 @@ class RenderSystem {
 
 	public:
 		void init(int gridWidth, int gridHeight);
-		void render(Registry& registry, RenderMode mode, float deltaTime, const ArenaGrid* arena);
+		void render(Registry& registry, float deltaTime, const FrameContext& ctx);
 };

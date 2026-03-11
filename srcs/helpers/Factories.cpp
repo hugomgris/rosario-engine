@@ -23,12 +23,13 @@ Entity Factories::spawnPlayerSnake(Registry& registry,
         snake.segments.push_back({ segPos, BeadType::None });
     }
 
+	registry.addComponent(e, RenderComponent{ color });
+	registry.addComponent(e, ScoreComponent{});
+	snake.slot = slot;
 	registry.addComponent(e, snake);
 	registry.addComponent(e, PositionComponent{ startPos });
 	registry.addComponent(e, MovementComponent{ direction, 0.0f, 0.1f });
 	registry.addComponent(e, InputComponent{});
-	registry.addComponent(e, RenderComponent{ color });
-	registry.addComponent(e, ScoreComponent{});
 	inputSystem.assignSlot(e, slot);
 	return e;
 } 

@@ -16,7 +16,7 @@ class CollisionEffectDispatcher {
                         Registry& registry,
                         Entity subject,
                         Entity object,
-                        const CollisionEffects::EffectContext& ctx) const;
+                        FrameContext& ctx) const;
 
         void registerDefaults();
 };
