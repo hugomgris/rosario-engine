@@ -34,15 +34,10 @@ void RenderSystem::init(int gridWidth, int gridHeight) {
 void RenderSystem::render(Registry& registry, float deltaTime, const FrameContext& ctx) {
 	_accumulatedTime += deltaTime;
 
-	BeginDrawing();
-	ClearBackground(customBlack);
-
 	if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D)
 		render2D(registry, ctx);
 	else if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE3D)
 		render3D(registry, ctx);
-
-	EndDrawing();
 }
 
 // helpers

@@ -32,10 +32,11 @@ AI_SRC			:= AI/FloodFill.cpp		\
 ARENA_SRC		:= arena/ArenaGrid.cpp		\
 					arena/ArenaPresets.cpp
 
-SYSTEMS_SRC     := systems/InputSystem.cpp			\
-					systems/MovementSystem.cpp		\
-					systems/RenderSystem.cpp		\
-					systems/CollisionSystem.cpp		\
+SYSTEMS_SRC     := systems/InputSystem.cpp				\
+					systems/MovementSystem.cpp			\
+					systems/RenderSystem.cpp			\
+					systems/PostProcessingSystem.cpp	\
+					systems/CollisionSystem.cpp			\
 					systems/AISystem.cpp
 
 GRAPHICS_SRC    := helpers/RaylibColors.cpp	\

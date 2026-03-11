@@ -18,6 +18,7 @@
 #include "systems/MovementSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/RenderSystem.hpp"
+#include "systems/PostProcessingSystem.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "arena/ArenaPresets.hpp"
 #include "helpers/Factories.hpp"
@@ -37,67 +38,81 @@ static constexpr int GRID_W = 32;
 static constexpr int GRID_H = 32;
 
 int main() {
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
+	std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-    // Config json load
-    CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
-    AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
+	// Config json load
+	CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
+	AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
 
-    // Dispatcher set up
-    CollisionEffectDispatcher dispatcher;
-    dispatcher.registerDefaults();
+	// Dispatcher set up
+	CollisionEffectDispatcher dispatcher;
+	dispatcher.registerDefaults();
 
-    // ECS core
-    Registry registry;
+	// ECS core
+	Registry registry;
 
-    // Gameplay systems
-    InputSystem     inputSystem;
-    MovementSystem  movementSystem;
-    CollisionSystem collisionSystem;
-    AISystem        aiSystem(GRID_W, GRID_H);
-    RenderSystem    renderSystem;
-    renderSystem.init(GRID_W, GRID_H);
+	// Gameplay systems
+	InputSystem				inputSystem;
+	MovementSystem			movementSystem;
+	CollisionSystem			collisionSystem;
+	AISystem				aiSystem(GRID_W, GRID_H);
+	RenderSystem            renderSystem;
+	PostProcessingSystem    postProcessingSystem;
 
-    // initial world
-    ArenaGrid arena(GRID_W, GRID_H);
-    Entity playerSnake(0u), secondSnake(0u), food(0u);
-    GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::SINGLE);
-    RenderMode renderMode = RenderMode::MODE3D;
+	renderSystem.init(GRID_W, GRID_H);
+	postProcessingSystem.init(SCREEN_W, SCREEN_H);
+	postProcessingSystem.setConfig(PostProcessingSystem::presetCRTBloom());
 
-    while (true) {
-        if (WindowShouldClose()) break;
+	// initial world
+	ArenaGrid arena(GRID_W, GRID_H);
+	Entity playerSnake(0u), secondSnake(0u), food(0u);
+	GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::SINGLE);
+	RenderMode renderMode = RenderMode::MODE2D;
 
-        DrawFPS(SCREEN_W - 95, 10);
+	while (true) {
+		if (WindowShouldClose()) break;
 
-        const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
+		DrawFPS(SCREEN_W - 95, 10);
 
-        if (IsKeyPressed(KEY_F)) ToggleFullscreen();
-        if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
-        if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
+		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
-        // fresh context each frame
-        FrameContext ctx;
-        ctx.arena       = &arena;
-        ctx.gridWidth   = GRID_W;
-        ctx.gridHeight  = GRID_H;
-        ctx.renderMode  = &renderMode;
-        ctx.playerDied  = false;
-        
-        // update phase
-        inputSystem.update(registry);
-        aiSystem.update(registry, ctx);
-        movementSystem.update(registry, dt);
-        collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+		if (IsKeyPressed(KEY_F)) ToggleFullscreen();
+		if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
+		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
+		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
 
-        if (ctx.playerDied) {
-            std::cout << "PLAYER DIED" << std::endl;
-            break;
-        }
+		// fresh context each frame
+		FrameContext ctx;
+		ctx.arena       = &arena;
+		ctx.gridWidth   = GRID_W;
+		ctx.gridHeight  = GRID_H;
+		ctx.renderMode  = &renderMode;
+		ctx.playerDied  = false;
+		
+		// update phase
+		inputSystem.update(registry);
+		aiSystem.update(registry, ctx);
+		movementSystem.update(registry, dt);
+		collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 
-        // render phase
-        renderSystem.render(registry, dt, ctx);
-    }
+		if (ctx.playerDied) {
+			std::cout << "PLAYER DIED" << std::endl;
+			break;
+		}
 
-    CloseWindow();
-    return 0;
+		// render phase
+		postProcessingSystem.beginCapture();
+		renderSystem.render(registry, dt, ctx);
+		postProcessingSystem.endCapture();
+
+		// post processing phase
+		BeginDrawing();
+		ClearBackground(customBlack);
+		postProcessingSystem.applyAndPresent(dt);
+		EndDrawing();
+	}
+
+	postProcessingSystem.shutdown();
+	CloseWindow();
+	return 0;
 }
