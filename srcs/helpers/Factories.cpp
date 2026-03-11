@@ -10,13 +10,22 @@ Entity Factories::spawnPlayerSnake(Registry& registry,
 	Entity e = registry.createEntity();
 	SnakeComponent snake;
 
+	Direction direction = (registry.view<SnakeComponent>().empty()) ? Direction::RIGHT : Direction::LEFT;
+
 	for (int i = 0; i < initialLength; ++i) {
-		snake.segments.push_back({ { startPos.x - i, startPos.y }, BeadType::None });
-	}
+        Vec2 segPos;
+        switch (direction) {
+            case Direction::RIGHT: segPos = { startPos.x - i, startPos.y }; break;
+            case Direction::LEFT:  segPos = { startPos.x + i, startPos.y }; break;
+            case Direction::DOWN:  segPos = { startPos.x, startPos.y - i }; break;
+            case Direction::UP:    segPos = { startPos.x, startPos.y + i }; break;
+        }
+        snake.segments.push_back({ segPos, BeadType::None });
+    }
 
 	registry.addComponent(e, snake);
 	registry.addComponent(e, PositionComponent{ startPos });
-	registry.addComponent(e, MovementComponent{ Direction::RIGHT, 0.0f, 0.1f });
+	registry.addComponent(e, MovementComponent{ direction, 0.0f, 0.1f });
 	registry.addComponent(e, InputComponent{});
 	registry.addComponent(e, RenderComponent{ color });
 	registry.addComponent(e, ScoreComponent{});

@@ -14,6 +14,10 @@ void CollisionSystem::resolveCollision(const std::string& subjectType,
 									const CollisionEffects::EffectContext& ctx) {
 	const CollisionRule* rule = table.find(subjectType, objectType);
 	if (!rule) return; // no rule defined for this pair, so ignore silently
+	
+	// DEBUG
+	std::cout << "COLLISION:" << rule->subject << " - " << rule->object << std::endl;
+
 	for (const auto& effectName : rule->effects)
 		dispatcher.execute(effectName, registry, subject, object, ctx);
 }

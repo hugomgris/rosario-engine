@@ -42,6 +42,9 @@ class Registry {
 		template<typename T>
 		void removeComponent(Entity entity);
 
+		template<typename T>
+		bool hasPool();
+
 		const std::vector<Entity>& getEntities() const;
 		
 		template<typename... T>
@@ -71,6 +74,12 @@ bool Registry::hasComponent(Entity entity) const {
 template<typename T>
 void Registry::removeComponent(Entity entity) {
 	getPool<T>().remove(entity);
+}
+
+template<typename T>
+bool Registry::hasPool() {
+	const auto key = std::type_index(typeid(T));
+	return _componentPools.find(key) != _componentPools.end();
 }
 
 template<typename T>

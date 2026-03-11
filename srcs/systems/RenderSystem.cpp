@@ -140,13 +140,14 @@ void RenderSystem::drawFood2D(Registry& registry) const {
 		const auto& pos	= registry.getComponent<PositionComponent>(entity).position;
 		Vector2 screen	= gridToScreen2D(pos.x, pos.y);
 
-		float pulse		= 1.0f + sinf(_accumulatedTime * 0.3f) * 0.1f;
-		float size		= static_cast<float>(_squareSize) * 0.7f * pulse;
-		float offset	= (static_cast<float>(_squareSize) - size) / 2.0f;
+		float pulse		= 1.0f + sinf(_accumulatedTime * 3.0f) * 0.1f;
+		int pulseSize	= static_cast<int>(_squareSize * 0.7f * pulse);
+		int offset		= (_squareSize - pulseSize) / 2;
 
 		DrawRectangle(
-			static_cast<int>(screen.x + offset), static_cast<int>(screen.y + offset),
-			static_cast<int>(size), static_cast<int>(size),
+			static_cast<int>(screen.x) + offset,
+			static_cast<int>(screen.y) + offset,
+			pulseSize, pulseSize,
 			food2DColor
 		);
 	}

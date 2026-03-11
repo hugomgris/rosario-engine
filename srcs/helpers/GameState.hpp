@@ -6,16 +6,17 @@
 #include "../arena/ArenaGrid.hpp"
 #include "../AI/AIPresetLoader.hpp"
 #include "../../incs/Colors.hpp"
+#include "../../incs/RaylibColors.hpp"
 #include "Factories.hpp"
 
 class GameState {
 	public:
 		static void resetGame(Registry& registry,
 								InputSystem& inputSystem,
-								Entity& playerSnake, Entity& aiSnake, Entity& food,
+								Entity& playerSnake, Entity& secondSnake, Entity& food,
 								int gridWidth, int gridHeight,
 								ArenaGrid& arena,
-								const AIPresetLoader::PresetTable& AIPresets);
+								const AIPresetLoader::PresetTable& AIPresets, GameMode mode);
 
 		static void relocateFood(Registry& registry, Entity foodEntity,
 								int gridWidth, int gridHeight,

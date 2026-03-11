@@ -124,3 +124,44 @@ As can be seen in the snippet, the system has a regular `update()` public interf
 3. Set the AI snake's `MovementComponent`'s direction to the decided one
 
 All of the steps in this process are a mixture of pathfinding, floodfilling, walkable checks and so on. Nothing new with respects to what the OOP version's `AI` pipeline was already achieving, just adapted and refined to work in the new ECS/DD context. Some AI snake factorization here, some `AISystem` instantiation there, a precise `update()` call in the game loop... And once again, it's alive!!
+
+### Yellow Snake, Please Go to Aisle Game
+Before moving on to the next system of choice, there are a couple of things related to already ported systems that I would like to recover in this new build: the **1v1 multiplayer** mode and the **3D rendering pipeline**. We'll tackle the former first, so that we can resurrect our WASD yellow snake. If my (usually wrong by miles) calculations are correct, this should be extremely trivial, just a secon factory call to create a second snake entity with an associated input slot of `B`. And... It was easy, yeah, but during the implementation a found a tasty bug.
+
+See, I had to slightly tweak the `spawnPlayerSnake()` factory function to mirror the moving directions when having a 2 snake initial set up (be it `VSAI` or `MULTI`). I added a direction variable definition before pushing components into the registry, but because I had the segment creation BEFORE this steps, i ended up having a pre-defined, always-towards-right initial segment setup that clashed with the direction preset selected afterwards. This translated in a snakes that were always moving one cell to the right in the first movement tick, then changing into the set directions. Which, in itself, meant that any snake spawned with a LEFT direction automatically collied with itself. The huntdown of this bug took some time, but luckily the fix was pretty easy, just had to move the segment initialization to be after the direction definition:
+```cpp
+Entity Factories::spawnPlayerSnake(Registry& registry,
+								InputSystem& inputSystem,
+								Vec2 startPos,
+								int initialLength,
+								BaseColor color,
+								PlayerSlot slot) {
+	Entity e = registry.createEntity();
+	SnakeComponent snake;
+
+	Direction direction = (registry.view<SnakeComponent>().empty()) ? Direction::RIGHT : Direction::LEFT;
+
+	for (int i = 0; i < initialLength; ++i) {
+        Vec2 segPos;
+        switch (direction) {
+            case Direction::RIGHT: segPos = { startPos.x - i, startPos.y }; break;
+            case Direction::LEFT:  segPos = { startPos.x + i, startPos.y }; break;
+            case Direction::DOWN:  segPos = { startPos.x, startPos.y - i }; break;
+            case Direction::UP:    segPos = { startPos.x, startPos.y + i }; break;
+        }
+        snake.segments.push_back({ segPos, BeadType::None });
+    }
+
+	registry.addComponent(e, snake);
+	registry.addComponent(e, PositionComponent{ startPos });
+	registry.addComponent(e, MovementComponent{ direction, 0.0f, 0.1f });
+	registry.addComponent(e, InputComponent{});
+	registry.addComponent(e, RenderComponent{ color });
+	registry.addComponent(e, ScoreComponent{});
+	inputSystem.assignSlot(e, slot);
+	return e;
+} 
+```
+> *On a side note, the way the snake spawning factory function knows if it's dealing with a first or a second snake is by checking if the registry's `SnakeComponent` pool is empty. If it is, first snake. If it's not, second snake. Method works after the fact that, as of today, there will never be more than 2 snakes. If that fact changes, this function shall too.*
+
+> *On another sidenote, I added a `GameMode` enum in `DataStructs.hpp`, which is now sent to the `reset()` function in `GameState` for it to know if the (re)initialization of the game needs one or two snakes, and what type of snake if the latter is the case.*

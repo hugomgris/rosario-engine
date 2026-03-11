@@ -27,6 +27,7 @@ class Factories {
 										BaseColor color,
 										PlayerSlot slot);
 
+										
 		static Entity spawnAISnake(Registry& registry,
 								Vec2 startPos,
 								int  initialLength,

@@ -36,3 +36,9 @@ enum class Input {
 enum class AIBehaviourState {
     EASY, MEDIUM, HARD
 };
+
+enum class GameMode {
+	SINGLE,
+	MULTI,
+	VSAI
+};

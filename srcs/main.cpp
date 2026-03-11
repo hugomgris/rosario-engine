@@ -39,10 +39,11 @@ static constexpr int GRID_H = 32;
 int main() {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
+    // Config json load
     CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
-
     AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
 
+    // Dispatcher set up
     CollisionEffectDispatcher dispatcher;
     dispatcher.registerDefaults();
 
@@ -59,8 +60,8 @@ int main() {
 
     // initial world
     ArenaGrid arena(GRID_W, GRID_H);
-    Entity playerSnake(0u), aiSnake(0u), food(0u);
-    GameState::resetGame(registry, inputSystem, playerSnake, aiSnake, food, GRID_W, GRID_H, arena, AIPresets);
+    Entity playerSnake(0u), secondSnake(0u), food(0u);
+    GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::SINGLE);
     RenderMode renderMode = RenderMode::MODE2D;
 
     while (true) {
@@ -70,7 +71,7 @@ int main() {
 
         const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
-        if (IsKeyPressed(KEY_F)) ToggleFullscreen();
+        if (IsKeyPressed(KEY_F)) ToggleFullscreen(); // TODO: SHould this be in loop or in a system?
 
         bool playerDied = false;
 

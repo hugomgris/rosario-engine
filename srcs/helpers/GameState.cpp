@@ -2,25 +2,32 @@
 
 void GameState::resetGame(Registry& registry,
 						InputSystem& inputSystem,
-						Entity& playerSnake, Entity& aiSnake, Entity& food,
+						Entity& playerSnake, Entity& secondSnake, Entity& food,
 						int gridWidth, int gridHeight,
 						ArenaGrid& arena,
-						const AIPresetLoader::PresetTable& AIPresets) {
+						const AIPresetLoader::PresetTable& AIPresets, GameMode mode) {
 	// wipe the registry and re-create
 	registry = Registry{};
 
-	const BaseColor snakeAColor = { 135, 206, 250, 255 }; // TODO: un-hardcode this
-	const BaseColor snakeAIColor = { 46, 179, 113, 255 };
+	SetColors colorSet;
+
+	Vec2 firstSnakePos = { gridWidth / 2, (gridHeight / 3) };
+	Vec2 secondSnakePos = { gridWidth / 2, (gridHeight / 3) * 2 };
 
 	playerSnake = Factories::spawnPlayerSnake(registry, inputSystem,
-									{ gridWidth / 2, gridHeight / 2},
-									4, snakeAColor, PlayerSlot::A);
+									firstSnakePos,
+									4, colorSet.snakeAColor, PlayerSlot::A);
 
-	aiSnake = Factories::spawnAISnake(registry,
-								{ gridWidth / 2 + 6,  gridHeight / 2 },
-								4, snakeAIColor, "medium", AIPresets);
+	if (mode == GameMode::VSAI) {
+		secondSnake = Factories::spawnAISnake(registry,
+								secondSnakePos,
+								4, colorSet.snakeAIColor, "medium", AIPresets);
+	} else if (mode == GameMode::MULTI) {
+		secondSnake = Factories::spawnPlayerSnake(registry, inputSystem,
+									secondSnakePos,
+									4, colorSet.snakeBColor, PlayerSlot::B);
+	}
 	
-
 	food = Factories::spawnFood(registry, { gridWidth / 4, gridHeight / 4 });
 
 	arena.clearArena();
