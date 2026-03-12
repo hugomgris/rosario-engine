@@ -7,6 +7,8 @@
 	- [Re-Diced and Re-Sliced](#413-re-diced-and-re-sliced)
 	- [Post-Post-Processing](#414-post-post-processings)
 	- [Why the Long Face?](#415-why-the-long-face)
+	- [DAYLIGHT](#416-daylight-or-pánico-en-el-túnel-starring-silvester-stallone)
+    - [Do You Want to See the Menu?](#417-do-you-want-to-see-the-menu)
 
 <br>
 <br>
@@ -493,6 +495,158 @@ And with that, the animation pipeline is back on its feet. Three particle types,
 
 ### 4.1.6 DAYLIGHT (or *Pánico en el túnel* starring Silvester Stallone)
 
+The OOP version's `AnimationSystem` drew concentric outlines of the arena shape that expanded outward from the screen center on a continuous spawn interval, giving the background a slow, pulsing depth. It was entirely self-contained and had no entity in the ECS sense, which means the porting question here is simpler than it was for particles: **no new component needed at all**. The system owns its data start to finish. What it does need is:
+- A way to know the arena's outline geometry.
+- A way to know where the arena sits on screen.
+- A way to know when the arena changes shape, so in-flight lines keep rendering the *old* outline while new lines spawn following the *new* one.
+
+> *Thankfully, the bulk of this system's hard work was done in the OOP version, and given that the port is going to be pretty straight forward, this is going to go down easily*
+
+#### The geometry source: `getAllOutlines`
+
+`ArenaGrid::getAllOutlines(offsetX, offsetY)` already existed from the OOP build. It walks the grid and, for every contiguous block of solid cells, emits a polygon representing its outer boundary as a `vector<Vector2>`. The signature takes an offset, but what it actually returns are raw grid-unit coordinates in the form `offsetX + cellIndex`. In other words, not screen pixels, integer grid indices offset by a pixel value, with no cell size scaling applied. That detail became relevant later.
+
+#### `TunnelLine` and `TunnelConfig`
+
+The internal data structures are a direct port:
+
+```cpp
+struct TunnelConfig {
+    int     borderThickness = 15;
+    int     contentInset    = 40;
+    float   spawnInterval   = 0.15f;
+    float   animationSpeed  = 0.7f;
+    int     maxLines        = 12;
+    Color   lineColor       = { 144, 238, 144, 255 };
+    float   lineThickness   = 2.0f;
+};
+
+struct TunnelLine {
+    float   progress = 0.0f;   // 0 = at center (just spawned), 1 = at edge (dead)
+    float   age      = 0.0f;
+    int     epoch    = 0;
+};
+```
+
+`TunnelLine::epoch` is the arena shape generation the line was spawned into. When the arena changes, the epoch counter is incremented, and all live lines are stamped with the *old* epoch. The render pass selects either `_previousShapes` or `_currentShapes` based on whether the line's epoch matches the current one. This is the mechanism that lets old lines finish their animation against the old outline while new lines follow the new one, a clean dual-epoch scheme (which is logged in detail in past documents).
+
+#### The epoch system and `notifyArenaSpawning`
+
+When the arena is about to change, `main` calls `animationSystem.notifyArenaSpawning(arena)` before applying the new preset. This:
+1. Snapshots `_currentShapes` into `_previousShapes`.
+2. Increments `_currentEpoch`.
+3. Stamps all live lines with `_currentEpoch - 1` (the old generation).
+4. Recomputes `_currentShapes` from the arena's *new* outline (even though the arena hasn't been transformed yet, this anticipates the upcoming change).
+
+This means the moment `transformArenaWithPreset()` fires, the animation system is already aligned with what comes next. Old lines will keep rendering against `_previousShapes` until they fade out at `progress >= 1.0`. New lines pick up `_currentShapes` immediately. The `notifyArenaDespawning` variant does the same thing but also sets `despawnPending = true`, which tells `update()` to watch for all old-epoch lines to die before firing the `onDespawnReady` callback. This is how a future menu or transition layer can wait for the visual drain to complete before proceeding.
+
+#### `update` and rendering
+
+`update(dt, arena)` runs every frame: it ages and eases all live lines, removes completed ones, manages the `despawnPending` drain, ticks the spawn interval, and caches `_currentShapes` from the arena's current state. The easing used is `easeInQuad`: lines accelerate as they expand outward, which gives the animation a slightly more organic, exhaling feel compared to a linear slide.
+
+`render()` iterates every live line, selects the shape set matching its epoch, and for each shape polygon calls `renderLine()`. That function computes an inset version of the polygon toward the screen center by interpolating between the outer shape and the center point, using the line's `progress` as the interpolation driver (inverted; at `progress = 0`, fully inset; at `progress = 1`, at the outer edge). The result is a wireframe that expands from the center outward and fades in alpha as it goes.
+
+#### The coordinate scaling bug
+
+Initial testing produced tunnel lines rendered as a tiny cluster of pixel-sized shapes crammed into the top-left corner. The cause was the `getAllOutlines` coordinate space issue described above: the function returns `offsetX + cellIndex`, where `cellIndex` is a raw grid integer (e.g. `0`, `1`, `2`...), not a pixel position. Feeding that directly into screen-space draw calls meant drawing at positions like `(336 + 0, 208 + 1)` instead of `(336 + 0*32, 208 + 1*32)`. The fix was a `scaleOutlines()` helper that applies the cell size scaling after the fact:
+```cpp
+std::vector<std::vector<Vector2>> AnimationSystem::scaleOutlines(std::vector<std::vector<Vector2>> raw) const {
+    const float ox = static_cast<float>(_offsetX);
+    const float oy = static_cast<float>(_offsetY);
+    const float cs = static_cast<float>(_cellSize);
+
+    for (auto& shape : raw)
+        for (auto& p : shape) {
+            p.x = ox + (p.x - ox) * cs;
+            p.y = oy + (p.y - oy) * cs;
+        }
+    return raw;
+}
+```
+
+Every outline coming out of `getAllOutlines` is passed through `scaleOutlines` before being stored in `_currentShapes` or `_previousShapes`. After this fix, the lines correctly traced the full arena border at screen scale.
+
+#### Initialization and screen layout
+
+`AnimationSystem::init()` takes the screen dimensions and the arena's pixel offset and cell size. These values aren't easily available at construction time (they depend on `RenderSystem::fillContext()`, which needs an active window), so a throwaway `fillContext()` call in `main` bridges the gap before the game loop starts:
+
+```cpp
+{
+    ArenaGrid tmpArena(GRID_W, GRID_H);
+    FrameContext tmpCtx;
+    tmpCtx.arena = &tmpArena;
+    tmpCtx.gridWidth = GRID_W; tmpCtx.gridHeight = GRID_H;
+    renderSystem.fillContext(tmpCtx);
+    animationSystem.init(SCREEN_W, SCREEN_H,
+        static_cast<int>(tmpCtx.arenaBounds.x),
+        static_cast<int>(tmpCtx.arenaBounds.y),
+        tmpCtx.cellSize);
+}
+animationSystem.enable(true, tunnelPresets.at("realm2D"));
+```
+
+The temporary arena is immediately discarded; its sole purpose is to let `fillContext` compute the layout math so `init` gets real numbers.
+
+#### Making `TunnelConfig` data-driven
+
+Consistent with the rest of the build, `TunnelConfig` is no longer hardcoded. A `data/TunnelConfig.json` holds named presets:
+
+```json
+{ "presets": [
+    { "name": "realm2D", "borderThickness": 15, "contentInset": 40,
+      "spawnInterval": 0.15, "animationSpeed": 0.7, "maxLines": 12,
+      "lineColor": [70, 130, 180, 255], "lineThickness": 2.0 },
+    { "name": "menu", ... }
+]}
+```
+
+`TunnelConfigLoader::load()` follows the same static-load-into-map pattern established by the previous loaders, producing a `PresetTable` (i.e. `unordered_map<string, TunnelConfig>`) keyed by preset name. `main` picks the active preset by name at startup.
+
+#### Arena presets and `KEY_TAB` cycling
+
+To actually exercise the epoch transition pipeline, old lines draining while new ones spawn against a changed outline, we needed a way to cycle arena layouts at runtime. `data/ArenaPresets.json` holds the 10 available `WallPreset` entries by name:
+
+```json
+{ "presets": [
+    { "name": "InterLock1" }, { "name": "Spiral1" }, { "name": "Columns1" },
+    { "name": "Columns2"  }, { "name": "Cross"    }, { "name": "Checkerboard" },
+    { "name": "Maze"      }, { "name": "Diamond"  }, { "name": "Tunnels" },
+    { "name": "FourRooms" }
+]}
+```
+
+`ArenaPresetLoader::load()` maps name strings to `WallPreset` enum values and returns an ordered `vector<WallPreset>` (order matters for cycling). In `main`, `KEY_TAB` advances through the list:
+
+```cpp
+if (IsKeyPressed(KEY_TAB)) {
+    currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
+    animationSystem.notifyArenaSpawning(arena);
+    arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+    float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
+    arena.beginSpawn(lineLifetime);
+}
+```
+
+The `notifyArenaSpawning` call goes first — it snapshots the current shapes and stamps live lines with the old epoch before the geometry changes. `transformArenaWithPreset` then applies the new layout, and `beginSpawn` kicks off the arena cell fade-in animation. From the animation system's point of view, the transition is seamless: existing lines finish their path against the old outline, new lines immediately begin spawning along the new one.
+
+> *This tab-based cycling through presets is just temporary, something to test the pipelines. The arena changes will be hooked up to gameplay events later on*
+
+#### Draw order
+
+Tunnel lines sit behind everything else in the 2D render pass. The order inside `BeginMode2D`:
+
+```
+animationSystem.render()    // tunnel lines: deepest layer
+particleSystem.render()     // particles: above lines, below game objects
+renderSystem.render2D()     // arena, food, snakes: on top
+```
+
+This ensures lines never occlude gameplay elements, which would be particularly distracting given they expand continuously across the full playfield.
+
+<br>
+
+### 4.1.7 Do You Want to See the Menu?
+One last porting thing: the menus!
 
 ## General Assessment: ECS/Data-Driven vs OOP
 

@@ -30,7 +30,8 @@ AI_SRC			:= AI/FloodFill.cpp		\
 					AI/AIPresetLoader.cpp
 
 ARENA_SRC		:= arena/ArenaGrid.cpp		\
-					arena/ArenaPresets.cpp
+					arena/ArenaPresets.cpp		\
+					arena/ArenaPresetLoader.cpp
 
 SYSTEMS_SRC     := systems/InputSystem.cpp				\
 					systems/MovementSystem.cpp			\
@@ -40,9 +41,9 @@ SYSTEMS_SRC     := systems/InputSystem.cpp				\
 					systems/AISystem.cpp				\
 					systems/ParticleSystem.cpp			\
 					systems/AnimationSystem.cpp			\
-					systems/TunnelConfigLoader.cpp
 
-PARTICLES_SRC	:= particles/ParticleConfigLoader.cpp
+ANIMATIONS_SRC	:= animations/ParticleConfigLoader.cpp	\
+					animations/TunnelConfigLoader.cpp
 
 PP_SRC			:= postprocessing/PostProcessConfigLoader.cpp
 
@@ -54,7 +55,7 @@ COLLISION_SRC   := collision/CollisionRuleLoader.cpp		\
 					collision/CollisionEffects.cpp			\
 					collision/CollisionEffectDispatcher.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC) $(PARTICLES_SRC) $(PP_SRC)
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC) $(ANIMATIONS_SRC) $(PP_SRC)
 
 SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
 OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))

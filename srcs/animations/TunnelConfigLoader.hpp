@@ -2,7 +2,7 @@
 
 #include <string>
 #include <unordered_map>
-#include "AnimationSystem.hpp"
+#include "../systems/AnimationSystem.hpp"
 
 class TunnelConfigLoader {
 public:

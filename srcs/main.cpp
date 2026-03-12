@@ -22,6 +22,7 @@
 #include "postprocessing/PostProcessConfigLoader.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "arena/ArenaPresets.hpp"
+#include "arena/ArenaPresetLoader.hpp"
 #include "helpers/Factories.hpp"
 #include "helpers/GameState.hpp"
 #include "collision/CollisionRule.hpp"
@@ -31,9 +32,9 @@
 #include "AI/AIPresetLoader.hpp"
 #include "systems/AISystem.hpp"
 #include "systems/ParticleSystem.hpp"
-#include "particles/ParticleConfigLoader.hpp"
+#include "animations/ParticleConfigLoader.hpp"
 #include "systems/AnimationSystem.hpp"
-#include "systems/TunnelConfigLoader.hpp"
+#include "animations/TunnelConfigLoader.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -51,6 +52,7 @@ int main() {
 	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
 	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
 	TunnelConfigLoader::PresetTable tunnelPresets = TunnelConfigLoader::load("data/TunnelConfig.json");
+	std::vector<WallPreset> arenaPresetList = ArenaPresetLoader::load("data/ArenaPresets.json");
 
 	// Dispatcher set up
 	CollisionEffectDispatcher dispatcher;
@@ -91,6 +93,7 @@ int main() {
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
 	GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
 	RenderMode renderMode = RenderMode::MODE2D;
+	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
 	while (true) {
 		if (WindowShouldClose()) break;
@@ -101,6 +104,13 @@ int main() {
 		if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
 		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
 		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
+		if (IsKeyPressed(KEY_TAB)) {
+			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
+			animationSystem.notifyArenaSpawning(arena);
+			arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+			float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
+			arena.beginSpawn(lineLifetime);
+		}
 
 		// fresh context each frame
 		FrameContext ctx;
@@ -117,6 +127,8 @@ int main() {
 		movementSystem.update(registry, dt);
 		collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 		particleSystem.update(dt, registry, ctx);
+		arena.tickSpawnTimer(dt);
+		arena.tickDespawnTimer(dt);
 
 		if (ctx.playerDied) {
 			std::cout << "PLAYER DIED" << std::endl;

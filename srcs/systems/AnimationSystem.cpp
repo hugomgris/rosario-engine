@@ -35,20 +35,17 @@ void AnimationSystem::clear() {
 void AnimationSystem::update(float dt, const ArenaGrid& arena) {
     if (!_enabled) return;
 
-    // Age lines and advance their progress
     for (auto& line : _lines) {
         line.age     += dt;
         line.progress = easeInQuad(line.age * _config.animationSpeed);
     }
 
-    // Remove finished lines
     _lines.erase(
         std::remove_if(_lines.begin(), _lines.end(),
             [](const TunnelLine& l) { return l.progress >= 1.0f; }),
         _lines.end()
     );
 
-    // Check if the pending despawn is unblocked (all pre-epoch lines gone)
     if (despawnPending) {
         bool oldLinesAlive = false;
         for (const auto& l : _lines) {
@@ -61,7 +58,6 @@ void AnimationSystem::update(float dt, const ArenaGrid& arena) {
         }
     }
 
-    // Spawn new lines on interval
     _spawnTimer += dt;
     if (_spawnTimer >= _config.spawnInterval) {
         _spawnTimer = 0.0f;
@@ -72,7 +68,6 @@ void AnimationSystem::update(float dt, const ArenaGrid& arena) {
         }
     }
 
-    // Cache current outlines, scaled to screen-space pixels
     _currentShapes = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
 }
 
@@ -87,8 +82,6 @@ void AnimationSystem::render() const {
     float maxInset = static_cast<float>(_config.contentInset);
 
     for (const auto& line : _lines) {
-        // Lines born before the current epoch use the pre-transition shapes,
-        // newer lines use the current shapes
         const auto& shapes = (line.epoch < _currentEpoch) ? _previousShapes : _currentShapes;
 
         for (const auto& shape : shapes) {
@@ -102,7 +95,6 @@ void AnimationSystem::notifyArenaSpawning(const ArenaGrid& arena) {
     _previousShapes = _currentShapes;
     _currentEpoch++;
 
-    // Stamp all live lines as belonging to the previous epoch
     for (auto& l : _lines)
         l.epoch = _currentEpoch - 1;
 
@@ -120,10 +112,7 @@ void AnimationSystem::notifyArenaDespawning(const ArenaGrid& arena) {
     despawnPending = true;
 }
 
-std::vector<std::vector<Vector2>> AnimationSystem::scaleOutlines(
-        std::vector<std::vector<Vector2>> raw) const {
-    // getAllOutlines emits (offsetX + cellIndex) in raw grid units.
-    // Subtract the offset, multiply by cellSize, re-add offset to get screen pixels.
+std::vector<std::vector<Vector2>> AnimationSystem::scaleOutlines(std::vector<std::vector<Vector2>> raw) const {
     const float ox = static_cast<float>(_offsetX);
     const float oy = static_cast<float>(_offsetY);
     const float cs = static_cast<float>(_cellSize);
@@ -153,8 +142,6 @@ std::vector<Vector2> AnimationSystem::calculateInsetShape(
         float maxInsetPixels) const {
     if (outerShape.empty()) return {};
 
-    // All shapes scale relative to the arena half-diagonal so every outline
-    // (border, islands, spiral arms) converges to center with the same rhythm
     float refDist = std::sqrt(
         (center.x * 2.0f) * (center.x * 2.0f) +
         (center.y * 2.0f) * (center.y * 2.0f)
@@ -181,13 +168,10 @@ void AnimationSystem::renderLine(const TunnelLine& line,
                                   const std::vector<Vector2>& outerShape,
                                   const Vector2& center,
                                   float maxInset) const {
-    // progress 0 = just spawned, at inset (near center)
-    // progress 1 = reached the wall outline
     float insetRatio = 1.0f - line.progress;
 
     std::vector<Vector2> shape = calculateInsetShape(outerShape, center, insetRatio, maxInset);
 
-    // Fade IN as lines travel outward: alpha 0 → 255
     unsigned char alpha  = static_cast<unsigned char>(line.progress * 255.0f);
     Color         color  = _config.lineColor;
     color.a              = alpha;

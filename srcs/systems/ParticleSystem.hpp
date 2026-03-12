@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <raylib.h>
-#include "../particles/ParticleConfig.hpp"
+#include "../animations/ParticleConfig.hpp"
 #include "../ecs/Registry.hpp"
 #include "../components/ParticleSpawnRequest.hpp"
 #include "../../incs/FrameContext.hpp"

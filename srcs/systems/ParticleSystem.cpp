@@ -88,12 +88,11 @@ void ParticleSystem::spawnTrail(float x, float y, Direction direction, Color col
     float scatter   = static_cast<float>(_config.trailCount > 1 ? _config.trailScatter : 0);
 
     for (int i = 0; i < _config.trailCount; ++i) {
-        // scatter spawn position around tail center, like OOP
         float spawnX = x + randFloat(-scatter, scatter);
         float spawnY = y + randFloat(-scatter, scatter);
 
         float spread = randFloat(-0.4f, 0.4f);
-        float angle  = baseAngle + spread + PI;   // emit backwards
+        float angle  = baseAngle + spread + PI; // emit backwards
         float speed  = randFloat(_config.trailMinSpeed, _config.trailMaxSpeed);
 
         Particle p(
@@ -123,7 +122,7 @@ void ParticleSystem::drawRotatedSquare(float cx, float cy, float size,
 
 void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ctx) {
     // 1. consume ParticleSpawnRequests from the registry
-    // advance trail throttle timer
+    // advance trail timer
     bool emitTrail = (_config.trailSpawnInterval <= 0.0f);
     if (_config.trailSpawnInterval > 0.0f) {
         _trailSpawnTimer += dt;
@@ -137,7 +136,6 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
         float spawnX = req.x;
         float spawnY = req.y;
 
-        // convert grid coords to screen space if flagged
         if (req.gridCoords && ctx.cellSize > 0) {
             spawnX = ctx.gameAreaX + req.x * ctx.cellSize + ctx.cellSize * 0.5f;
             spawnY = ctx.gameAreaY + req.y * ctx.cellSize + ctx.cellSize * 0.5f;
@@ -161,7 +159,6 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
     _dustSpawnTimer += dt;
     if (_dustSpawnTimer >= _config.dustSpawnInterval) {
         _dustSpawnTimer = 0.0f;
-        // Inset by one cell so dust stays inside the playfield, not on walls
         const float cs = static_cast<float>(ctx.cellSize);
         ArenaBounds playfield {
             ctx.gameAreaX + cs,
@@ -179,14 +176,12 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
-        // drag — dust drifts slowly, others shed speed faster
         float drag = (p.type == pType::Dust) ? 0.98f : 0.92f;
         p.vx *= drag;
         p.vy *= drag;
 
         p.rotation += p.rotationSpeed * dt;
 
-        // shrink toward end of life
         float lifeRatio = 1.0f - (p.age / p.lifetime);
         p.currentSize   = p.initialSize * lifeRatio;
     }
