@@ -19,6 +19,7 @@
 #include "systems/CollisionSystem.hpp"
 #include "systems/RenderSystem.hpp"
 #include "systems/PostProcessingSystem.hpp"
+#include "postprocessing/PostProcessConfigLoader.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "arena/ArenaPresets.hpp"
 #include "helpers/Factories.hpp"
@@ -46,6 +47,7 @@ int main() {
 	CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
 	AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
 	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
+	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
 
 	// Dispatcher set up
 	CollisionEffectDispatcher dispatcher;
@@ -65,7 +67,7 @@ int main() {
 
 	renderSystem.init(GRID_W, GRID_H);
 	postProcessingSystem.init(SCREEN_W, SCREEN_H);
-	postProcessingSystem.setConfig(PostProcessingSystem::presetCRTBloom());
+	postProcessingSystem.setConfig(ppPresets.at("crt_bloom"));
 
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
@@ -90,7 +92,7 @@ int main() {
 		ctx.gridHeight  = GRID_H;
 		ctx.renderMode  = &renderMode;
 		ctx.playerDied  = false;
-		renderSystem.fillContext(ctx);  // populate arenaBounds + cellSize before any system reads them
+		renderSystem.fillContext(ctx);
 		
 		// update phase
 		inputSystem.update(registry);
@@ -106,14 +108,9 @@ int main() {
 
 		// render phase
 		postProcessingSystem.beginCapture();
-		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
-			renderSystem.beginMode2D();
-			particleSystem.render();                       // particles first → under arena/snake
-			renderSystem.render2D_content(registry, ctx); // arena, food, snakes on top
-			renderSystem.endMode2D();
-		} else {
-			renderSystem.render(registry, dt, ctx);        // 3D mode (manages its own bracket)
-		}
+		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D)
+			particleSystem.render();
+		renderSystem.render(registry, dt, ctx);
 		postProcessingSystem.endCapture();
 
 		// post processing phase

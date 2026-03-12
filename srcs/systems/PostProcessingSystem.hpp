@@ -67,11 +67,6 @@ class PostProcessingSystem {
 		void applyAndPresent(float deltaTime);
 		void togglePostprocessing();
 
-		// preset
-		static PostProcessConfig presetCRT();
-		static PostProcessConfig presetCRTBloom();
-		static PostProcessConfig presetClean();
-		static PostProcessConfig presetMenu();
 		void toggleEffect(PostProcessEffect effect);
 		void setEffectIntensity(PostProcessEffect effect, float intensity);
 };

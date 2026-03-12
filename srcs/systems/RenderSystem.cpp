@@ -48,7 +48,12 @@ void RenderSystem::fillContext(FrameContext& ctx) const {
 void RenderSystem::render(Registry& registry, float deltaTime, FrameContext& ctx) {
 	_accumulatedTime += deltaTime;
 
-	if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE3D)
+	if(ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+		beginMode2D();
+		render2D(registry, ctx);
+		endMode2D();
+	}
+	else if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE3D)
 		render3D(registry, ctx);
 }
 
@@ -77,7 +82,7 @@ Color RenderSystem::baseColorToRaylib(const BaseColor& c) const {
 }
 
 // 2D pipeline
-void RenderSystem::render2D_content(Registry& registry, const FrameContext& ctx) {
+void RenderSystem::render2D(Registry& registry, const FrameContext& ctx) {
 	if (ctx.arena)
 		drawArena2D(*ctx.arena);
 

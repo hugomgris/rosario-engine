@@ -446,3 +446,83 @@ Before divind deep into the implementation `cpp` file, though, a very important 
 - **Full Screen**: just pick a random position anywhere in `[0, _screenWidth] x [0, _screenHeight]`
 - ** Bounded to current arena**: would require passing arena bounds into Particle System, which was explictly avoided.
 
+Aaaaand... The answer ended up being a third option: **bounded to the arena, via `FrameContext`**. The `FrameContext` struct, already flowing through every system per frame, was extended with `arenaBounds`, `cellSize`, `gameAreaX` and `gameAreaY`, which are populated by `RenderSystem::fillContext()` before the update phase. This means `ParticleSystem` doesn't hold a pointer to anything it shouldn't, and doesn't need to know what an `ArenaGrid` is. It just reads layout data from a struct that was always going to pass through it anyway. C L E A N.
+
+One additional refinement on top of this: dust is constricted to the game arena, with an inset calculation so it never spawns on top of the wall border. The playfield bounds passed to `spawnDust()` are computed from `ctx.gameAreaX/Y` + `ctx.cellSize` rather than from the raw `arenaBounds`, which includes the border thickness:
+```cpp
+const float cs = static_cast<float>(ctx.cellSize);
+ArenaBounds playfield {
+    ctx.gameAreaX + cs,
+    ctx.gameAreaY + cs,
+    static_cast<float>(ctx.gridWidth  - 2) * cs,
+    static_cast<float>(ctx.gridHeight - 2) * cs
+};
+spawnDust(playfield);
+```
+
+With that settled, the `update()` function does four things in order: consume `ParticleSpawnRequest` components from the registry (dispatching to the appropriate spawn helper per type), run the ambient dust timer, simulate all live particles (integrate position, apply drag, rotate, shrink toward end-of-life), and erase dead ones. The `render()` function is a flat loop that draws each particle as a rotated rectangle via `DrawRectanglePro`, fading alpha with the remaining life ratio. No state, no retained draw calls, just iterate and draw.
+
+> *You might think that this doubles the `render()` functions, but the decoupling of regular rendered stuff and particles is necessary so that each system stays independent, isolated and scalable*
+
+On the spawning side, the two ECS-triggered types each have their own path:
+- **Explosion**: placed by `CollisionEffects::RelocateFood()` with `gridCoords = true`, so the `ParticleSystem` converts the grid position to screen space on consumption.
+- **Trail**: placed by `RenderSystem::drawSnakes2D()`, already inside the screen-space loop, with `gridCoords = false`, so the spawn position arrives ready to use.
+
+Dust doesn't cross the ECS boundary at all. No entity owns it, no component triggers it. The timer ticks inside `ParticleSystem` and that's the end of the story. The render phase now looks like this:
+```cpp
+// render phase
+postProcessingSystem.beginCapture();
+if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D)
+    particleSystem.render();
+renderSystem.render(registry, dt, ctx);
+postProcessingSystem.endCapture();
+```
+
+One final detail worth noting: trail density and spread were initially coupled, since `count` controlled both. A `trailSpawnInterval` field was added to `ParticleConfig`, throttling how often trail emission fires independently of how many particles each emission bursts out. `count` governs spread; `spawnInterval` governs density. Both are JSON-tunable without touching a line of code:
+```json
+"trail": {
+    "count":         2,
+    "scatter":       15.0,
+    "spawnInterval": 0.05
+}
+```
+
+And with that, the animation pipeline is back on its feet. Three particle types, two ECS-crossed spawn paths, one timer-driven ambient system, and zero pointers to things that shouldn't be pointed at. It's time to go back to the T U N N E L.
+
+<br>
+
+### 4.1.6 DAYLIGHT (or *Pánico en el túnel* starring Silvester Stallone)
+
+
+## General Assessment: ECS/Data-Driven vs OOP
+
+Having ported most of the core systems now, it's worth stepping back and taking stock of what actually changed between the two versions, and whether the new architecture delivers on what it promised.
+
+### What the OOP version looked like
+
+The OOP build was structured around a central `Game` class that owned everything: the `Renderer`, `AnimationSystem`, `ParticleSystem`, `AISystem`, the snake objects, the food object, and the arena. Systems communicated by holding pointers or references to each other. `CollisionEffects` called `particleSystem.spawnExplosion()` directly. `Renderer` called `animationSystem.draw()`. Snake objects knew about their own movement logic, their own rendering, and their own collision response. Configuration was hardcoded into class constructors or scattered across `#define`s and `constexpr` globals.
+
+It worked, and it worked well. But every time something needed to change — say, adding a second snake, or making AI difficulty configurable, or tweaking particle behavior — you were touching the interior of a class, recompiling, and hoping nothing else had assumed something about the state you just changed.
+
+### What changed
+
+**Data is no longer code.** Collision rules, AI presets, particle parameters — none of these live in source files anymore. They live in JSON files under `data/`, parsed at startup into plain structs. Changing the explosion count or an AI's aggression level means editing a text file and relaunching. No recompile, no diff, no risk of accidentally breaking something adjacent. The data/code boundary is now explicit and enforced by the loader pattern.
+
+**Entities don't own behavior.** In the OOP version, a `Snake` object had a `move()` method, a `draw()` method, a `handleCollision()` method. In the new build, a snake is an entity with a `SnakeComponent`, a `MovementComponent`, a `PositionComponent`, a `RenderComponent`, and an optional `AIComponent` or `InputComponent`. The behavior lives in systems — `MovementSystem`, `CollisionSystem`, `RenderSystem`, `AISystem` — which query the registry for entities that have the relevant components and operate on them uniformly. Adding AI to an entity is `registry.addComponent(e, aiComp)`. Removing player input from an entity is `registry.removeComponent<InputComponent>(e)`. Neither operation touches the entity itself nor any other system.
+
+**Systems don't know about each other.** This is the one that required the most discipline to maintain. In the OOP version, it was trivially easy to call `particleSystem.spawn()` from inside `CollisionEffects`. In the new build, `CollisionEffects` doesn't hold a reference to anything. It places a `ParticleSpawnRequest` component on the relevant entity and exits. `ParticleSystem` picks it up next frame. The communication path is: *write data into the ECS, let the right system read it*. `FrameContext` plays the same role for per-frame shared state — instead of systems querying each other for screen dimensions or arena bounds, they read a struct that was populated before the update phase began.
+
+**Short-lived components as messages.** The `ParticleSpawnRequest` pattern is arguably the most ECS-idiomatic thing in the codebase right now. A collision effect, which has no business knowing about particle systems, drops a component onto an entity. A particle system, which has no business knowing about collision rules, reads it and removes it. The component is the message. The registry is the bus. Neither side knows the other exists, and both are trivially testable in isolation.
+
+### What's still OOP-shaped
+
+Honest answer: quite a bit. `ArenaGrid` is a class with internal logic and state — it's not a pure data component attached to an entity. `PostProcessingSystem` is a pipeline wrapper that `main` drives explicitly rather than a system that queries the registry. The `Factories` helper still builds entities through a function call rather than through composition of prefab-like data descriptors. And `GameState::resetGame()` is essentially a god-function that touches everything at once.
+
+None of this is necessarily wrong. Some things *should* be opaque classes with encapsulated state — a rendering pipeline, a GPU texture chain, a pathfinding implementation. The line between "this is a system that operates on components" and "this is a service that other things use" is legitimately blurry, and erasing it entirely in pursuit of purity would probably make the codebase worse, not better. The test is whether a given class needs to *know about* other game objects to do its job. If yes, it should probably be a system talking to the registry. If no, it can stay a class.
+
+### Net result
+
+The new build is meaningfully more data-driven and more composable than the OOP version. New game modes, new entity types, new collision behaviors, new AI difficulties, new particle effects — all of these can now be added by writing JSON and registering a new effect function, without touching existing systems. The tradeoff is that the registry query overhead and the indirection of the component-as-message pattern add a small layer of cognitive load when first reading the code. But that cost pays for itself the moment you want to change something that would've previously required surgery on a class hierarchy.
+
+The porting is not done, and the architecture isn't perfect. But the foundation is solid.
+

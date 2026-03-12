@@ -65,7 +65,7 @@ class RenderSystem {
 		void init(int gridWidth, int gridHeight);
 		void fillContext(FrameContext& ctx) const;  // populates arenaBounds + cellSize before update phase
 		void render(Registry& registry, float deltaTime, FrameContext& ctx);
-		void render2D_content(Registry& registry, const FrameContext& ctx);  // draw without Mode2D bracket
+		void render2D(Registry& registry, const FrameContext& ctx);  // draw without Mode2D bracket
 		void beginMode2D() const;
 		void endMode2D() const;
 };

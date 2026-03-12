@@ -1,0 +1,48 @@
+{
+    "presets": [
+        {
+            "name": "crt_bloom",
+            "enabled": true,
+            "effects": ["CRT", "Bloom"],
+            "scanlineIntensity":    0.3,
+            "curvatureAmount":      0.04,
+            "vignetteStrength":     0.6,
+            "chromaticAberration":  0.0015,
+            "grainAmount":          0.08,
+            "bloomIntensity":       0.20
+        },
+        {
+            "name": "crt",
+            "enabled": true,
+            "effects": ["CRT"],
+            "scanlineIntensity":    0.15,
+            "curvatureAmount":      0.04,
+            "vignetteStrength":     0.6,
+            "chromaticAberration":  0.0015,
+            "grainAmount":          0.05,
+            "bloomIntensity":       0.0
+        },
+        {
+            "name": "menu",
+            "enabled": true,
+            "effects": ["Vignette"],
+            "scanlineIntensity":    0.0,
+            "curvatureAmount":      0.0,
+            "vignetteStrength":     0.2,
+            "chromaticAberration":  0.0,
+            "grainAmount":          0.0,
+            "bloomIntensity":       0.0
+        },
+        {
+            "name": "clean",
+            "enabled": false,
+            "effects": [],
+            "scanlineIntensity":    0.0,
+            "curvatureAmount":      0.0,
+            "vignetteStrength":     0.0,
+            "chromaticAberration":  0.0,
+            "grainAmount":          0.0,
+            "bloomIntensity":       0.0
+        }
+    ]
+}

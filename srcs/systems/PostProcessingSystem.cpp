@@ -308,47 +308,6 @@ void PostProcessingSystem::applyCRT() {
 	applyEffect(PostProcessEffect::Grain);
 }
 
-PostProcessConfig PostProcessingSystem::presetCRT() {
-	PostProcessConfig cfg;
-	cfg.enabled = true;
-	cfg.effects = { PostProcessEffect::CRT };
-	cfg.scanlineIntensity = 0.15f;
-	cfg.curvatureAmount = 0.04f;
-	cfg.vignetteStrength = 0.6f;
-	cfg.chromaticAberration = 0.0015f;
-	cfg.grainAmount = 0.05f;
-	return cfg;
-}
-
-PostProcessConfig PostProcessingSystem::presetClean() {
-	PostProcessConfig cfg;
-	cfg.enabled = false;
-	cfg.effects = {};
-	return cfg;
-}
-
-PostProcessConfig PostProcessingSystem::presetMenu() {
-	PostProcessConfig cfg;
-	cfg.enabled = true;
-	cfg.effects = { PostProcessEffect::Vignette };
-	cfg.vignetteStrength = 0.2f;
-	return cfg;
-}
-
-// CRT + Bloom preset
-PostProcessConfig PostProcessingSystem::presetCRTBloom() {
-	PostProcessConfig cfg;
-	cfg.enabled = true;
-	cfg.effects = { PostProcessEffect::CRT, PostProcessEffect::Bloom };
-	cfg.scanlineIntensity = 0.3f;
-	cfg.curvatureAmount = 0.04f;
-	cfg.vignetteStrength = 0.6f;
-	cfg.chromaticAberration = 0.0015f;
-	cfg.grainAmount = 0.08f;
-	cfg.bloomIntensity = 0.20f;
-	return cfg;
-}
-
 void PostProcessingSystem::toggleEffect(PostProcessEffect effect) {
 	auto it = std::find(_config.effects.begin(), _config.effects.end(), effect);
 	if (it != _config.effects.end()) {
