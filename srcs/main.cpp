@@ -29,6 +29,8 @@
 #include "../incs/FrameContext.hpp"
 #include "AI/AIPresetLoader.hpp"
 #include "systems/AISystem.hpp"
+#include "systems/ParticleSystem.hpp"
+#include "particles/ParticleConfigLoader.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -43,6 +45,7 @@ int main() {
 	// Config json load
 	CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
 	AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
+	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
 
 	// Dispatcher set up
 	CollisionEffectDispatcher dispatcher;
@@ -58,6 +61,7 @@ int main() {
 	AISystem				aiSystem(GRID_W, GRID_H);
 	RenderSystem            renderSystem;
 	PostProcessingSystem    postProcessingSystem;
+	ParticleSystem          particleSystem(SCREEN_W, SCREEN_H, particleConfig);
 
 	renderSystem.init(GRID_W, GRID_H);
 	postProcessingSystem.init(SCREEN_W, SCREEN_H);
@@ -66,13 +70,11 @@ int main() {
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
-	GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::SINGLE);
+	GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
 	RenderMode renderMode = RenderMode::MODE2D;
 
 	while (true) {
 		if (WindowShouldClose()) break;
-
-		DrawFPS(SCREEN_W - 95, 10);
 
 		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
@@ -88,12 +90,14 @@ int main() {
 		ctx.gridHeight  = GRID_H;
 		ctx.renderMode  = &renderMode;
 		ctx.playerDied  = false;
+		renderSystem.fillContext(ctx);  // populate arenaBounds + cellSize before any system reads them
 		
 		// update phase
 		inputSystem.update(registry);
 		aiSystem.update(registry, ctx);
 		movementSystem.update(registry, dt);
 		collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+		particleSystem.update(dt, registry, ctx);
 
 		if (ctx.playerDied) {
 			std::cout << "PLAYER DIED" << std::endl;
@@ -102,13 +106,21 @@ int main() {
 
 		// render phase
 		postProcessingSystem.beginCapture();
-		renderSystem.render(registry, dt, ctx);
+		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+			renderSystem.beginMode2D();
+			particleSystem.render();                       // particles first → under arena/snake
+			renderSystem.render2D_content(registry, ctx); // arena, food, snakes on top
+			renderSystem.endMode2D();
+		} else {
+			renderSystem.render(registry, dt, ctx);        // 3D mode (manages its own bracket)
+		}
 		postProcessingSystem.endCapture();
 
 		// post processing phase
 		BeginDrawing();
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);
+		DrawFPS(SCREEN_W - 95, 10);
 		EndDrawing();
 	}
 

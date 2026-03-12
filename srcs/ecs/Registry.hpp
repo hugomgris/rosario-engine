@@ -5,6 +5,7 @@
 #include <memory>
 #include <typeindex>
 #include <stdexcept>
+#include <functional>
 #include "ecs/Entity.hpp"
 #include "ecs/ComponentPool.hpp"
 
@@ -46,6 +47,9 @@ class Registry {
 		bool hasPool();
 
 		const std::vector<Entity>& getEntities() const;
+
+		template<typename T>
+		void forEach(std::function<void(Entity, T&)> fn);
 		
 		template<typename... T>
 		std::vector<Entity> view() const;
@@ -100,6 +104,20 @@ const ComponentPool<T>& Registry::getPool() const {
 	if (it == _componentPools.end())
 		throw std::out_of_range("Registry::getPool() const: pool not found for type");
 	return *std::static_pointer_cast<const ComponentPool<T>>(it->second);
+}
+
+template<typename T>
+void Registry::forEach(std::function<void(Entity, T&)> fn) {
+    if (!hasPool<T>()) return;
+
+    auto& pool = getPool<T>();
+
+    // snapshot entity list first — removal during fn() would invalidate the pool's iterator
+    std::vector<Entity> toProcess = pool.entities();
+    for (auto& entity : toProcess) {
+        if (pool.has(entity))   // re-check: may have been removed mid-loop
+            fn(entity, pool.get(entity));
+    }
 }
 
 // the main, entity polling function in this registry

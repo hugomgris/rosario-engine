@@ -346,4 +346,103 @@ As you can see, I also added a key hook (`P`) to toggle the whole post processin
 <br>
 
 ### 4.1.5 Why the Long Face?
-*Because you don't look very animated hahahahah*. Time to tackle what seems, from a distance, the most troublesome system to port and resucitate the animation pipeline.
+*Because you don't look very animated hahahahah*. Time to tackle what seems, from a distance, the most troublesome system to port and resucitate the animation pipeline. As has been the protocolary approach, the first thing when building (porting, really) a system is to ask ourselves: **what does the animation system actually need to store and communicate?**. Looking at the OOP's `AnimationSystem` and `ParticleSystem`, it really appears as there is not going to be much need for big changes, as they were quite stand-alone systems to begin with, but a good thinking angle is comprised of the **distinct animated objects** managed by these systems, and what their natures are:
+1. **Tunnel Lines**: No entity ownership.
+    - `TunnelLine` and `TunnelConfig` are **purely internal to the system**. No entity in game *is* a tunnel line, no entity *owns* one. This means **no new component needed**: the new system will own its data entirely, just as it did in OOP.
+2. **Particles**: Spawn triggers need a bridge
+    - Particles themselves are also internal to `ParticleSystem`, but *spawning* them is triggered by game events that live in ECS land:
+        - **Trail** → triggered by snake movement (i.e., a `SnakeComponent` entity moving).
+        - **Explosion** → triggered by food being eaten (i.e, a collision effect)
+        - **Dust** → purely internal timer, no entity involved.
+
+So, **the trail and explosion cases are the only ones that need to cross the ECS boundary**. The urgent shift in mindset at this point, if pending, is to engrave in our brains that an **entity** (and it's attached components) is something that *lives* in the game, not just something that *is* in the game. `snakes` and `food` are game-tied entities, the things that move and collide and sustain the mechanics and dynamics of the whole loop, but things like `particles`, `tunnelLines` and even `walls` and `obstacles` exist as context, visual flair or plain constraints. At least for now, as the game's design still has a long, long way to go.
+
+Anyway, back to the proting process, the first step seems clear: we need to **decide how spawn events cross from ECS into `ParticleSystem`**. And for this we have two main, clean options regarding consistency with what's already built:
+
+#### Option a → `ParticleSpawnRequest` component
+```cpp
+struct ParticleSpawnRequest {
+    enum class Type { Trail, Explosion };
+    Type    type;
+    float   x, y;
+    int     count;
+    float   direction; // for trails
+    Color   color;
+};
+```
+
+This is a short-lived component, mirroring how `CollisionEffects` works, consumed and removed by `ParticleSystem` each frame. Placed on an entity by `CollisionEffects` (explosion) or `RenderSystem` (trail), taken care of by the `update()` function in `ParticleSystem`.
+
+#### Option b → Direct calls from `RenderSystem`
+This would mean no component at all, therefore simpler. `RenderSystem` already queries snake positions to draw them, so it can just also call `ParticleSystem.spawnSnakeTrail(...)` directly in the same loop. BUT, explosions would need `CollisionEffects` to hold a pointer/reference to `ParticleSystem`, which is less clean, and would totally go against what we have been attempting (and, to the best of my knowledge, achieving), in these new pure ECS rebuild.
+
+Obviously, we're going with **option a** because of consistency. We'll keep `CollisionEffects` free of system pointers, and the component will act as a pure data message, the same pattern as what's in place via `FrameContext` to pass data between systems. So let's take the component from just above and build the new `ParticleSystem` around it.
+
+A handfull of things need to be set up, following the creation of a new subdirectory at `srcs/particles/`: `ParticleConfig` header and json data file, `ParticleConfigLoader` and the `ParticleSystem` itself. Regarding the first ones, nothing remarkable nor new, we just need to put in place an external configuration file with data for all the currently implemented particles, a struct container in the code side and a dedicated loader to parse the json into the inner struct. With that out of the way, the new `ParticleSystem`'s header looks like this:
+```cpp
+#pragma once
+
+#include <vector>
+#include <iostream>
+#include <raylib.h>
+#include "ParticleConfig.hpp"
+#include "../ecs/Registry.hpp"
+#include "../components/ParticleSpawnRequest.hpp"
+
+using pType = ParticleSpawnRequest::ParticleType;
+
+struct Particle {
+	float   x, y;
+	float   vx, vy;
+	float   rotation, rotationSpeed;
+	float   initialSize, currentSize;
+	float   lifetime, age;
+	pType	type;
+	Color   color;
+
+	Particle(float px, float py,
+			float minSize, float maxSize,
+			float minLifetime, float maxLifetime,
+			Color c,
+			pType t,
+			float velocityX = 0.0f,
+			float velocityY = 0.0f);
+};
+
+class ParticleConfigLoader {
+public:
+	static ParticleConfig load(const std::string& path);
+};
+
+class ParticleSystem {
+	std::vector<Particle>   _particles;
+	ParticleConfig          _config;
+
+	int     _screenWidth;
+	int     _screenHeight;
+	float   _dustSpawnTimer = 0.0f;
+
+	// internal spawn helpers
+	void    _spawnDust();
+	void    _spawnExplosion(float x, float y);
+	void    _spawnTrail(float x, float y, float direction, Color color);
+
+	// render helper
+	void    _drawRotatedSquare(float cx, float cy, float size,
+							float rotation, Color color, unsigned char alpha) const;
+
+public:
+	ParticleSystem(int screenW, int screenH, ParticleConfig config);
+
+	void    update(float dt, Registry& registry);   // consumes ParticleSpawnRequests
+	void    render() const;
+
+	void    clear();
+	size_t  getParticleCount() const;
+};
+```
+
+Before divind deep into the implementation `cpp` file, though, a very important question needs to be cleared, affecting `update()` and `_spawnDust()`. In the OOp version, `spawnDustParticle()` picked a random position within the grid bounds (using `cellSize` and `borderOffset` to map to screen space). Because those are now removed from the new system since requesters already work in screen space, and regarding dust (purely internal with no requester), **where should it spawn?**. Once again, we find ourselves with a forking possibility:
+- **Full Screen**: just pick a random position anywhere in `[0, _screenWidth] x [0, _screenHeight]`
+- ** Bounded to current arena**: would require passing arena bounds into Particle System, which was explictly avoided.
+

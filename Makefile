@@ -37,7 +37,10 @@ SYSTEMS_SRC     := systems/InputSystem.cpp				\
 					systems/RenderSystem.cpp			\
 					systems/PostProcessingSystem.cpp	\
 					systems/CollisionSystem.cpp			\
-					systems/AISystem.cpp
+					systems/AISystem.cpp				\
+					systems/ParticleSystem.cpp
+
+PARTICLES_SRC	:= particles/ParticleConfigLoader.cpp
 
 GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
 					helpers/Factories.cpp	\
@@ -47,7 +50,7 @@ COLLISION_SRC   := collision/CollisionRuleLoader.cpp		\
 					collision/CollisionEffects.cpp			\
 					collision/CollisionEffectDispatcher.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC)
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC) $(PARTICLES_SRC)
 
 SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
 OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))

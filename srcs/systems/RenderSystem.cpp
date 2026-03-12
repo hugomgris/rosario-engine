@@ -9,6 +9,8 @@
 #include "../components/AIComponent.hpp"
 #include "../components/SolidTag.hpp"
 #include "../components/FoodTag.hpp"
+#include "../components/MovementComponent.hpp"
+#include "../components/ParticleSpawnRequest.hpp"
 #include "../../incs/Colors.hpp"
 
 void RenderSystem::init(int gridWidth, int gridHeight) {
@@ -31,14 +33,27 @@ void RenderSystem::init(int gridWidth, int gridHeight) {
 }
 
 // entry point
-void RenderSystem::render(Registry& registry, float deltaTime, const FrameContext& ctx) {
+void RenderSystem::fillContext(FrameContext& ctx) const {
+	ctx.arenaBounds = {
+		_arenaOffsetX,
+		_arenaOffsetY,
+		_arenaWidth,
+		_arenaHeight
+	};
+	ctx.cellSize	= _squareSize;
+	ctx.gameAreaX	= _gameAreaX;
+	ctx.gameAreaY	= _gameAreaY;
+}
+
+void RenderSystem::render(Registry& registry, float deltaTime, FrameContext& ctx) {
 	_accumulatedTime += deltaTime;
 
-	if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D)
-		render2D(registry, ctx);
-	else if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE3D)
+	if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE3D)
 		render3D(registry, ctx);
 }
+
+void RenderSystem::beginMode2D() const { BeginMode2D(_camera2D); }
+void RenderSystem::endMode2D()   const { EndMode2D(); }
 
 // helpers
 void RenderSystem::calculate2DLayout() {
@@ -62,16 +77,12 @@ Color RenderSystem::baseColorToRaylib(const BaseColor& c) const {
 }
 
 // 2D pipeline
-void RenderSystem::render2D(Registry& registry, const FrameContext& ctx) {
-	BeginMode2D(_camera2D);
-
+void RenderSystem::render2D_content(Registry& registry, const FrameContext& ctx) {
 	if (ctx.arena)
 		drawArena2D(*ctx.arena);
 
 	drawFood2D(registry);
 	drawSnakes2D(registry);
-
-	EndMode2D();
 }
 
 void RenderSystem::drawArena2D(const ArenaGrid& arena) const {
@@ -130,11 +141,28 @@ void RenderSystem::drawFood2D(Registry& registry) const {
 	}
 }
 
-void RenderSystem::drawSnakes2D(Registry& registry) const {
+void RenderSystem::drawSnakes2D(Registry& registry) {
 	for (auto entity : registry.view<SnakeComponent, RenderComponent>()) {
 		const auto& snake	= registry.getComponent<SnakeComponent>(entity);
 		const auto& render	= registry.getComponent<RenderComponent>(entity);
 		Color color			= baseColorToRaylib(render.color);
+
+		// emit trail from tail segment each frame
+		if (!snake.segments.empty() && registry.hasComponent<MovementComponent>(entity)) {
+			const auto& move	= registry.getComponent<MovementComponent>(entity);
+			const auto& tail	= snake.segments.back();
+			Vector2 tailScreen	= gridToScreen2D(tail.position.x, tail.position.y);
+			float cx = tailScreen.x + _squareSize * 0.5f;
+			float cy = tailScreen.y + _squareSize * 0.5f;
+
+			ParticleSpawnRequest req;
+			req.type		= ParticleSpawnRequest::ParticleType::Trail;
+			req.x			= cx;
+			req.y			= cy;
+			req.direction	= move.direction;
+			req.color		= color;
+			registry.addComponent<ParticleSpawnRequest>(entity, req);
+		}
 
 		for (size_t i = 0; i < snake.segments.size(); ++i) {
 			Vector2 screen = gridToScreen2D(snake.segments[i].position.x, snake.segments[i].position.y);
