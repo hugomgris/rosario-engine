@@ -38,7 +38,9 @@ SYSTEMS_SRC     := systems/InputSystem.cpp				\
 					systems/PostProcessingSystem.cpp	\
 					systems/CollisionSystem.cpp			\
 					systems/AISystem.cpp				\
-					systems/ParticleSystem.cpp
+					systems/ParticleSystem.cpp			\
+					systems/AnimationSystem.cpp			\
+					systems/TunnelConfigLoader.cpp
 
 PARTICLES_SRC	:= particles/ParticleConfigLoader.cpp
 

@@ -32,6 +32,8 @@
 #include "systems/AISystem.hpp"
 #include "systems/ParticleSystem.hpp"
 #include "particles/ParticleConfigLoader.hpp"
+#include "systems/AnimationSystem.hpp"
+#include "systems/TunnelConfigLoader.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -48,6 +50,7 @@ int main() {
 	AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
 	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
 	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
+	TunnelConfigLoader::PresetTable tunnelPresets = TunnelConfigLoader::load("data/TunnelConfig.json");
 
 	// Dispatcher set up
 	CollisionEffectDispatcher dispatcher;
@@ -64,10 +67,24 @@ int main() {
 	RenderSystem            renderSystem;
 	PostProcessingSystem    postProcessingSystem;
 	ParticleSystem          particleSystem(SCREEN_W, SCREEN_H, particleConfig);
+	AnimationSystem         animationSystem;
 
 	renderSystem.init(GRID_W, GRID_H);
 	postProcessingSystem.init(SCREEN_W, SCREEN_H);
 	postProcessingSystem.setConfig(ppPresets.at("crt_bloom"));
+
+	{
+		ArenaGrid tmpArena(GRID_W, GRID_H);
+		FrameContext tmpCtx;
+		tmpCtx.arena = &tmpArena;
+		tmpCtx.gridWidth = GRID_W; tmpCtx.gridHeight = GRID_H;
+		renderSystem.fillContext(tmpCtx);
+		animationSystem.init(SCREEN_W, SCREEN_H,
+			static_cast<int>(tmpCtx.arenaBounds.x),
+			static_cast<int>(tmpCtx.arenaBounds.y),
+			tmpCtx.cellSize);
+	}
+	animationSystem.enable(true, tunnelPresets.at("realm2D"));
 
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
@@ -108,9 +125,16 @@ int main() {
 
 		// render phase
 		postProcessingSystem.beginCapture();
-		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D)
-			particleSystem.render();
-		renderSystem.render(registry, dt, ctx);
+		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+			renderSystem.beginMode2D();
+			animationSystem.update(dt, arena);  // update + cache shapes
+			animationSystem.render();           // tunnel lines: behind everything
+			particleSystem.render();            // particles: behind arena/snake
+			renderSystem.render2D(registry, ctx); // arena, food, snakes on top
+			renderSystem.endMode2D();
+		} else {
+			renderSystem.render(registry, dt, ctx);
+		}
 		postProcessingSystem.endCapture();
 
 		// post processing phase

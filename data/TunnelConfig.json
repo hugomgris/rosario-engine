@@ -1,0 +1,24 @@
+{
+    "presets": [
+        {
+            "name":             "realm2D",
+            "borderThickness":  15,
+            "contentInset":     80,
+            "spawnInterval":    0.15,
+            "animationSpeed":   0.5,
+            "maxLines":         15,
+            "lineColor":        [70, 130, 180, 255],
+            "lineThickness":    2.0
+        },
+        {
+            "name":             "menu",
+            "borderThickness":  20,
+            "contentInset":     80,
+            "spawnInterval":    0.3,
+            "animationSpeed":   0.5,
+            "maxLines":         8,
+            "lineColor":        [70, 130, 180, 255],
+            "lineThickness":    2.0
+        }
+    ]
+}
