@@ -35,8 +35,6 @@
 #include "animations/ParticleConfigLoader.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "animations/TunnelConfigLoader.hpp"
-#include "ui/TextSystem.hpp"
-#include "ui/MenuSystem.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -73,14 +71,9 @@ int main() {
 	ParticleSystem          particleSystem(SCREEN_W, SCREEN_H, particleConfig);
 	AnimationSystem         animationSystem;
 
-	// UI systems
-	TextSystem              textSystem;
-	MenuSystem              menuSystem(SCREEN_W, SCREEN_H);
-
 	renderSystem.init(GRID_W, GRID_H);
 	postProcessingSystem.init(SCREEN_W, SCREEN_H);
 	postProcessingSystem.setConfig(ppPresets.at("crt_bloom"));
-	textSystem.init();
 
 	{
 		ArenaGrid tmpArena(GRID_W, GRID_H);
@@ -95,152 +88,68 @@ int main() {
 	}
 	animationSystem.enable(true, tunnelPresets.at("realm2D"));
 
-	// Builds a single full-screen rectangle outline in screen space (no scaling needed)
-	auto makeFullscreenOutline = [&]() -> std::vector<std::vector<Vector2>> {
-		const float m = 12.5f; // half of 25px border thickness — center of the line
-		return {{
-			{ m,                       m                        },
-			{ (float)SCREEN_W - m,     m                        },
-			{ (float)SCREEN_W - m,     (float)SCREEN_H - m      },
-			{ m,                       (float)SCREEN_H - m      }
-		}};
-	};
-
-	// App state
-	AppState  appState  = AppState::Menu;
-	GameMode  gameMode  = GameMode::VSAI;
-	RenderMode renderMode = RenderMode::MODE2D;
-
+	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
+	GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
+	RenderMode renderMode = RenderMode::MODE2D;
+	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
-	menuSystem.setState(MenuState::Start, gameMode);
-	animationSystem.notifyShapeOverride(makeFullscreenOutline());
-
-	bool running = true;
-	while (running) {
+	while (true) {
 		if (WindowShouldClose()) break;
 
 		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
-		// Global keys (always active)
 		if (IsKeyPressed(KEY_F)) ToggleFullscreen();
+		if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
+		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
 		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
-
-		// ---- State machine update ----
-		switch (appState) {
-
-			case AppState::Menu:
-			case AppState::GameOver: {
-				MenuAction action = menuSystem.update(dt, gameMode, particleSystem);
-				switch (action) {
-			case MenuAction::StartGame:
-				particleSystem.clearMenuTrail();
-				GameState::resetGame(registry, inputSystem, playerSnake, secondSnake,
-									 food, GRID_W, GRID_H, arena, AIPresets, gameMode);
-				// Instantly snap tunnel lines to arena shape, clearing fullscreen residue
-				animationSystem.instantShapeChange(animationSystem.getArenaOutlines());
-				appState = AppState::Playing;
-				break;
-					case MenuAction::SwitchMode:
-						gameMode = static_cast<GameMode>(
-							(static_cast<int>(gameMode) + 1) % 3);
-						menuSystem.setState(MenuState::Start, gameMode);
-						break;
-					case MenuAction::Restart:
-						particleSystem.clearGameplay();
-						animationSystem.notifyShapeOverride(makeFullscreenOutline());
-						GameState::resetGame(registry, inputSystem, playerSnake, secondSnake,
-											 food, GRID_W, GRID_H, arena, AIPresets, gameMode);
-						appState = AppState::Menu;
-						menuSystem.setState(MenuState::Start, gameMode);
-						break;
-					case MenuAction::Quit:
-						running = false;
-						break;
-					default: break;
-				}
-				break;
-			}
-
-			case AppState::Playing: {
-				if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
-				if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
-				if (IsKeyPressed(KEY_TAB)) {
-					static int presetIdx = -1;
-					presetIdx = (presetIdx + 1) % static_cast<int>(arenaPresetList.size());
-					animationSystem.notifyArenaSpawning(arena);
-					arena.transformArenaWithPreset(arenaPresetList[presetIdx]);
-					arena.beginSpawn(1.0f / animationSystem.getAnimationSpeed());
-				}
-
-				FrameContext ctx;
-				ctx.arena      = &arena;
-				ctx.gridWidth  = GRID_W;
-				ctx.gridHeight = GRID_H;
-				ctx.renderMode = &renderMode;
-				ctx.playerDied = false;
-				renderSystem.fillContext(ctx);
-
-				inputSystem.update(registry);
-				aiSystem.update(registry, ctx);
-				movementSystem.update(registry, dt);
-				collisionSystem.update(registry, ruleTable, dispatcher, ctx);
-				particleSystem.update(dt, registry, ctx);
-				arena.tickSpawnTimer(dt);
-				arena.tickDespawnTimer(dt);
-
-				if (ctx.playerDied) {
-					particleSystem.clearGameplay();
-					particleSystem.clearMenuTrail();
-					animationSystem.notifyShapeOverride(makeFullscreenOutline());
-					appState = AppState::GameOver;
-					menuSystem.setState(MenuState::GameOver, gameMode);
-				}
-				break;
-			}
-
-			case AppState::Paused:
-				break;
+		if (IsKeyPressed(KEY_TAB)) {
+			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
+			animationSystem.notifyArenaSpawning(arena);
+			arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+			float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
+			arena.beginSpawn(lineLifetime);
 		}
 
-		// ---- Render phase ----
+		// fresh context each frame
+		FrameContext ctx;
+		ctx.arena       = &arena;
+		ctx.gridWidth   = GRID_W;
+		ctx.gridHeight  = GRID_H;
+		ctx.renderMode  = &renderMode;
+		ctx.playerDied  = false;
+		renderSystem.fillContext(ctx);
+		
+		// update phase
+		inputSystem.update(registry);
+		aiSystem.update(registry, ctx);
+		movementSystem.update(registry, dt);
+		collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+		particleSystem.update(dt, registry, ctx);
+		arena.tickSpawnTimer(dt);
+		arena.tickDespawnTimer(dt);
+
+		if (ctx.playerDied) {
+			std::cout << "PLAYER DIED" << std::endl;
+			break;
+		}
+
+		// render phase
 		postProcessingSystem.beginCapture();
-		renderSystem.beginMode2D();
-
-		// Tunnel lines + particles always render (visible in menu and gameplay)
-		animationSystem.update(dt, arena);
-		animationSystem.render();
-		particleSystem.render();
-
-		switch (appState) {
-			case AppState::Menu:
-				menuSystem.render(textSystem, gameMode);
-				break;
-
-			case AppState::Playing:
-			case AppState::Paused: {
-				FrameContext ctx;
-				ctx.arena      = &arena;
-				ctx.gridWidth  = GRID_W;
-				ctx.gridHeight = GRID_H;
-				ctx.renderMode = &renderMode;
-				renderSystem.fillContext(ctx);
-				if (renderMode == RenderMode::MODE2D)
-					renderSystem.render2D(registry, ctx);
-				else
-					renderSystem.render(registry, dt, ctx);
-				break;
-			}
-
-			case AppState::GameOver:
-				menuSystem.renderGameOver(textSystem, gameMode);
-				break;
+		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+			renderSystem.beginMode2D();
+			animationSystem.update(dt, arena);  // update + cache shapes
+			animationSystem.render();           // tunnel lines: behind everything
+			particleSystem.render();            // particles: behind arena/snake
+			renderSystem.render2D(registry, ctx); // arena, food, snakes on top
+			renderSystem.endMode2D();
+		} else {
+			renderSystem.render(registry, dt, ctx);
 		}
-
-		renderSystem.endMode2D();
 		postProcessingSystem.endCapture();
 
+		// post processing phase
 		BeginDrawing();
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);
