@@ -15,12 +15,15 @@ class TextSystem {
         //void drawRects(); // TODO: logo-drawing pipeline
 
     public:
+        TextSystem() = default;
+        ~TextSystem();
+
         void init(); //call AFTER InitWindow()
 
         Font& getFont();
 
         int measureText(const std::string& text, float fontSize) const;
-        void drawText(const std::string& tet, float x, float y,
+        void drawText(const std::string& text, float x, float y,
                 float fontSize, Color color, bool centered = false) const;
 
         //void drawLogo();

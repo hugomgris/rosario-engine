@@ -6,6 +6,7 @@
 //#include "Button.hpp"
 #include "UIQueue.hpp"
 #include "../../incs/DataStructs.hpp"
+#include "../../incs/FrameContext.hpp"
 
 class ParticleSystem;
 
@@ -29,6 +30,8 @@ class MenuSystem {
 
         void setState(MenuState state, GameMode currentMode);
 
-        void render(GameMode currentMode) const;
-        void renderGameOver(GameMode currentMode) const;
+        void buildUI(FrameContext &ctx, UIRenderQueue& queue);
+
+        /* void render(GameMode currentMode) const;
+        void renderGameOver(GameMode currentMode) const; */
 };

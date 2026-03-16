@@ -81,6 +81,8 @@ int main() {
 	TextSystem	textSystem;
 	UISystem	uiSystem;
 
+	textSystem.init();
+
 	// Visual systems
 	PostProcessingSystem    postProcessingSystem;
 	ParticleSystem          particleSystem(SCREEN_W, SCREEN_H, particleConfig);
@@ -129,6 +131,11 @@ int main() {
 			arena.beginSpawn(lineLifetime);
 		}
 
+		// Menu -> gameplay key hook
+		if (state == GameState::Menu && IsKeyPressed(KEY_ENTER)) {
+			state = GameState::Playing;
+		}
+
 		// fresh context each frame
 		FrameContext ctx;
 		ctx.arena       = &arena;
@@ -142,7 +149,7 @@ int main() {
 		// UPDATE phase
 		switch (state) {
 			case GameState::Menu:
-				// TODO: menu stuff;
+				// TODO: what to update in menu?
 				break;
 			
 			case GameState::Playing:
@@ -160,7 +167,7 @@ int main() {
 				break;
 
 			case GameState::GameOver:
-				// Todo: gameover stuff
+				// Todo: what to update gameOver?
 				break;
 		}			
 
@@ -174,7 +181,9 @@ int main() {
 		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
 		switch (state) {
 			case GameState::Menu:
-				// todo menu stuff
+				menuSystem.buildUI(ctx, uiQueue);
+				//uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
 				break;
 			
 			case GameState::Playing:
