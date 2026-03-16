@@ -5,7 +5,7 @@
 #include "../components/PositionComponent.hpp"
 #include "../components/SolidTag.hpp"
 #include "../components/ParticleSpawnRequest.hpp"
-#include "../helpers/GameState.hpp"
+#include "../helpers/GameManager.hpp"
 
 namespace CollisionEffects {
     void GrowSnake(Registry& registry, Entity subject, Entity /*object*/, FrameContext& /*ctx*/) {
@@ -30,7 +30,7 @@ namespace CollisionEffects {
             registry.addComponent<ParticleSpawnRequest>(object, req);
         }
 
-        GameState::relocateFood(registry, object, ctx.gridWidth, ctx.gridHeight, ctx.arena);
+        GameManager::relocateFood(registry, object, ctx.gridWidth, ctx.gridHeight, ctx.arena);
     }
 
     void IncrementScore(Registry& registry, Entity subject, Entity /*object*/, FrameContext& /*ctx*/) {

@@ -9,7 +9,7 @@
 #include "../../incs/RaylibColors.hpp"
 #include "Factories.hpp"
 
-class GameState {
+class GameManager {
 	public:
 		static void resetGame(Registry& registry,
 								InputSystem& inputSystem,

@@ -48,7 +48,7 @@ enum class PlayerSlot {
 	B,
 };
 
-enum class AppState {
+enum class GameState {
 	Menu,
 	Playing,
 	Paused,

@@ -1,6 +1,8 @@
 #pragma once
 
-// Forward declaration to avoid pulling in ArenaGrid everywhere
+#include "DataStructs.hpp"
+
+// Forward declaration to avoid pulling data everywhere
 class ArenaGrid;
 enum class RenderMode;
 
@@ -14,6 +16,7 @@ struct ArenaBounds {
 struct FrameContext {
 	// arena
 	ArenaGrid*	arena		= nullptr;
+	GameState*	state		= nullptr;
 	int			gridWidth	= 0;
 	int			gridHeight	= 0;
 	ArenaBounds	arenaBounds;

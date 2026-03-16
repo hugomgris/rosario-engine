@@ -1,6 +1,6 @@
-#include "GameState.hpp"
+#include "GameManager.hpp"
 
-void GameState::resetGame(Registry& registry,
+void GameManager::resetGame(Registry& registry,
 						InputSystem& inputSystem,
 						Entity& playerSnake, Entity& secondSnake, Entity& food,
 						int gridWidth, int gridHeight,
@@ -37,7 +37,7 @@ void GameState::resetGame(Registry& registry,
 	arena.beginSpawn(1.2f); */ //TO DO
 }
 
-void GameState::relocateFood(Registry& registry, Entity foodEntity,
+void GameManager::relocateFood(Registry& registry, Entity foodEntity,
 						int gridWidth, int gridHeight,
 						const ArenaGrid* arena) {
 	std::vector<Vec2> snakeOccupied;

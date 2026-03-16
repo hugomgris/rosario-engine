@@ -8,7 +8,7 @@
 	- [Post-Post-Processing](#414-post-post-processings)
 	- [Why the Long Face?](#415-why-the-long-face)
 	- [DAYLIGHT](#416-daylight-or-pánico-en-el-túnel-starring-silvester-stallone)
-    - [Do You Want to See the Menu?](#417-do-you-want-to-see-the-menu)
+	- [Do You Want to See the Menu?](#417-do-you-want-to-see-the-menu)
 
 <br>
 <br>
@@ -28,16 +28,16 @@ Let's get into the AI pipeline from what is, now and forever, the usual ground s
 #include "../../incs/DataStructs.hpp"
 
 struct AIComponent {
-    std::vector<Vec2>   path;
-    Vec2                target = { 0, 0 };
+	std::vector<Vec2>   path;
+	Vec2                target = { 0, 0 };
 
-    AIBehaviourState    behavior            = AIBehaviourState::MEDIUM;
-    int                 maxSearchDepth      = 150;
-    bool                useSafetyCheck      = true;
-    bool                hasSurvivalMode     = true;
-    bool                predictOpponent     = false;
-    float               randomMoveChance    = 0.0f;
-    float               aggresiveness       = 0.5f;
+	AIBehaviourState    behavior            = AIBehaviourState::MEDIUM;
+	int                 maxSearchDepth      = 150;
+	bool                useSafetyCheck      = true;
+	bool                hasSurvivalMode     = true;
+	bool                predictOpponent     = false;
+	float               randomMoveChance    = 0.0f;
+	float               aggresiveness       = 0.5f;
 };
 ```
 Next, we'll have to handle the loading of data to build a new json → struct pipeline. A combination of parsing, file managing and json processing functions should do the trick, in a similar fashion as what was put in place for the `CollisionRule`s. Here's the concoction:
@@ -45,53 +45,53 @@ Next, we'll have to handle the loading of data to build a new json → struct pi
 using json = nlohmann::json;
 
 static AIBehaviourState parseBehavior(const std::string& s) {
-    if (s == "EASY")   return AIBehaviourState::EASY;
-    if (s == "MEDIUM") return AIBehaviourState::MEDIUM;
-    if (s == "HARD")   return AIBehaviourState::HARD;
-    throw std::runtime_error("AIPresetLoader: unknown behavior: " + s);
+	if (s == "EASY")   return AIBehaviourState::EASY;
+	if (s == "MEDIUM") return AIBehaviourState::MEDIUM;
+	if (s == "HARD")   return AIBehaviourState::HARD;
+	throw std::runtime_error("AIPresetLoader: unknown behavior: " + s);
 }
 
 AIPresetLoader::PresetTable AIPresetLoader::load(const std::string& path) {
-    std::ifstream file(path);
-    if (!file.is_open())
-        throw std::runtime_error("AIPresetLoader: cannot open file: " + path);
+	std::ifstream file(path);
+	if (!file.is_open())
+		throw std::runtime_error("AIPresetLoader: cannot open file: " + path);
 
-    json data;
-    try {
-        file >> data;
-    } catch (const json::parse_error& e) {
-        throw std::runtime_error("AIPresetLoader: JSON parse error: " + std::string(e.what()));
-    }
+	json data;
+	try {
+		file >> data;
+	} catch (const json::parse_error& e) {
+		throw std::runtime_error("AIPresetLoader: JSON parse error: " + std::string(e.what()));
+	}
 
-    PresetTable table;
+	PresetTable table;
 
-    for (const auto& entry : data.at("AIPresets")) {
-        AIComponent preset;
-        preset.behavior         = parseBehavior(entry.at("behavior").get<std::string>());
-        preset.maxSearchDepth   = entry.at("maxSearchDepth").get<int>();
-        preset.useSafetyCheck   = entry.at("useSafetyCheck").get<bool>();
-        preset.hasSurvivalMode  = entry.at("hasSurvivalMode").get<bool>();
-        preset.randomMoveChance = entry.at("randomMoveChance").get<float>();
-        preset.aggresiveness    = entry.at("aggressiveness").get<float>();
+	for (const auto& entry : data.at("AIPresets")) {
+		AIComponent preset;
+		preset.behavior         = parseBehavior(entry.at("behavior").get<std::string>());
+		preset.maxSearchDepth   = entry.at("maxSearchDepth").get<int>();
+		preset.useSafetyCheck   = entry.at("useSafetyCheck").get<bool>();
+		preset.hasSurvivalMode  = entry.at("hasSurvivalMode").get<bool>();
+		preset.randomMoveChance = entry.at("randomMoveChance").get<float>();
+		preset.aggresiveness    = entry.at("aggressiveness").get<float>();
 
-        const std::string name = entry.at("name").get<std::string>();
-        table[name] = preset;
-    }
+		const std::string name = entry.at("name").get<std::string>();
+		table[name] = preset;
+	}
 
-    return table;
+	return table;
 }
 ```
 
 All of this needs, of course, the json base data, which has entries like the following:
 ```json
 {
-    "name":             "easy",
-    "behavior":         "EASY",
-    "maxSearchDepth":   50,
-    "useSafetyCheck":   false,
-    "hasSurvivalMode":  false,
-    "randomMoveChance": 0.15,
-    "aggressiveness":   0.8
+	"name":             "easy",
+	"behavior":         "EASY",
+	"maxSearchDepth":   50,
+	"useSafetyCheck":   false,
+	"hasSurvivalMode":  false,
+	"randomMoveChance": 0.15,
+	"aggressiveness":   0.8
 },
 ```
 
@@ -153,15 +153,15 @@ Entity Factories::spawnPlayerSnake(Registry& registry,
 	Direction direction = (registry.view<SnakeComponent>().empty()) ? Direction::RIGHT : Direction::LEFT;
 
 	for (int i = 0; i < initialLength; ++i) {
-        Vec2 segPos;
-        switch (direction) {
-            case Direction::RIGHT: segPos = { startPos.x - i, startPos.y }; break;
-            case Direction::LEFT:  segPos = { startPos.x + i, startPos.y }; break;
-            case Direction::DOWN:  segPos = { startPos.x, startPos.y - i }; break;
-            case Direction::UP:    segPos = { startPos.x, startPos.y + i }; break;
-        }
-        snake.segments.push_back({ segPos, BeadType::None });
-    }
+		Vec2 segPos;
+		switch (direction) {
+			case Direction::RIGHT: segPos = { startPos.x - i, startPos.y }; break;
+			case Direction::LEFT:  segPos = { startPos.x + i, startPos.y }; break;
+			case Direction::DOWN:  segPos = { startPos.x, startPos.y - i }; break;
+			case Direction::UP:    segPos = { startPos.x, startPos.y + i }; break;
+		}
+		snake.segments.push_back({ segPos, BeadType::None });
+	}
 
 	registry.addComponent(e, snake);
 	registry.addComponent(e, PositionComponent{ startPos });
@@ -213,7 +213,7 @@ void RenderSystem::drawSnakes3D(Registry& registry) const {
 What actually is more interesting is... A new B U G emerged! Nothing related to the `3D`, really, just something I noticed while testing it. The error triggered if a player's inputs were too fast and contained a 180 degree reversal. For example, with a player controlled right bound snake, if its owner quickly input `UP` and `LEFT`, say at the same time, it could be the case that the two inputs be processed before a movement tick, resulting in a bypassing of the 180 degree guard. In other words, before the snake moved one position (cell/cube), `UP` and then `LEFT` were processed, and because `LEFT` was processed after direction was switched to `UP`, the guard failed, and when the movement tick arrived, the snake went from `RIGHT` to `LEFT`, colliding into itself. The solution to this was twofold:
 - Call `processInput` inside `advanceSnake`, right before the movement happens and **consuming input only at move tick time**
 - **Make Reversal check use `lastDirection` (the direction AT THE MOMENT of movement), instead of `move.direction` (which may have already been updated by a previous buffered input)**.
-    - The `break` after accepting a valid direction also ensures only **one** direction change is applied per tick, discarding the rest of the buffer.
+	- The `break` after accepting a valid direction also ensures only **one** direction change is applied per tick, discarding the rest of the buffer.
 ```cpp
 // reads each entity's InputComponent and updates its Movement Component direction.
 // ignores inputs that would reverse the current direction and discards invalid buffers (silently)
@@ -241,7 +241,7 @@ void MovementSystem::processInput(Registry& registry, Direction lastDirection, M
 		const Vec2 requestedVec = directionToVec2(requested);
 
 		bool isReversal = (lastVec.x + requestedVec.x == 0) &&
-						  (lastVec.y + requestedVec.y == 0);
+						(lastVec.y + requestedVec.y == 0);
 
 		if (!isReversal) {
 			move.direction = requested;
@@ -350,12 +350,12 @@ As you can see, I also added a key hook (`P`) to toggle the whole post processin
 ### 4.1.5 Why the Long Face?
 *Because you don't look very animated hahahahah*. Time to tackle what seems, from a distance, the most troublesome system to port and resucitate the animation pipeline. As has been the protocolary approach, the first thing when building (porting, really) a system is to ask ourselves: **what does the animation system actually need to store and communicate?**. Looking at the OOP's `AnimationSystem` and `ParticleSystem`, it really appears as there is not going to be much need for big changes, as they were quite stand-alone systems to begin with, but a good thinking angle is comprised of the **distinct animated objects** managed by these systems, and what their natures are:
 1. **Tunnel Lines**: No entity ownership.
-    - `TunnelLine` and `TunnelConfig` are **purely internal to the system**. No entity in game *is* a tunnel line, no entity *owns* one. This means **no new component needed**: the new system will own its data entirely, just as it did in OOP.
+	- `TunnelLine` and `TunnelConfig` are **purely internal to the system**. No entity in game *is* a tunnel line, no entity *owns* one. This means **no new component needed**: the new system will own its data entirely, just as it did in OOP.
 2. **Particles**: Spawn triggers need a bridge
-    - Particles themselves are also internal to `ParticleSystem`, but *spawning* them is triggered by game events that live in ECS land:
-        - **Trail** → triggered by snake movement (i.e., a `SnakeComponent` entity moving).
-        - **Explosion** → triggered by food being eaten (i.e, a collision effect)
-        - **Dust** → purely internal timer, no entity involved.
+	- Particles themselves are also internal to `ParticleSystem`, but *spawning* them is triggered by game events that live in ECS land:
+		- **Trail** → triggered by snake movement (i.e., a `SnakeComponent` entity moving).
+		- **Explosion** → triggered by food being eaten (i.e, a collision effect)
+		- **Dust** → purely internal timer, no entity involved.
 
 So, **the trail and explosion cases are the only ones that need to cross the ECS boundary**. The urgent shift in mindset at this point, if pending, is to engrave in our brains that an **entity** (and it's attached components) is something that *lives* in the game, not just something that *is* in the game. `snakes` and `food` are game-tied entities, the things that move and collide and sustain the mechanics and dynamics of the whole loop, but things like `particles`, `tunnelLines` and even `walls` and `obstacles` exist as context, visual flair or plain constraints. At least for now, as the game's design still has a long, long way to go.
 
@@ -364,12 +364,12 @@ Anyway, back to the proting process, the first step seems clear: we need to **de
 #### Option a → `ParticleSpawnRequest` component
 ```cpp
 struct ParticleSpawnRequest {
-    enum class Type { Trail, Explosion };
-    Type    type;
-    float   x, y;
-    int     count;
-    float   direction; // for trails
-    Color   color;
+	enum class Type { Trail, Explosion };
+	Type    type;
+	float   x, y;
+	int     count;
+	float   direction; // for trails
+	Color   color;
 };
 ```
 
@@ -454,10 +454,10 @@ One additional refinement on top of this: dust is constricted to the game arena,
 ```cpp
 const float cs = static_cast<float>(ctx.cellSize);
 ArenaBounds playfield {
-    ctx.gameAreaX + cs,
-    ctx.gameAreaY + cs,
-    static_cast<float>(ctx.gridWidth  - 2) * cs,
-    static_cast<float>(ctx.gridHeight - 2) * cs
+	ctx.gameAreaX + cs,
+	ctx.gameAreaY + cs,
+	static_cast<float>(ctx.gridWidth  - 2) * cs,
+	static_cast<float>(ctx.gridHeight - 2) * cs
 };
 spawnDust(playfield);
 ```
@@ -475,7 +475,7 @@ Dust doesn't cross the ECS boundary at all. No entity owns it, no component trig
 // render phase
 postProcessingSystem.beginCapture();
 if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D)
-    particleSystem.render();
+	particleSystem.render();
 renderSystem.render(registry, dt, ctx);
 postProcessingSystem.endCapture();
 ```
@@ -483,9 +483,9 @@ postProcessingSystem.endCapture();
 One final detail worth noting: trail density and spread were initially coupled, since `count` controlled both. A `trailSpawnInterval` field was added to `ParticleConfig`, throttling how often trail emission fires independently of how many particles each emission bursts out. `count` governs spread; `spawnInterval` governs density. Both are JSON-tunable without touching a line of code:
 ```json
 "trail": {
-    "count":         2,
-    "scatter":       15.0,
-    "spawnInterval": 0.05
+	"count":         2,
+	"scatter":       15.0,
+	"spawnInterval": 0.05
 }
 ```
 
@@ -512,19 +512,19 @@ The internal data structures are a direct port:
 
 ```cpp
 struct TunnelConfig {
-    int     borderThickness = 15;
-    int     contentInset    = 40;
-    float   spawnInterval   = 0.15f;
-    float   animationSpeed  = 0.7f;
-    int     maxLines        = 12;
-    Color   lineColor       = { 144, 238, 144, 255 };
-    float   lineThickness   = 2.0f;
+	int     borderThickness = 15;
+	int     contentInset    = 40;
+	float   spawnInterval   = 0.15f;
+	float   animationSpeed  = 0.7f;
+	int     maxLines        = 12;
+	Color   lineColor       = { 144, 238, 144, 255 };
+	float   lineThickness   = 2.0f;
 };
 
 struct TunnelLine {
-    float   progress = 0.0f;   // 0 = at center (just spawned), 1 = at edge (dead)
-    float   age      = 0.0f;
-    int     epoch    = 0;
+	float   progress = 0.0f;   // 0 = at center (just spawned), 1 = at edge (dead)
+	float   age      = 0.0f;
+	int     epoch    = 0;
 };
 ```
 
@@ -551,16 +551,16 @@ This means the moment `transformArenaWithPreset()` fires, the animation system i
 Initial testing produced tunnel lines rendered as a tiny cluster of pixel-sized shapes crammed into the top-left corner. The cause was the `getAllOutlines` coordinate space issue described above: the function returns `offsetX + cellIndex`, where `cellIndex` is a raw grid integer (e.g. `0`, `1`, `2`...), not a pixel position. Feeding that directly into screen-space draw calls meant drawing at positions like `(336 + 0, 208 + 1)` instead of `(336 + 0*32, 208 + 1*32)`. The fix was a `scaleOutlines()` helper that applies the cell size scaling after the fact:
 ```cpp
 std::vector<std::vector<Vector2>> AnimationSystem::scaleOutlines(std::vector<std::vector<Vector2>> raw) const {
-    const float ox = static_cast<float>(_offsetX);
-    const float oy = static_cast<float>(_offsetY);
-    const float cs = static_cast<float>(_cellSize);
+	const float ox = static_cast<float>(_offsetX);
+	const float oy = static_cast<float>(_offsetY);
+	const float cs = static_cast<float>(_cellSize);
 
-    for (auto& shape : raw)
-        for (auto& p : shape) {
-            p.x = ox + (p.x - ox) * cs;
-            p.y = oy + (p.y - oy) * cs;
-        }
-    return raw;
+	for (auto& shape : raw)
+		for (auto& p : shape) {
+			p.x = ox + (p.x - ox) * cs;
+			p.y = oy + (p.y - oy) * cs;
+		}
+	return raw;
 }
 ```
 
@@ -572,15 +572,15 @@ Every outline coming out of `getAllOutlines` is passed through `scaleOutlines` b
 
 ```cpp
 {
-    ArenaGrid tmpArena(GRID_W, GRID_H);
-    FrameContext tmpCtx;
-    tmpCtx.arena = &tmpArena;
-    tmpCtx.gridWidth = GRID_W; tmpCtx.gridHeight = GRID_H;
-    renderSystem.fillContext(tmpCtx);
-    animationSystem.init(SCREEN_W, SCREEN_H,
-        static_cast<int>(tmpCtx.arenaBounds.x),
-        static_cast<int>(tmpCtx.arenaBounds.y),
-        tmpCtx.cellSize);
+	ArenaGrid tmpArena(GRID_W, GRID_H);
+	FrameContext tmpCtx;
+	tmpCtx.arena = &tmpArena;
+	tmpCtx.gridWidth = GRID_W; tmpCtx.gridHeight = GRID_H;
+	renderSystem.fillContext(tmpCtx);
+	animationSystem.init(SCREEN_W, SCREEN_H,
+		static_cast<int>(tmpCtx.arenaBounds.x),
+		static_cast<int>(tmpCtx.arenaBounds.y),
+		tmpCtx.cellSize);
 }
 animationSystem.enable(true, tunnelPresets.at("realm2D"));
 ```
@@ -593,10 +593,10 @@ Consistent with the rest of the build, `TunnelConfig` is no longer hardcoded. A 
 
 ```json
 { "presets": [
-    { "name": "realm2D", "borderThickness": 15, "contentInset": 40,
-      "spawnInterval": 0.15, "animationSpeed": 0.7, "maxLines": 12,
-      "lineColor": [70, 130, 180, 255], "lineThickness": 2.0 },
-    { "name": "menu", ... }
+	{ "name": "realm2D", "borderThickness": 15, "contentInset": 40,
+	"spawnInterval": 0.15, "animationSpeed": 0.7, "maxLines": 12,
+	"lineColor": [70, 130, 180, 255], "lineThickness": 2.0 },
+	{ "name": "menu", ... }
 ]}
 ```
 
@@ -608,10 +608,10 @@ To actually exercise the epoch transition pipeline, old lines draining while new
 
 ```json
 { "presets": [
-    { "name": "InterLock1" }, { "name": "Spiral1" }, { "name": "Columns1" },
-    { "name": "Columns2"  }, { "name": "Cross"    }, { "name": "Checkerboard" },
-    { "name": "Maze"      }, { "name": "Diamond"  }, { "name": "Tunnels" },
-    { "name": "FourRooms" }
+	{ "name": "InterLock1" }, { "name": "Spiral1" }, { "name": "Columns1" },
+	{ "name": "Columns2"  }, { "name": "Cross"    }, { "name": "Checkerboard" },
+	{ "name": "Maze"      }, { "name": "Diamond"  }, { "name": "Tunnels" },
+	{ "name": "FourRooms" }
 ]}
 ```
 
@@ -619,11 +619,11 @@ To actually exercise the epoch transition pipeline, old lines draining while new
 
 ```cpp
 if (IsKeyPressed(KEY_TAB)) {
-    currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
-    animationSystem.notifyArenaSpawning(arena);
-    arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
-    float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
-    arena.beginSpawn(lineLifetime);
+	currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
+	animationSystem.notifyArenaSpawning(arena);
+	arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+	float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
+	arena.beginSpawn(lineLifetime);
 }
 ```
 
@@ -646,7 +646,110 @@ This ensures lines never occlude gameplay elements, which would be particularly 
 <br>
 
 ### 4.1.7 Do You Want to See the Menu?
-One last porting thing: the menus!
+One last porting thing: the menus! This is going to be tough, as the process needs to go through a handful of really specific steps:
+- The `StateMachine` needs to be recovered from the OOP version
+- Obviously, the states needs to be reinstated
+- A `MenuSystem` needs to be set up, with its own rendering requirements
+- For it to properly work, a `TextSystem` is needed too.
+- The `MenuSystem` needs `Buttons`, which I'll have to think how to build them in the new paradigm
+- The whole loop from menu to gameplay and back will fight the hooking up, I'm sure
+
+With so much stuff, what's most important is to pick a starting point. I think that the `StateMachine` is a good candidate, just an initial way of having a way to build a placeholder start-gameplay-gameover-start loop. So we'll do that, shall we? Let's build an initial version for:
+1. The necessary data structs (`GameState` and `MenuAction`)
+2. A kernel of the two new systems, `MenuSystem` and `TextSystem`
+3. Key hooks to go from start to gameplay and from gameover back to start
+4. The neessary edits in the main game loop to work around the new `StateMachine`
+
+#### 4.1.6.1 Data, Data, more Data
+Nothing to write home about here, justa couple of two new enum classes, tucked inside the existing `DataStructs.hpp` in `incs/`:
+```cpp
+enum class AppState {
+	Menu,
+	Playing,
+	Paused,
+	GameOver
+};
+
+enum class MenuAction {
+	None,
+	StartGame,
+	SwitchMode,
+	Restart,
+	Quit
+};
+```
+
+<br>
+
+#### 4.1.7.2
+Now, for the systems, at this point I just need a combination of `Menu` and `Text` that results in a menu state accepting a game-starting key and displaying a "START" text, and the same for the gameover state with its respective hook and text. And while drafting them, a very urgent issue crossed my path: **some elements, buttons in our current port pipeline, are going to need to be handled both by the `MenuSystem` and the `TextSystem`**. This is a classic pitfall for unwanted coupling, so we must tread carefully. The OOP mind, a well intentioned but unseasoned one, might try to hook things up by sending a reference of `TextSystem` to `MenuSystem`, following a thought process in the line of "The menu system manages buttons, which have text labels, and those need to be rendered, so a little reference does no harm". Wrong, it does a lot of harm in the long run: debugging, scaling, diversifying, ... A lot of future-related manouvers will be in absolute peril. So a way to disconnectively connect systems (invented words, that's my jam) is, again, urgent, and given that we're in our illumination path to the ECS heights of programming, the choice seems to be clear: **an event queue**.
+
+We'll also need an UI orchestrator, an `UISystem` that directs what will now be UI subsystems (menu, text, etc). But, again, step by step does the game (??).
+
+So, let's set up a **minimal queue model**:
+```cpp
+#pragma once
+
+#include <string>
+#include <vector>
+#include <raylib.h>
+
+struct UIRectCmd {
+	Rectangle   rect;
+	Color       color;
+	bool        outline = false;
+	float       lineThickness = 1.0f;
+};
+
+struct UITextCmd {
+	std::string text;
+	float   x;
+	float   y;
+	float   fontSize;
+	Color   color;
+	bool    centered = false;
+};
+
+struct UIRenderQueue {
+	std::vector<UIRectCmd>  rects;
+	std::vector<UITextCmd>  texts;
+
+	void clear () {
+		rects.clear();
+		texts.clear();
+	}
+};
+```
+
+- It will work with a couple of initial vectors regarding two different types of commands, those that call for rectangle draws (button outlines) and those that call for text draws (button labels). Each of those is just a simple struct with the necessary data.
+- The queue itself is a struct wrapper around a couple of storing vectors, one for each type of initial commands.
+- The combination of `UISystem` main director, and the `MenuSystem` and `TextSystem` subsystems, will take care of the **two-step process of the queuing: Publish Intent and Command Cnsume**.
+- The clean and incremental target structure is:
+	- `MenuSystem` owns menu logic, button states and selection logic. It does:
+		- button state
+		- selection
+		- hover/click logic
+		- emits commands to `UIRenderQueue`:
+			- `RectCmd` for button/background
+			- `TextCmd` for labels/titles
+	- `TextSystem` flushes `queue.texts`
+	- `UiSystem` flushes `queue.rects`
+	- `main` does:
+		- `uiQueue.clear()`
+		- `menuSystem.buildUI()`
+		- `uiSystem.render()`
+		- `textSystem.render()`
+
+So the flow will undergo three stages:
+1. Production
+2. Consumption
+3. Orchestration
+
+All while (at least for now) `main` owns the `UIRenderQueue` in order to avoid coupling as much as we can. Producers won't depend on `UISystem`, consumers won't depend on producers, the queue will just be frame-local shared data.
+
+To sum things up at this point, the `main` loop is going to have to switch case through all the `GameState`s at every phase (Update, Render, UI, Post Processing). The initial setup will have all states be affected by the `PostProcessingSystem`, we'll see down the line if this needs to be tweaked with regards of states/phases, and if so, how. I've also made some changes along the way to some of the naming. What was called `GameState` is now `GameManager`, as it is a class that contains a couple of game managing methods, not really a state tracker. To this regard, a new `GameState` was added to `DataStructs.hpp`. I already have a main loop that correctly builds and compiles and goes into `GameState::Menu`, although without any visual rendering nor logic. I'll do that and come back with some juicy code snippets.
+
+
 
 ## General Assessment: ECS/Data-Driven vs OOP
 

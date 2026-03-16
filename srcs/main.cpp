@@ -19,12 +19,15 @@
 #include "systems/CollisionSystem.hpp"
 #include "systems/RenderSystem.hpp"
 #include "systems/PostProcessingSystem.hpp"
+#include "ui/MenuSystem.hpp"
+#include "ui/TextSystem.hpp"
+#include "ui/UISystem.hpp"
 #include "postprocessing/PostProcessConfigLoader.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "arena/ArenaPresets.hpp"
 #include "arena/ArenaPresetLoader.hpp"
 #include "helpers/Factories.hpp"
-#include "helpers/GameState.hpp"
+#include "helpers/GameManager.hpp"
 #include "collision/CollisionRule.hpp"
 #include "collision/CollisionRuleLoader.hpp"
 #include "collision/CollisionEffectDispatcher.hpp"
@@ -35,6 +38,7 @@
 #include "animations/ParticleConfigLoader.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "animations/TunnelConfigLoader.hpp"
+#include "ui/UIQueue.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -59,7 +63,9 @@ int main() {
 	dispatcher.registerDefaults();
 
 	// ECS core
-	Registry registry;
+	Registry		registry;
+	UIRenderQueue	uiQueue;
+	GameState		state = GameState::Playing;
 
 	// Gameplay systems
 	InputSystem				inputSystem;
@@ -67,18 +73,28 @@ int main() {
 	CollisionSystem			collisionSystem;
 	AISystem				aiSystem(GRID_W, GRID_H);
 	RenderSystem            renderSystem;
+
+	renderSystem.init(GRID_W, GRID_H);
+
+	// UI systems
+	MenuSystem	menuSystem(SCREEN_W, SCREEN_H);
+	TextSystem	textSystem;
+	UISystem	uiSystem;
+
+	// Visual systems
 	PostProcessingSystem    postProcessingSystem;
 	ParticleSystem          particleSystem(SCREEN_W, SCREEN_H, particleConfig);
 	AnimationSystem         animationSystem;
 
-	renderSystem.init(GRID_W, GRID_H);
 	postProcessingSystem.init(SCREEN_W, SCREEN_H);
 	postProcessingSystem.setConfig(ppPresets.at("crt_bloom"));
 
+	// temporary Arena and Context to kickstart the animation system
 	{
 		ArenaGrid tmpArena(GRID_W, GRID_H);
 		FrameContext tmpCtx;
 		tmpCtx.arena = &tmpArena;
+		tmpCtx.state = &state;
 		tmpCtx.gridWidth = GRID_W; tmpCtx.gridHeight = GRID_H;
 		renderSystem.fillContext(tmpCtx);
 		animationSystem.init(SCREEN_W, SCREEN_H,
@@ -91,8 +107,9 @@ int main() {
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
-	GameState::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
+	GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
 	RenderMode renderMode = RenderMode::MODE2D;
+	state = GameState::Menu;
 	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
 	while (true) {
@@ -115,41 +132,100 @@ int main() {
 		// fresh context each frame
 		FrameContext ctx;
 		ctx.arena       = &arena;
+		ctx.state		= &state;
 		ctx.gridWidth   = GRID_W;
 		ctx.gridHeight  = GRID_H;
 		ctx.renderMode  = &renderMode;
 		ctx.playerDied  = false;
 		renderSystem.fillContext(ctx);
-		
-		// update phase
-		inputSystem.update(registry);
-		aiSystem.update(registry, ctx);
-		movementSystem.update(registry, dt);
-		collisionSystem.update(registry, ruleTable, dispatcher, ctx);
-		particleSystem.update(dt, registry, ctx);
-		arena.tickSpawnTimer(dt);
-		arena.tickDespawnTimer(dt);
 
+		// UPDATE phase
+		switch (state) {
+			case GameState::Menu:
+				// TODO: menu stuff;
+				break;
+			
+			case GameState::Playing:
+				inputSystem.update(registry);
+				aiSystem.update(registry, ctx);
+				movementSystem.update(registry, dt);
+				collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+				particleSystem.update(dt, registry, ctx);
+				arena.tickSpawnTimer(dt);
+				arena.tickDespawnTimer(dt);
+				break;
+
+			case GameState::Paused:
+				// Todo implement pause
+				break;
+
+			case GameState::GameOver:
+				// Todo: gameover stuff
+				break;
+		}			
+
+		// Death check
 		if (ctx.playerDied) {
 			std::cout << "PLAYER DIED" << std::endl;
 			break;
 		}
 
-		// render phase
-		postProcessingSystem.beginCapture();
-		if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
-			renderSystem.beginMode2D();
-			animationSystem.update(dt, arena);  // update + cache shapes
-			animationSystem.render();           // tunnel lines: behind everything
-			particleSystem.render();            // particles: behind arena/snake
-			renderSystem.render2D(registry, ctx); // arena, food, snakes on top
-			renderSystem.endMode2D();
-		} else {
-			renderSystem.render(registry, dt, ctx);
+		// RENDER phase
+		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
+		switch (state) {
+			case GameState::Menu:
+				// todo menu stuff
+				break;
+			
+			case GameState::Playing:
+				if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+					renderSystem.beginMode2D();
+					animationSystem.update(dt, arena);  // update + cache shapes
+					animationSystem.render();           // tunnel lines: behind everything
+					particleSystem.render();            // particles: behind arena/snake
+					renderSystem.render2D(registry, ctx); // arena, food, snakes on top
+					renderSystem.endMode2D();
+				} else {
+					renderSystem.render(registry, dt, ctx);
+				}
+				break;
+			
+
+			case GameState::Paused:
+				// todo pause stuff
+				break;
+
+			case GameState::GameOver:
+				// todo gameover stuff;
+				break;
 		}
+
+		// UI phase
+		uiQueue.clear();
+		switch (state) {
+			case GameState::Menu:
+				// todo call menu system buildUI
+				break;
+			
+			case GameState::Playing:
+				// todo game ui
+				break;
+				
+			case GameState::Paused:
+				// todo implement puase
+				break;
+
+			case GameState::GameOver:
+				// todo call menu system buildUI
+				break;
+		}
+		uiSystem.renderRects(uiQueue);
+		textSystem.render(uiQueue);
+		
+		// end pp capture
 		postProcessingSystem.endCapture();
 
-		// post processing phase
+		// POST PROCESING phase (PRESENT)
 		BeginDrawing();
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);
