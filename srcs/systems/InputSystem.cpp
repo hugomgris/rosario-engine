@@ -7,6 +7,10 @@ void InputSystem::assignSlot(Entity entity, PlayerSlot slot) {
 	slotMap[entity.getID()] = slot;
 }
 
+void InputSystem::clearSlots() {
+	slotMap.clear();
+}
+
 // p1 -> WASD
 
 void InputSystem::pollPlayerA(Registry& registry, Entity entity) {

@@ -1,12 +1,16 @@
 #include <iostream>
 #include "TextSystem.hpp"
 
-TextSystem::~TextSystem() {
-    UnloadFont(_font);
-}
-
 void TextSystem::init() {
     loadFont();
+}
+
+void TextSystem::shutdown() {
+    if (_loaded) {
+        UnloadFont(_font);
+        _font = {};
+        _loaded = false;
+    }
 }
 
 void TextSystem::loadFont() {
@@ -28,6 +32,7 @@ void TextSystem::loadFont() {
 
     _font = LoadFontEx("fonts/JetBrainsMono-VariableFont_wght.ttf", 64, codepoints, codepointCount);
     delete[] codepoints;
+    _loaded = true;
 }
 
 int TextSystem::measureText(const std::string& text, float fontSize) const {

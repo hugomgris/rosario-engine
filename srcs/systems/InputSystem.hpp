@@ -15,4 +15,5 @@ class InputSystem {
 	public:
 		void update(Registry& registry);
 		void assignSlot(Entity entity, PlayerSlot slot);
+		void clearSlots();
 };

@@ -30,7 +30,8 @@ class MenuSystem {
 
         void setState(MenuState state, GameMode currentMode);
 
-        void buildUI(FrameContext &ctx, UIRenderQueue& queue);
+        void buildStartMenuUI(FrameContext &ctx, UIRenderQueue& queue);
+        void buildGameOverUI(FrameContext &ctx, UIRenderQueue& queue);
 
         /* void render(GameMode currentMode) const;
         void renderGameOver(GameMode currentMode) const; */

@@ -132,8 +132,13 @@ int main() {
 		}
 
 		// Menu -> gameplay key hook
-		if (state == GameState::Menu && IsKeyPressed(KEY_ENTER)) {
-			state = GameState::Playing;
+		if (IsKeyPressed(KEY_ENTER)) {
+			 if (state == GameState::Menu) {
+				state = GameState::Playing;
+			 } else if (state == GameState::GameOver) {
+				GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
+				state = GameState::Menu;
+			 }
 		}
 
 		// fresh context each frame
@@ -174,14 +179,14 @@ int main() {
 		// Death check
 		if (ctx.playerDied) {
 			std::cout << "PLAYER DIED" << std::endl;
-			break;
+			state = GameState::GameOver;
 		}
 
 		// RENDER phase
 		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
 		switch (state) {
 			case GameState::Menu:
-				menuSystem.buildUI(ctx, uiQueue);
+				menuSystem.buildStartMenuUI(ctx, uiQueue);
 				//uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
 				break;
@@ -205,7 +210,8 @@ int main() {
 				break;
 
 			case GameState::GameOver:
-				// todo gameover stuff;
+				menuSystem.buildGameOverUI(ctx, uiQueue);
+				textSystem.render(uiQueue);
 				break;
 		}
 
@@ -243,6 +249,7 @@ int main() {
 	}
 
 	postProcessingSystem.shutdown();
+	textSystem.shutdown();
 	CloseWindow();
 	return 0;
 }

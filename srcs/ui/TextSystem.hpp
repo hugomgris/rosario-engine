@@ -15,10 +15,8 @@ class TextSystem {
         //void drawRects(); // TODO: logo-drawing pipeline
 
     public:
-        TextSystem() = default;
-        ~TextSystem();
-
         void init(); //call AFTER InitWindow()
+        void shutdown(); // call BEFORE CloseWindow()
 
         Font& getFont();
 

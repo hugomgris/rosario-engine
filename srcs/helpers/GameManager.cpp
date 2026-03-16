@@ -8,6 +8,7 @@ void GameManager::resetGame(Registry& registry,
 						const AIPresetLoader::PresetTable& AIPresets, GameMode mode) {
 	// wipe the registry and re-create
 	registry = Registry{};
+	inputSystem.clearSlots();
 
 	SetColors colorSet;
 

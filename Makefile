@@ -72,10 +72,10 @@ INCLUDES        := -I$(INCDIR) -I$(SRCDIR)
 # -=-=-=-=-    FLAGS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 CC              := c++
-CFLAGS			:= -std=c++20 -g3 -O0 -Wall -Wextra \
-					-Wno-unused-parameter \
-					-Wno-unused-variable \
-					-Wno-sign-compare \
+CFLAGS			:= -std=c++20 -g3 -O0 -Wall -Wextra	\
+					-Wno-unused-parameter			\
+					-Wno-unused-variable			\
+					-Wno-sign-compare				\
 					$(INCLUDES)
 
 # PRODUCTION FLAGS#
@@ -138,7 +138,7 @@ gamere: re
 	./rosario
 
 gamecheck: re
-	valgrind --leak-check=full --track-origins=yes --show-leak-kinds=all ./rosario 31 31
+	valgrind --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --num-callers=40 ./rosario 2> mem_logs.tc
 
 check_gtest:
 	@if [ ! -f "$(GTEST_LIB)" ]; then \
