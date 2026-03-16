@@ -47,3 +47,18 @@ enum class PlayerSlot {
 	A,
 	B,
 };
+
+enum class AppState {
+	Menu,
+	Playing,
+	Paused,
+	GameOver
+};
+
+enum class MenuAction {
+	None,
+	StartGame,
+	SwitchMode,
+	Restart,
+	Quit
+};

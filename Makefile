@@ -47,6 +47,9 @@ ANIMATIONS_SRC	:= animations/ParticleConfigLoader.cpp	\
 
 PP_SRC			:= postprocessing/PostProcessConfigLoader.cpp
 
+UI_SRC			:= ui/TextSystem.cpp	\
+					ui/MenuSystem.cpp
+
 GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
 					helpers/Factories.cpp	\
 					helpers/GameState.cpp
@@ -55,7 +58,7 @@ COLLISION_SRC   := collision/CollisionRuleLoader.cpp		\
 					collision/CollisionEffects.cpp			\
 					collision/CollisionEffectDispatcher.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC) $(ANIMATIONS_SRC) $(PP_SRC)
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC) $(ANIMATIONS_SRC) $(PP_SRC) $(UI_SRC)
 
 SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
 OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))

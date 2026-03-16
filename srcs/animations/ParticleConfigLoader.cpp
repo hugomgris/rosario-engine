@@ -49,5 +49,17 @@ ParticleConfig ParticleConfigLoader::load(const std::string& path) {
 	if (trail.contains("spawnInterval"))
 		config.trailSpawnInterval = trail.at("spawnInterval").get<float>();
 
+	if (data.contains("menuTrail")) {
+		const auto& mt = data.at("menuTrail");
+		config.menuTrailMinSize     = mt.at("minSize").get<float>();
+		config.menuTrailMaxSize     = mt.at("maxSize").get<float>();
+		config.menuTrailMinLifetime = mt.at("minLifetime").get<float>();
+		config.menuTrailMaxLifetime = mt.at("maxLifetime").get<float>();
+		config.menuTrailMinSpeed    = mt.at("minSpeed").get<float>();
+		config.menuTrailMaxSpeed    = mt.at("maxSpeed").get<float>();
+		config.menuTrailCount       = mt.at("count").get<int>();
+		config.menuTrailScatter     = mt.at("scatter").get<float>();
+	}
+
 	return config;
 }

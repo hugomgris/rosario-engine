@@ -22,7 +22,17 @@ struct ParticleConfig {
 	float	trailMaxLifetime    = 0.5f;
     float   trailMinSpeed       = 10.0f;
 	float	trailMaxSpeed       = 40.0f;
-    int     trailCount          = 3;
+    float   trailCount          = 3;
     float   trailScatter        = 15.0f;
     float   trailSpawnInterval  = 0.0f;
+
+    // Menu logo trail — rightward cone, visible drift, fade-out
+    float   menuTrailMinSize        = 6.0f;
+    float   menuTrailMaxSize        = 16.0f;
+    float   menuTrailMinLifetime    = 0.4f;
+    float   menuTrailMaxLifetime    = 0.8f;
+    float   menuTrailMinSpeed       = 40.0f;
+    float   menuTrailMaxSpeed       = 120.0f;
+    int     menuTrailCount          = 1;
+    float   menuTrailScatter        = 6.0f;
 };

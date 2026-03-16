@@ -26,5 +26,15 @@
         "count":            3,
         "scatter":          15.0,
         "spawnInterval":    0.05
+    },
+    "menuTrail": {
+        "minSize":          6.0,
+        "maxSize":          16.0,
+        "minLifetime":      0.4,
+        "maxLifetime":      0.8,
+        "minSpeed":         40.0,
+        "maxSpeed":         120.0,
+        "count":            1,
+        "scatter":          6.0
     }
 }

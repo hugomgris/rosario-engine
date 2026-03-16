@@ -4,7 +4,7 @@
 #include "../../incs/DataStructs.hpp"
 
 struct ParticleSpawnRequest {
-    enum class ParticleType { Trail, Explosion, Dust };
+    enum class ParticleType { Trail, Explosion, Dust, MenuTrail };
     ParticleType    type;
     float           x, y;
     int             count;

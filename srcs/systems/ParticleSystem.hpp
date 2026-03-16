@@ -52,6 +52,13 @@ public:
 	void    update(float dt, Registry& registry, const FrameContext& ctx);   // consumes ParticleSpawnRequests
 	void    render() const;
 
-	void    clear();
+	// direct spawn (for non-ECS callers, e.g. menu logo trail)
+	void    spawnTrailAt(float x, float y, Color color);
+	void    spawnMenuTrailAt(float x, float y, Color color);
+
+	// selective clears
+	void    clear();            // clears everything
+	void    clearGameplay();    // clears Trail + Explosion + Dust (keeps MenuTrail)
+	void    clearMenuTrail();   // clears only MenuTrail
 	size_t  getParticleCount() const;
 };

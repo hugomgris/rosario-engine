@@ -29,7 +29,8 @@ private:
 	std::vector<std::vector<Vector2>>   _currentShapes;		// shapes after last notify
 
 	TunnelConfig    _config;
-	bool            _enabled        = false;
+	bool            _enabled              = false;
+	bool            _shapeOverrideActive  = false;  // true: update() skips arena outline refresh
 	float           _spawnTimer     = 0.0f;
 	int             _currentEpoch   = 0;
 
@@ -43,8 +44,10 @@ private:
 	// Easing
 	float easeInQuad(float t) const { return t * t; }
 
-	// Shape helpers
+	// Shape helpers (public for external access)
 	std::vector<std::vector<Vector2>> scaleOutlines(std::vector<std::vector<Vector2>> raw) const;
+
+private:
 	std::vector<Vector2> createRectangularShape(int left, int top, int right, int bottom) const;
 	std::vector<Vector2> calculateInsetShape(const std::vector<Vector2>& outerShape,
 											const Vector2& center,
@@ -71,6 +74,15 @@ public:
 
 	void notifyArenaSpawning(const ArenaGrid& arena);
 	void notifyArenaDespawning(const ArenaGrid& arena);
+
+	// Override the current shape set directly (e.g. for menu fullscreen outline)
+	void notifyShapeOverride(std::vector<std::vector<Vector2>> shapes);
+
+	// Instantly swap shapes without epoch bump — no old lines render (used for menu→playing)
+	void instantShapeChange(std::vector<std::vector<Vector2>> shapes);
+
+	// Get scaled arena outline using stored arena bounds
+	std::vector<std::vector<Vector2>> getArenaOutlines() const;
 
 	void clear();
 

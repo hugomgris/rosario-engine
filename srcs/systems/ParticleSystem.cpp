@@ -83,6 +83,31 @@ void ParticleSystem::spawnExplosion(float x, float y) {
     }
 }
 
+void ParticleSystem::spawnTrailAt(float x, float y, Color color) {
+    spawnTrail(x, y, Direction::RIGHT, color); // direction ignored: scatter only
+}
+
+void ParticleSystem::spawnMenuTrailAt(float x, float y, Color color) {
+    float scatter = static_cast<float>(_config.menuTrailScatter);
+    for (int i = 0; i < _config.menuTrailCount; ++i) {
+        float spawnX = x + randFloat(-scatter * 0.3f, scatter * 0.3f);
+        float spawnY = y + randFloat(-scatter,         scatter);
+        // Emit rightward: base angle 0 (positive X), spread ±PI/4 (45 degrees)
+        float angle  = randFloat(-PI / 4.0f, PI / 4.0f);
+        float speed  = randFloat(_config.menuTrailMinSpeed, _config.menuTrailMaxSpeed);
+        Particle p(
+            spawnX, spawnY,
+            _config.menuTrailMinSize, _config.menuTrailMaxSize,
+            _config.menuTrailMinLifetime, _config.menuTrailMaxLifetime,
+            color,
+            pType::MenuTrail,
+            std::cos(angle) * speed,
+            std::sin(angle) * speed
+        );
+        _particles.push_back(p);
+    }
+}
+
 void ParticleSystem::spawnTrail(float x, float y, Direction direction, Color color) {
     float baseAngle = directionToAngle(direction);
     float scatter   = static_cast<float>(_config.trailCount > 1 ? _config.trailScatter : 0);
@@ -151,6 +176,10 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
                 break;
             case pType::Dust:
                 break;
+            case pType::MenuTrail:
+                // MenuTrail particles are spawned directly via spawnMenuTrailAt(),
+                // not through the spawn-request queue — nothing to do here.
+                break;
         }
         registry.removeComponent<ParticleSpawnRequest>(e);
     });
@@ -176,7 +205,9 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
-        float drag = (p.type == pType::Dust) ? 0.98f : 0.92f;
+        float drag = (p.type == pType::Dust)      ? 0.98f
+                   : (p.type == pType::MenuTrail)  ? 0.97f
+                   : 0.92f;
         p.vx *= drag;
         p.vy *= drag;
 
@@ -205,6 +236,20 @@ void ParticleSystem::render() const {
 
 void ParticleSystem::clear() {
     _particles.clear();
+}
+
+void ParticleSystem::clearGameplay() {
+    _particles.erase(
+        std::remove_if(_particles.begin(), _particles.end(),
+            [](const Particle& p) { return p.type != pType::MenuTrail; }),
+        _particles.end());
+}
+
+void ParticleSystem::clearMenuTrail() {
+    _particles.erase(
+        std::remove_if(_particles.begin(), _particles.end(),
+            [](const Particle& p) { return p.type == pType::MenuTrail; }),
+        _particles.end());
 }
 
 size_t ParticleSystem::getParticleCount() const {

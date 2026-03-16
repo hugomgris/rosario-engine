@@ -68,7 +68,8 @@ void AnimationSystem::update(float dt, const ArenaGrid& arena) {
         }
     }
 
-    _currentShapes = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
+    if (!_shapeOverrideActive)
+        _currentShapes = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
 }
 
 void AnimationSystem::render() const {
@@ -98,7 +99,8 @@ void AnimationSystem::notifyArenaSpawning(const ArenaGrid& arena) {
     for (auto& l : _lines)
         l.epoch = _currentEpoch - 1;
 
-    _currentShapes = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
+    _currentShapes       = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
+    _shapeOverrideActive = false;
 }
 
 void AnimationSystem::notifyArenaDespawning(const ArenaGrid& arena) {
@@ -108,8 +110,40 @@ void AnimationSystem::notifyArenaDespawning(const ArenaGrid& arena) {
     for (auto& l : _lines)
         l.epoch = _currentEpoch - 1;
 
-    _currentShapes = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
-    despawnPending = true;
+    _currentShapes       = scaleOutlines(arena.getAllOutlines(_offsetX, _offsetY));
+    _shapeOverrideActive = false;
+    despawnPending       = true;
+}
+
+void AnimationSystem::notifyShapeOverride(std::vector<std::vector<Vector2>> shapes) {
+    _previousShapes = _currentShapes;
+    _currentEpoch++;
+
+    for (auto& l : _lines)
+        l.epoch = _currentEpoch - 1;
+
+    _currentShapes        = std::move(shapes);
+    _shapeOverrideActive  = true;
+}
+
+void AnimationSystem::instantShapeChange(std::vector<std::vector<Vector2>> shapes) {
+    // Instantly swap shapes without any epoch machinery.
+    // All existing lines are cleared so they don't render during the transition.
+    _lines.clear();
+    _currentShapes       = std::move(shapes);
+    _shapeOverrideActive = true;
+    _spawnTimer          = 0.0f;  // reset spawn timer so new lines start spawning immediately
+}
+
+std::vector<std::vector<Vector2>> AnimationSystem::getArenaOutlines() const {
+    // Build a single rectangle using the stored arena bounds
+    std::vector<Vector2> outline = {
+        { static_cast<float>(_offsetX),                    static_cast<float>(_offsetY)                     },
+        { static_cast<float>(_offsetX + _cellSize * 32),   static_cast<float>(_offsetY)                     },
+        { static_cast<float>(_offsetX + _cellSize * 32),   static_cast<float>(_offsetY + _cellSize * 32)    },
+        { static_cast<float>(_offsetX),                    static_cast<float>(_offsetY + _cellSize * 32)    }
+    };
+    return { outline };
 }
 
 std::vector<std::vector<Vector2>> AnimationSystem::scaleOutlines(std::vector<std::vector<Vector2>> raw) const {
