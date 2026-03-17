@@ -14,14 +14,18 @@
 #include "components/RenderComponent.hpp"
 #include "components/SolidTag.hpp"
 #include "components/FoodTag.hpp"
+#include "components/ButtonComponent.hpp"
+#include "components/ButtonActionComponent.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/RenderSystem.hpp"
 #include "systems/PostProcessingSystem.hpp"
+#include "systems/UIInteractionSystem.hpp"
 #include "ui/MenuSystem.hpp"
 #include "ui/TextSystem.hpp"
 #include "ui/UISystem.hpp"
+#include "ui/EventQueue.hpp"
 #include "postprocessing/PostProcessConfigLoader.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "arena/ArenaPresets.hpp"
@@ -117,21 +121,12 @@ int main() {
 	
 	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
-	MenuContext menuCtx;
-	menuCtx.state = &state;
-	menuCtx.mode = &mode;
-	menuCtx.registry = &registry;
-	menuCtx.inputSystem = &inputSystem;
-	menuCtx.playerSnake = &playerSnake;
-	menuCtx.secondSnake = &secondSnake;
-	menuCtx.food = &food;
-	menuCtx.gridWidth = GRID_W;
-	menuCtx.gridHeight = GRID_H;
-	menuCtx.arena = &arena;
-	menuCtx.AIPresets = &AIPresets;
+	// Setup UI systems
+	UIInteractionSystem uiInteractionSystem;
+	EventQueue eventQueue;
 
-	menuSystem.setupStartButtons(menuButtons.start, menuCtx);
-	menuSystem.setupGameOverButtons(menuButtons.gameOver, menuCtx);
+	menuSystem.setupStartButtons(registry, menuButtons.start);
+	menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
 
 	while (true) {
 		if (state == GameState::Exiting || WindowShouldClose()) break;
@@ -150,25 +145,8 @@ int main() {
 			arena.beginSpawn(lineLifetime);
 		}
 
-		// Menu -> gameplay key hook
-		if (IsKeyPressed(KEY_ENTER)) {
-			 if (state == GameState::Menu) {
-				state = GameState::Playing;
-			 } else if (state == GameState::GameOver) {
-				GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
-				state = GameState::Menu;
-				// Re-setup buttons after game reset since entity pointers have changed
-				menuSystem.setupStartButtons(menuButtons.start, menuCtx);
-			 }
-		}
-
 		// Track previous state to detect state changes
 		static GameState previousState = GameState::Menu;
-		if (state == GameState::Playing && previousState != GameState::Playing) {
-			// Initialize game when transitioning to Playing state
-			GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
-		}
-		previousState = state;
 
 		// fresh context each frame
 		FrameContext ctx;
@@ -184,7 +162,7 @@ int main() {
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
-				menuSystem.update(state);
+				uiInteractionSystem.update(registry, eventQueue);
 				break;
 			
 			case GameState::Playing:
@@ -211,10 +189,57 @@ int main() {
 			state = GameState::GameOver;
 		}
 
+		// Process button events from UI
+		for (const auto& event : eventQueue.getEvents()) {
+			switch (event.type) {
+				case GameEvent::Type::ButtonClicked:
+					switch (event.buttonAction) {
+						case ButtonActionType::StartGame:
+							state = GameState::Playing;
+							break;
+						case ButtonActionType::ChangeMode:
+							switch (mode) {
+								case GameMode::SINGLE:
+									mode = GameMode::MULTI;
+									break;
+								case GameMode::MULTI:
+									mode = GameMode::VSAI;
+									break;
+								case GameMode::VSAI:
+									mode = GameMode::SINGLE;
+									break;
+							}
+							break;
+						case ButtonActionType::Quit:
+							state = GameState::Exiting;
+							break;
+						case ButtonActionType::ReturnToMenu:
+							GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
+							state = GameState::Menu;
+							break;
+					}
+					break;
+				default:
+					break;
+			}
+		}
+		eventQueue.clear();
+
+		// State transition initialization (after events have changed state)
+		if (state == GameState::Menu && previousState != GameState::Menu) {
+			menuSystem.setupStartButtons(registry, menuButtons.start);
+		}
+		if (state == GameState::Playing && previousState != GameState::Playing) {
+			GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
+		}
+		if (state == GameState::GameOver && previousState != GameState::GameOver) {
+			menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
+		}
+		previousState = state;
+
 		// RENDER phase
 		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
 		switch (state) {
-			// TODO: this should be delegated to the UI phase
 			case GameState::Menu:
 			case GameState::GameOver:
 			case GameState::Exiting:
@@ -223,10 +248,10 @@ int main() {
 			case GameState::Playing:
 				if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
 					renderSystem.beginMode2D();
-					animationSystem.update(dt, arena);  // update + cache shapes
-					animationSystem.render();           // tunnel lines: behind everything
-					particleSystem.render();            // particles: behind arena/snake
-					renderSystem.render2D(registry, ctx); // arena, food, snakes on top
+					animationSystem.update(dt, arena);
+					animationSystem.render();
+					particleSystem.render();
+					renderSystem.render2D(registry, ctx);
 					renderSystem.endMode2D();
 				} else {
 					renderSystem.render(registry, dt, ctx);
@@ -243,7 +268,7 @@ int main() {
 		uiQueue.clear();
 		switch (state) {
 			case GameState::Menu:
-				menuSystem.buildStartMenuUI(ctx, uiQueue);
+				menuSystem.buildStartMenuUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
 				break;
@@ -257,7 +282,7 @@ int main() {
 				break;
 
 			case GameState::GameOver:
-				menuSystem.buildGameOverUI(ctx, uiQueue);
+				menuSystem.buildGameOverUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
 				break;

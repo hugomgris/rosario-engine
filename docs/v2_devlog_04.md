@@ -646,140 +646,327 @@ This ensures lines never occlude gameplay elements, which would be particularly 
 <br>
 
 ### 4.1.7 Do You Want to See the Menu?
-One last porting thing: the menus! This is going to be tough, as the process needs to go through a handful of really specific steps:
-- The `StateMachine` needs to be recovered from the OOP version
-- Obviously, the states needs to be reinstated
-- A `MenuSystem` needs to be set up, with its own rendering requirements
-- For it to properly work, a `TextSystem` is needed too.
-- The `MenuSystem` needs `Buttons`, which I'll have to think how to build them in the new paradigm
-- The whole loop from menu to gameplay and back will fight the hooking up, I'm sure
 
-With so much stuff, what's most important is to pick a starting point. I think that the `StateMachine` is a good candidate, just an initial way of having a way to build a placeholder start-gameplay-gameover-start loop. So we'll do that, shall we? Let's build an initial version for:
-1. The necessary data structs (`GameState` and `MenuAction`)
-2. A kernel of the two new systems, `MenuSystem` and `TextSystem`
-3. Key hooks to go from start to gameplay and from gameover back to start
-4. The neessary edits in the main game loop to work around the new `StateMachine`
+The menu system poses an interesting architectural challenge. In the OOP version, menus were a state handler with callbacks attached to buttons: click a button, it calls a lambda that changes game state. In an ECS world, that pattern violates the principle of decoupled systems: a UI button shouldn't know about (or hold a reference to) a callback (imagine learning how to set up callbacks just to then figure out that they go against that complex paradigm you're trying to master, so funny). Instead, we need the button system to be a first-class ECS inhabitant, using the same patterns we've relied on everywhere else: **components for data, systems for behavior, and an event queue to decouple concerns**.
 
-#### 4.1.6.1 Data, Data, more Data
-Nothing to write home about here, justa couple of two new enum classes, tucked inside the existing `DataStructs.hpp` in `incs/`:
+The new, ECS focused menu system now has four key pieces:
+
+1. **Button Components**: Data structures defining button state
+2. **EventQueue**: A message bus for button actions (*the need for an event bus was long overdue*)
+3. **ButtonFactory**: Entity spawning from JSON config
+4. **UIInteractionSystem**: Input handling and event emission
+
+So let's go through the new design from start to finish, little by little, step by step, *al pasito*.
+
+#### 4.1.7.1 Button as ECS Entity
+
+A button starts as data, just as every other inhabitant of the game. Four new components needed to be defined to completely built the notion of a button in our new ECS paradigm:
+
 ```cpp
-enum class AppState {
-	Menu,
-	Playing,
-	Paused,
-	GameOver
+// ButtonComponent: the core button state
+struct ButtonComponent {
+	std::string          id;           // "start_button", "mode_button", etc
+	Rectangle            bounds;       // screen-space collision rect
+	ButtonConfig         config;       // visual styling from JSON
+	bool                 hovered;      // updated by UIInteractionSystem
 };
 
-enum class MenuAction {
-	None,
-	StartGame,
-	SwitchMode,
-	Restart,
-	Quit
+// UIRenderableComponent: marker tag so that entities can be rendered by MenuSystem
+struct UIRenderableComponent {};
+
+// UIInteractableComponent: tag so that entities can process mouse input in UIInteractionSystem
+struct UIInteractableComponent {};
+
+// ButtonActionComponent: what actually happens when a button is clicked
+struct ButtonActionComponent {
+	enum class ActionType {
+		StartGame,
+		ChangeMode,
+		Quit,
+		ReturnToMenu
+	};
+	ActionType action;
 };
 ```
 
-<br>
+Considered all together, we can say that the first three provide the button **data**, while the last one carries the button's **behavior type**. Summing up: yeah, buttons are now entities. They can be spawned, destroyed, queried, iteretaed through... Same as any other entity in the build: just ask the `Registry` and work with components!
 
-#### 4.1.7.2
-Now, for the systems, at this point I just need a combination of `Menu` and `Text` that results in a menu state accepting a game-starting key and displaying a "START" text, and the same for the gameover state with its respective hook and text. And while drafting them, a very urgent issue crossed my path: **some elements, buttons in our current port pipeline, are going to need to be handled both by the `MenuSystem` and the `TextSystem`**. This is a classic pitfall for unwanted coupling, so we must tread carefully. The OOP mind, a well intentioned but unseasoned one, might try to hook things up by sending a reference of `TextSystem` to `MenuSystem`, following a thought process in the line of "The menu system manages buttons, which have text labels, and those need to be rendered, so a little reference does no harm". Wrong, it does a lot of harm in the long run: debugging, scaling, diversifying, ... A lot of future-related manouvers will be in absolute peril. So a way to disconnectively connect systems (invented words, that's my jam) is, again, urgent, and given that we're in our illumination path to the ECS heights of programming, the choice seems to be clear: **an event queue**.
+#### 4.1.7.2 Buttons from (press X to)JSON(!!!!)
 
-We'll also need an UI orchestrator, an `UISystem` that directs what will now be UI subsystems (menu, text, etc). But, again, step by step does the game (??).
+Just like collision rules, AI presets, and particle configs, button definitions now live in `data/ButtonConfig.json`:
 
-So, let's set up a **minimal queue model**:
-```cpp
-#pragma once
-
-#include <string>
-#include <vector>
-#include <raylib.h>
-
-struct UIRectCmd {
-	Rectangle   rect;
-	Color       color;
-	bool        outline = false;
-	float       lineThickness = 1.0f;
-};
-
-struct UITextCmd {
-	std::string text;
-	float   x;
-	float   y;
-	float   fontSize;
-	Color   color;
-	bool    centered = false;
-};
-
-struct UIRenderQueue {
-	std::vector<UIRectCmd>  rects;
-	std::vector<UITextCmd>  texts;
-
-	void clear () {
-		rects.clear();
-		texts.clear();
+```json
+{
+	"menus": {
+		"start": [
+			{
+				"id":           "start_button",
+				"label":        "START",
+				"fontSize":     40,
+				"backgroundColor": [30, 30, 30, 255],
+				"hoverColor":      [60, 60, 60, 255],
+				...
+			},
+			{
+				"id":           "mode_button",
+				"label":        "MODE: SINGLE",
+				"fontSize":     32,
+				...
+			}
+		],
+		"gameover": [
+			{
+				"id":           "retry_button",
+				"label":        "RETRY",
+				...
+			},
+			...
+		]
 	}
+}
+```
+
+A `ButtonConfigLoader` parses this into:
+
+```cpp
+class ButtonConfigLoader {
+public:
+	struct ButtonTable {
+		std::map<std::string, std::vector<ButtonConfig>> menus;
+	};
+	static ButtonTable load(const std::string& path);
 };
 ```
 
-- It will work with a couple of initial vectors regarding two different types of commands, those that call for rectangle draws (button outlines) and those that call for text draws (button labels). Each of those is just a simple struct with the necessary data.
-- The queue itself is a struct wrapper around a couple of storing vectors, one for each type of initial commands.
-- The combination of `UISystem` main director, and the `MenuSystem` and `TextSystem` subsystems, will take care of the **two-step process of the queuing: Publish Intent and Command Cnsume**.
-- The clean and incremental target structure is:
-	- `MenuSystem` owns menu logic, button states and selection logic. It does:
-		- button state
-		- selection
-		- hover/click logic
-		- emits commands to `UIRenderQueue`:
-			- `RectCmd` for button/background
-			- `TextCmd` for labels/titles
-	- `TextSystem` flushes `queue.texts`
-	- `UiSystem` flushes `queue.rects`
-	- `main` does:
-		- `uiQueue.clear()`
-		- `menuSystem.buildUI()`
-		- `uiSystem.render()`
-		- `textSystem.render()`
+All button visual properties (colors, sizes, positions) are loaded from JSON. The system doesn't hardcode a single value. ECSing!!!
 
-So the flow will undergo three stages:
-1. Production
-2. Consumption
-3. Orchestration
+#### 4.1.7.3 ButtonFactory: declarative spawning
 
-All while (at least for now) `main` owns the `UIRenderQueue` in order to avoid coupling as much as we can. Producers won't depend on `UISystem`, consumers won't depend on producers, the queue will just be frame-local shared data.
+Instead of `MenuSystem` manually creating button objects and wiring them up, a very OOP way (EUGH) of doing things, we now use a factory:
 
-To sum things up at this point, the `main` loop is going to have to switch case through all the `GameState`s at every phase (Update, Render, UI, Post Processing). The initial setup will have all states be affected by the `PostProcessingSystem`, we'll see down the line if this needs to be tweaked with regards of states/phases, and if so, how. I've also made some changes along the way to some of the naming. What was called `GameState` is now `GameManager`, as it is a class that contains a couple of game managing methods, not really a state tracker. To this regard, a new `GameState` was added to `DataStructs.hpp`. I already have a main loop that correctly builds and compiles and goes into `GameState::Menu`, although without any visual rendering nor logic. I'll do that and come back with some juicy code snippets.
+```cpp
+class ButtonFactory {
+public:
+	static std::vector<Entity> spawnButtonsFromConfig(
+		Registry& registry,
+		const ButtonConfigLoader::MenuButtonTable& config,
+		int screenWidth, int screenHeight
+	);
+};
+```
 
+This function:
+1. Iterates the button config table
+2. Creates an entity for each button
+3. Attaches `ButtonComponent` with position, size, and styling
+4. Attaches marker components (`UIRenderableComponent`, `UIInteractableComponent`)
+5. Attaches `ButtonActionComponent` with the action enum type
+6. Returns a vector of the spawned entity IDs (so `MenuSystem` can track which buttons to render)
 
+The factory handles all the layout math, like centering buttons, spacing them, and converting grid coordinates to screen pixels. `MenuSystem` doesn't touch any of that. Because we're decoupled to the M A X.
 
-## General Assessment: ECS/Data-Driven vs OOP
+#### 4.1.7.4 UIInteractionSystem: Menu Input Handling (or: Mousing!)
 
-Having ported most of the core systems now, it's worth stepping back and taking stock of what actually changed between the two versions, and whether the new architecture delivers on what it promised.
+A new system processes mouse input:
 
-### What the OOP version looked like
+```cpp
+class UIInteractionSystem {
+public:
+	void update(Registry& registry, EventQueue& eventQueue);
+};
+```
 
-The OOP build was structured around a central `Game` class that owned everything: the `Renderer`, `AnimationSystem`, `ParticleSystem`, `AISystem`, the snake objects, the food object, and the arena. Systems communicated by holding pointers or references to each other. `CollisionEffects` called `particleSystem.spawnExplosion()` directly. `Renderer` called `animationSystem.draw()`. Snake objects knew about their own movement logic, their own rendering, and their own collision response. Configuration was hardcoded into class constructors or scattered across `#define`s and `constexpr` globals.
+This system:
+1. Queries for entities with `ButtonComponent` + `UIInteractableComponent` + `ButtonActionComponent`
+2. Gets the mouse position via Raylib
+3. For each button, checks if the mouse is inside its bounds → updates `hovered` state
+4. Checks for a mouse click
+5. If clicked, enqueues a `GameEvent` to the event queue
 
-It worked, and it worked well. But every time something needed to change — say, adding a second snake, or making AI difficulty configurable, or tweaking particle behavior — you were touching the interior of a class, recompiling, and hoping nothing else had assumed something about the state you just changed.
+The core logic here keeps being simple, based around a button lookup, which is *acceptable* in the current build, were there is a small amount of buttons, i.e. the overhead is not important. It looks like this:
 
-### What changed
+```cpp
+void UIInteractionSystem::update(Registry& registry, EventQueue& eventQueue) {
+	Vector2 mousePos = GetMousePosition();
+	bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT);
+	static bool clickHandled = false;  // Prevent multi-button clicks
+	
+	auto buttonView = registry.view<ButtonComponent, UIInteractableComponent, ButtonActionComponent>();
+	
+	for (Entity entity : buttonView) {
+		auto& button = registry.getComponent<ButtonComponent>(entity);
+		auto& action = registry.getComponent<ButtonActionComponent>(entity);
+		
+		// Hover detection
+		button.hovered = CheckCollisionPointRec(mousePos, button.bounds);
+		
+		// Click detection
+		if (button.hovered && mouseClicked && !clickHandled) {
+			eventQueue.enqueue({
+				GameEvent::Type::ButtonClicked,
+				action.action
+			});
+			clickHandled = true;
+		}
+	}
+	
+	if (!mouseClicked) clickHandled = false;  // Reset next frame
+}
+```
 
-**Data is no longer code.** Collision rules, AI presets, particle parameters — none of these live in source files anymore. They live in JSON files under `data/`, parsed at startup into plain structs. Changing the explosion count or an AI's aggression level means editing a text file and relaunching. No recompile, no diff, no risk of accidentally breaking something adjacent. The data/code boundary is now explicit and enforced by the loader pattern.
+Notice: `UIInteractionSystem` has **zero knowledge** of what buttons do. It just detects hovers and clicks, and enqueues events. The event system handles the dispatch.
 
-**Entities don't own behavior.** In the OOP version, a `Snake` object had a `move()` method, a `draw()` method, a `handleCollision()` method. In the new build, a snake is an entity with a `SnakeComponent`, a `MovementComponent`, a `PositionComponent`, a `RenderComponent`, and an optional `AIComponent` or `InputComponent`. The behavior lives in systems — `MovementSystem`, `CollisionSystem`, `RenderSystem`, `AISystem` — which query the registry for entities that have the relevant components and operate on them uniformly. Adding AI to an entity is `registry.addComponent(e, aiComp)`. Removing player input from an entity is `registry.removeComponent<InputComponent>(e)`. Neither operation touches the entity itself nor any other system.
+#### 4.1.7.5 EventQueue: I Could No Longer Pospone The Event Bus
 
-**Systems don't know about each other.** This is the one that required the most discipline to maintain. In the OOP version, it was trivially easy to call `particleSystem.spawn()` from inside `CollisionEffects`. In the new build, `CollisionEffects` doesn't hold a reference to anything. It places a `ParticleSpawnRequest` component on the relevant entity and exits. `ParticleSystem` picks it up next frame. The communication path is: *write data into the ECS, let the right system read it*. `FrameContext` plays the same role for per-frame shared state — instead of systems querying each other for screen dimensions or arena bounds, they read a struct that was populated before the update phase began.
+Lucky for me, this was not a big deal. A simple queue decouples button interaction from game state:
 
-**Short-lived components as messages.** The `ParticleSpawnRequest` pattern is arguably the most ECS-idiomatic thing in the codebase right now. A collision effect, which has no business knowing about particle systems, drops a component onto an entity. A particle system, which has no business knowing about collision rules, reads it and removes it. The component is the message. The registry is the bus. Neither side knows the other exists, and both are trivially testable in isolation.
+```cpp
+struct GameEvent {
+	enum class Type { ButtonClicked, /* others */ };
+	Type type;
+	ButtonActionType buttonAction;  // Only populated for ButtonClicked
+};
 
-### What's still OOP-shaped
+class EventQueue {
+private:
+	std::vector<GameEvent> _events;
+public:
+	void enqueue(const GameEvent& event);
+	const std::vector<GameEvent>& getEvents() const;
+	void clear();
+};
+```
 
-Honest answer: quite a bit. `ArenaGrid` is a class with internal logic and state — it's not a pure data component attached to an entity. `PostProcessingSystem` is a pipeline wrapper that `main` drives explicitly rather than a system that queries the registry. The `Factories` helper still builds entities through a function call rather than through composition of prefab-like data descriptors. And `GameState::resetGame()` is essentially a god-function that touches everything at once.
+This is functionally translated in each frame doing the following:
+1. `UIInteractionSystem` enqueues events to the queue
+2. `main` loop processes the queue
+3. Queue is cleared
 
-None of this is necessarily wrong. Some things *should* be opaque classes with encapsulated state — a rendering pipeline, a GPU texture chain, a pathfinding implementation. The line between "this is a system that operates on components" and "this is a service that other things use" is legitimately blurry, and erasing it entirely in pursuit of purity would probably make the codebase worse, not better. The test is whether a given class needs to *know about* other game objects to do its job. If yes, it should probably be a system talking to the registry. If no, it can stay a class.
+#### 4.1.7.6 MenuSystem: Query, Render, Rinse, Repeat
 
-### Net result
+`MenuSystem` now focuses on spawning and rendering buttons. Nothing more, nothing less. Just the right amount of responsibility.
 
-The new build is meaningfully more data-driven and more composable than the OOP version. New game modes, new entity types, new collision behaviors, new AI difficulties, new particle effects — all of these can now be added by writing JSON and registering a new effect function, without touching existing systems. The tradeoff is that the registry query overhead and the indirection of the component-as-message pattern add a small layer of cognitive load when first reading the code. But that cost pays for itself the moment you want to change something that would've previously required surgery on a class hierarchy.
+```cpp
+class MenuSystem {
+private:
+	std::vector<Entity> _startButtonEntities;
+	std::vector<Entity> _gameOverButtonEntities;
+	
+public:
+	void setupStartButtons(Registry& registry, const ButtonConfigLoader::MenuButtonTable& table);
+	void setupGameOverButtons(Registry& registry, const ButtonConfigLoader::MenuButtonTable& table);
+	void clearStartButtons(Registry& registry);
+	void clearGameOverButtons(Registry& registry);
+	void buildStartMenuUI(Registry& registry, UIRenderQueue& queue);
+	void buildGameOverUI(Registry& registry, UIRenderQueue& queue);
+};
+```
 
-The porting is not done, and the architecture isn't perfect. But the foundation is solid.
+And because things are functionally simplified, the setup is also way more contained, with a rendering phase that just needs to query the `Registry`:
+
+```cpp
+void MenuSystem::setupStartButtons(Registry& registry, const ButtonConfigLoader::MenuButtonTable& table) {
+	clearStartButtons(registry);
+	_startButtonEntities = ButtonFactory::spawnButtonsFromConfig(registry, table, _screenWidth, _screenHeight);
+}
+```
+
+```cpp
+void MenuSystem::buildStartMenuUI(Registry& registry, UIRenderQueue& queue) {
+	auto buttonView = registry.view<ButtonComponent, UIRenderableComponent>();
+	
+	for (Entity entity : buttonView) {
+		// Only render if this button belongs to the start menu
+		if (std::find(_startButtonEntities.begin(), _startButtonEntities.end(), entity) != _startButtonEntities.end()) {
+			auto& button = registry.getComponent<ButtonComponent>(entity);
+			
+			// Enqueue render commands
+			Color bg = button.hovered ? button.config.hoverColor : button.config.backgroundColor;
+			Color outline = button.hovered ? button.config.outlineHoverColor : button.config.outlineColor;
+			
+			queue.rects.push_back(UIRectCmd{ button.bounds, bg, false, 0 });
+			queue.rects.push_back(UIRectCmd{ button.bounds, outline, true, button.config.outlineThickness });
+			queue.texts.push_back(UITextCmd{ button.config.label, button.bounds.x + button.bounds.width * 0.5f, ..., button.config.fontSize, ... });
+		}
+	}
+}
+```
+
+The overall pattern is: **query the buttons, extract their data, enqueue render commands**. No state mutation. No side effects. Pure production of rendering intent. Pure refinement (*? I certainly hope so, this was hard to code tbh*).
+
+#### 4.1.7.7 Main Loop Integration
+
+State transitions now trigger button setup:
+
+```cpp
+// Track previous state to detect state changes
+static GameState previousState = GameState::Menu;
+if (state == GameState::Menu && previousState != GameState::Menu) {
+	menuSystem.setupStartButtons(registry, menuButtons.start);
+}
+if (state == GameState::Playing && previousState != GameState::Playing) {
+	GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
+}
+if (state == GameState::GameOver && previousState != GameState::GameOver) {
+	menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
+}
+previousState = state;
+```
+
+And he update phase is expanded so that it calls the interaction system:
+
+```cpp
+switch (state) {
+	case GameState::Menu:
+	case GameState::GameOver:
+		uiInteractionSystem.update(registry, eventQueue);
+		break;
+	case GameState::Playing:
+		inputSystem.update(registry);
+		// ... other systems
+		break;
+}
+```
+
+And the event processing is straightforward:
+
+```cpp
+for (const auto& event : eventQueue.getEvents()) {
+	if (event.type == GameEvent::Type::ButtonClicked) {
+		switch (event.buttonAction) {
+			case ButtonActionType::StartGame:
+				state = GameState::Playing;
+				break;
+			case ButtonActionType::ChangeMode:
+				mode = (mode == GameMode::SINGLE) ? GameMode::MULTI : GameMode::SINGLE;
+				break;
+			case ButtonActionType::Quit:
+				state = GameState::Exiting;
+				break;
+			case ButtonActionType::ReturnToMenu:
+				GameManager::resetGame(registry, ...);
+				state = GameState::Menu;
+				break;
+		}
+	}
+}
+eventQueue.clear();
+```
+
+And the UI rendering phase enqueues commands:
+
+```cpp
+case GameState::Menu:
+	menuSystem.buildStartMenuUI(registry, uiQueue);
+	uiSystem.renderRects(uiQueue);      // Draw rectangles
+	textSystem.render(uiQueue);         // Draw text
+	break;
+case GameState::GameOver:
+	menuSystem.buildGameOverUI(registry, uiQueue);
+	uiSystem.renderRects(uiQueue);
+	textSystem.render(uiQueue);
+	break;
+```
+
+And I'm happy with all of this.
 
