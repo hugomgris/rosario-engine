@@ -60,5 +60,6 @@ public:
 	void    clear();            // clears everything
 	void    clearGameplay();    // clears Trail + Explosion + Dust (keeps MenuTrail)
 	void    clearMenuTrail();   // clears only MenuTrail
+	void    handleStateTransition(GameState previousState, GameState currentState);
 	size_t  getParticleCount() const;
 };

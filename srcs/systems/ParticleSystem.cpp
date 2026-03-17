@@ -252,6 +252,25 @@ void ParticleSystem::clearMenuTrail() {
         _particles.end());
 }
 
+void ParticleSystem::handleStateTransition(GameState previousState, GameState currentState) {
+    if (previousState == currentState) {
+        return;
+    }
+
+    switch (currentState) {
+        case GameState::Menu:
+        case GameState::Playing:
+        case GameState::GameOver:
+            clearGameplay();
+            _dustSpawnTimer = 0.0f;
+            _trailSpawnTimer = 0.0f;
+            break;
+        case GameState::Paused:
+        case GameState::Exiting:
+            break;
+    }
+}
+
 size_t ParticleSystem::getParticleCount() const {
     return _particles.size();
 }

@@ -52,6 +52,52 @@ static constexpr int SCREEN_H = 1080;
 static constexpr int GRID_W = 32;
 static constexpr int GRID_H = 32;
 
+// TODO: move this somewhere else, I don't like it here in main
+namespace {
+	struct TransitionContext {
+		ParticleSystem& particleSystem;
+		MenuSystem& menuSystem;
+		Registry& registry;
+		const ButtonConfigLoader::ButtonTable& menuButtons;
+		InputSystem& inputSystem;
+		Entity& playerSnake;
+		Entity& secondSnake;
+		Entity& food;
+		ArenaGrid& arena;
+		const AIPresetLoader::PresetTable& AIPresets;
+		GameMode& mode;
+	};
+
+	void applyStateTransitionEffects(
+		GameState& previousState,
+		GameState currentState,
+		TransitionContext& ctx
+	) {
+		ctx.particleSystem.handleStateTransition(previousState, currentState);
+
+		if (currentState == previousState) {
+			return;
+		}
+
+		switch (currentState) {
+			case GameState::Menu:
+				ctx.menuSystem.setupStartButtons(ctx.registry, ctx.menuButtons.start);
+				break;
+			case GameState::Playing:
+				GameManager::resetGame(ctx.registry, ctx.inputSystem, ctx.playerSnake, ctx.secondSnake, ctx.food, GRID_W, GRID_H, ctx.arena, ctx.AIPresets, ctx.mode);
+				break;
+			case GameState::GameOver:
+				ctx.menuSystem.setupGameOverButtons(ctx.registry, ctx.menuButtons.gameOver);
+				break;
+			case GameState::Paused:
+			case GameState::Exiting:
+				break;
+		}
+
+		previousState = currentState;
+	}
+}
+
 int main() {
 	std::srand(static_cast<unsigned>(std::time(nullptr)));
 
@@ -128,6 +174,22 @@ int main() {
 	menuSystem.setupStartButtons(registry, menuButtons.start);
 	menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
 
+	TransitionContext transitionContext {
+		particleSystem,
+		menuSystem,
+		registry,
+		menuButtons,
+		inputSystem,
+		playerSnake,
+		secondSnake,
+		food,
+		arena,
+		AIPresets,
+		mode
+	};
+
+	GameState previousState = state;
+
 	while (true) {
 		if (state == GameState::Exiting || WindowShouldClose()) break;
 
@@ -144,9 +206,6 @@ int main() {
 			float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
 			arena.beginSpawn(lineLifetime);
 		}
-
-		// Track previous state to detect state changes
-		static GameState previousState = GameState::Menu;
 
 		// fresh context each frame
 		FrameContext ctx;
@@ -225,17 +284,8 @@ int main() {
 		}
 		eventQueue.clear();
 
-		// State transition initialization (after events have changed state)
-		if (state == GameState::Menu && previousState != GameState::Menu) {
-			menuSystem.setupStartButtons(registry, menuButtons.start);
-		}
-		if (state == GameState::Playing && previousState != GameState::Playing) {
-			GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
-		}
-		if (state == GameState::GameOver && previousState != GameState::GameOver) {
-			menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
-		}
-		previousState = state;
+		// State transition initialization
+		applyStateTransitionEffects(previousState, state, transitionContext);
 
 		// RENDER phase
 		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
