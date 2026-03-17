@@ -52,7 +52,8 @@ enum class GameState {
 	Menu,
 	Playing,
 	Paused,
-	GameOver
+	GameOver,
+	Exiting
 };
 
 enum class MenuAction {

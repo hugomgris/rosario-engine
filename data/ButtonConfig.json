@@ -1,0 +1,71 @@
+{
+    "start": [
+        {
+            "label": "START",
+            "id": "start",
+            "index": 0,
+            "height": 50.0,
+            "width": 200.0,
+            "outlineColor": [70, 130, 180, 255],
+            "backgroundColor": [23, 23, 23, 255],
+            "textColor": [255, 248, 227, 255],
+            "hoverColor": [255, 248, 227, 255],
+            "outlineHoverColor": [255, 248, 227, 255],
+            "textHoverColor": [23, 23, 23, 255]
+        },
+        {
+            "label": "MODE",
+            "id": "modeChange",
+            "index": 1,
+            "height": 50.0,
+            "width": 200.0,
+            "outlineColor": [70, 130, 180, 255],
+            "backgroundColor": [23, 23, 23, 255],
+            "textColor": [255, 248, 227, 255],
+            "hoverColor": [255, 248, 227, 255],
+            "outlineHoverColor": [255, 248, 227, 255],
+            "textHoverColor": [23, 23, 23, 255]
+        },
+        {
+            "label": "QUIT",
+            "id": "startQuit",
+            "index": 2,
+            "height": 50.0,
+            "width": 200.0,
+            "outlineColor": [70, 130, 180, 255],
+            "backgroundColor": [23, 23, 23, 255],
+            "textColor": [255, 248, 227, 255],
+            "hoverColor": [255, 248, 227, 255],
+            "outlineHoverColor": [255, 248, 227, 255],
+            "textHoverColor": [23, 23, 23, 255]
+        }
+    ],
+    "gameover": [
+        {
+            "label": "MAIN MENU",
+            "id": "returnToMainMenu",
+            "index": 0,
+            "height": 50.0,
+            "width": 200.0,
+            "outlineColor": [70, 130, 180, 255],
+            "backgroundColor": [23, 23, 23, 255],
+            "textColor": [255, 248, 227, 255],
+            "hoverColor": [255, 248, 227, 255],
+            "outlineHoverColor": [255, 248, 227, 255],
+            "textHoverColor": [23, 23, 23, 255]
+        },
+        {
+            "label": "QUIT",
+            "id": "gameoverQuit",
+            "index": 1,
+            "height": 50.0,
+            "width": 200.0,
+            "outlineColor": [70, 130, 180, 255],
+            "backgroundColor": [23, 23, 23, 255],
+            "textColor": [255, 248, 227, 255],
+            "hoverColor": [255, 248, 227, 255],
+            "outlineHoverColor": [255, 248, 227, 255],
+            "textHoverColor": [23, 23, 23, 255]
+        }
+    ]
+}

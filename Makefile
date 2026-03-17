@@ -47,9 +47,10 @@ ANIMATIONS_SRC	:= animations/ParticleConfigLoader.cpp	\
 
 PP_SRC			:= postprocessing/PostProcessConfigLoader.cpp
 
-UI_SRC			:= ui/TextSystem.cpp	\
-					ui/MenuSystem.cpp	\
-					ui/UISystem.cpp
+UI_SRC			:= ui/TextSystem.cpp		\
+					ui/MenuSystem.cpp		\
+					ui/UISystem.cpp			\
+					ui/ButtonConfigLoader.cpp	\
 
 GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
 					helpers/Factories.cpp	\

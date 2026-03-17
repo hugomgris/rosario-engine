@@ -38,6 +38,7 @@
 #include "animations/ParticleConfigLoader.hpp"
 #include "systems/AnimationSystem.hpp"
 #include "animations/TunnelConfigLoader.hpp"
+#include "ui/ButtonConfigLoader.hpp"
 #include "ui/UIQueue.hpp"
 
 // constants
@@ -57,6 +58,8 @@ int main() {
 	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
 	TunnelConfigLoader::PresetTable tunnelPresets = TunnelConfigLoader::load("data/TunnelConfig.json");
 	std::vector<WallPreset> arenaPresetList = ArenaPresetLoader::load("data/ArenaPresets.json");
+	
+	ButtonConfigLoader::ButtonTable menuButtons = ButtonConfigLoader::load("data/ButtonConfig.json");
 
 	// Dispatcher set up
 	CollisionEffectDispatcher dispatcher;
@@ -65,7 +68,8 @@ int main() {
 	// ECS core
 	Registry		registry;
 	UIRenderQueue	uiQueue;
-	GameState		state = GameState::Playing;
+	GameState		state = GameState::Menu;
+	GameMode		mode = GameMode::SINGLE;
 
 	// Gameplay systems
 	InputSystem				inputSystem;
@@ -109,13 +113,28 @@ int main() {
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
-	GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
 	RenderMode renderMode = RenderMode::MODE2D;
-	state = GameState::Menu;
+	
 	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
+	MenuContext menuCtx;
+	menuCtx.state = &state;
+	menuCtx.mode = &mode;
+	menuCtx.registry = &registry;
+	menuCtx.inputSystem = &inputSystem;
+	menuCtx.playerSnake = &playerSnake;
+	menuCtx.secondSnake = &secondSnake;
+	menuCtx.food = &food;
+	menuCtx.gridWidth = GRID_W;
+	menuCtx.gridHeight = GRID_H;
+	menuCtx.arena = &arena;
+	menuCtx.AIPresets = &AIPresets;
+
+	menuSystem.setupStartButtons(menuButtons.start, menuCtx);
+	menuSystem.setupGameOverButtons(menuButtons.gameOver, menuCtx);
+
 	while (true) {
-		if (WindowShouldClose()) break;
+		if (state == GameState::Exiting || WindowShouldClose()) break;
 
 		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
 
@@ -138,8 +157,18 @@ int main() {
 			 } else if (state == GameState::GameOver) {
 				GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, GameMode::VSAI);
 				state = GameState::Menu;
+				// Re-setup buttons after game reset since entity pointers have changed
+				menuSystem.setupStartButtons(menuButtons.start, menuCtx);
 			 }
 		}
+
+		// Track previous state to detect state changes
+		static GameState previousState = GameState::Menu;
+		if (state == GameState::Playing && previousState != GameState::Playing) {
+			// Initialize game when transitioning to Playing state
+			GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
+		}
+		previousState = state;
 
 		// fresh context each frame
 		FrameContext ctx;
@@ -154,7 +183,8 @@ int main() {
 		// UPDATE phase
 		switch (state) {
 			case GameState::Menu:
-				// TODO: what to update in menu?
+			case GameState::GameOver:
+				menuSystem.update(state);
 				break;
 			
 			case GameState::Playing:
@@ -170,9 +200,8 @@ int main() {
 			case GameState::Paused:
 				// Todo implement pause
 				break;
-
-			case GameState::GameOver:
-				// Todo: what to update gameOver?
+			
+			case GameState::Exiting:
 				break;
 		}			
 
@@ -185,10 +214,10 @@ int main() {
 		// RENDER phase
 		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
 		switch (state) {
+			// TODO: this should be delegated to the UI phase
 			case GameState::Menu:
-				menuSystem.buildStartMenuUI(ctx, uiQueue);
-				//uiSystem.renderRects(uiQueue);
-				textSystem.render(uiQueue);
+			case GameState::GameOver:
+			case GameState::Exiting:
 				break;
 			
 			case GameState::Playing:
@@ -208,18 +237,15 @@ int main() {
 			case GameState::Paused:
 				// todo pause stuff
 				break;
-
-			case GameState::GameOver:
-				menuSystem.buildGameOverUI(ctx, uiQueue);
-				textSystem.render(uiQueue);
-				break;
 		}
 
 		// UI phase
 		uiQueue.clear();
 		switch (state) {
 			case GameState::Menu:
-				// todo call menu system buildUI
+				menuSystem.buildStartMenuUI(ctx, uiQueue);
+				uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
 				break;
 			
 			case GameState::Playing:
@@ -231,11 +257,16 @@ int main() {
 				break;
 
 			case GameState::GameOver:
-				// todo call menu system buildUI
+				menuSystem.buildGameOverUI(ctx, uiQueue);
+				uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
+				break;
+
+			case GameState::Exiting:
 				break;
 		}
-		uiSystem.renderRects(uiQueue);
-		textSystem.render(uiQueue);
+		/* uiSystem.renderRects(uiQueue);
+		textSystem.render(uiQueue); */
 		
 		// end pp capture
 		postProcessingSystem.endCapture();
