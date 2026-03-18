@@ -26,7 +26,7 @@ public:
             button.config = buttonConfig;
             button.bounds = {
                 (screenWidth / 2.0f) - (buttonConfig.width / 2.0f),
-                (screenHeight / 2.0f) - (buttonConfig.height / 2.0f) + (buttonConfig.index * buttonConfig.verticalSpacing),
+                (screenHeight * button.config.verticalPositionFactor) - (buttonConfig.height / 2.0f) + (buttonConfig.index * buttonConfig.verticalSpacing),
                 buttonConfig.width,
                 buttonConfig.height
             };

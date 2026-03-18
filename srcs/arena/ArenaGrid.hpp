@@ -72,6 +72,8 @@ class ArenaGrid {
 		int getFullWidth()	const { return _gridWidth; }
 		int getFullHeight()	const { return _gridHeight; }
 
+		void setMenuArena();
+
 		void	beginSpawn(float solidifyDelay);
 		void	tickSpawnTimer(float dt);
 		bool	isSpawning() const;

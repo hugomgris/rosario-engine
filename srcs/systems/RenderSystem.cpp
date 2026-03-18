@@ -33,16 +33,19 @@ void RenderSystem::init(int gridWidth, int gridHeight) {
 }
 
 // entry point
-void RenderSystem::fillContext(FrameContext& ctx) const {
+void RenderSystem::fillContext(FrameContext& ctx, GameState* state) const {
 	ctx.arenaBounds = {
 		_arenaOffsetX,
 		_arenaOffsetY,
 		_arenaWidth,
 		_arenaHeight
 	};
+	bool stateIsMenu = false;
+	if (state && (*state == GameState::Menu || *state == GameState::GameOver)) stateIsMenu = true;
+
 	ctx.cellSize	= _squareSize;
-	ctx.gameAreaX	= _gameAreaX;
-	ctx.gameAreaY	= _gameAreaY;
+	ctx.gameAreaX	= stateIsMenu ? 0 :_gameAreaX;
+	ctx.gameAreaY	= stateIsMenu ? 0 :_gameAreaY;
 }
 
 void RenderSystem::render(Registry& registry, float deltaTime, FrameContext& ctx) {
@@ -367,4 +370,9 @@ void RenderSystem::drawCubeCustomFaces(Vector3 position, float width, float heig
 	
 	rlEnd();
 	rlPopMatrix();
+}
+
+void RenderSystem::renderMenu() {
+	Rectangle border = { 0, 0, static_cast<float>(_screenWidth), static_cast<float>(_screenHeight) };
+	DrawRectangleLinesEx(border, _squareSize, customWhite);  
 }

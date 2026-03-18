@@ -50,6 +50,7 @@ ButtonConfig parseButtonConfig(const json& entry, ButtonMenu menu) {
 	cfg.index   = entry.at("index").get<int>();
 	cfg.height  = entry.at("height").get<float>();
 	cfg.width   = entry.at("width").get<float>();
+	cfg.verticalPositionFactor = entry.at("verticalPositionFactor").get<float>();
 	cfg.fontSize = entry.contains("fontSize")
 		? entry.at("fontSize").get<float>()
 		: cfg.fontSize;

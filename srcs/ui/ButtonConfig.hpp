@@ -15,6 +15,7 @@ struct ButtonConfig {
     int             index;
     float           height;
     float           width;
+    float           verticalPositionFactor;
     float           fontSize = 24.0f;
     float           outlineThickness = 2.0f;
     float           verticalSpacing = 100.0f;

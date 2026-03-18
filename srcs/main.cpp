@@ -52,6 +52,9 @@ static constexpr int SCREEN_H = 1080;
 static constexpr int GRID_W = 32;
 static constexpr int GRID_H = 32;
 
+static constexpr int MENU_W = 60;
+static constexpr int MENU_H = 33;
+
 // TODO: move this somewhere else, I don't like it here in main
 namespace {
 	struct TransitionContext {
@@ -151,8 +154,9 @@ int main() {
 		FrameContext tmpCtx;
 		tmpCtx.arena = &tmpArena;
 		tmpCtx.state = &state;
-		tmpCtx.gridWidth = GRID_W; tmpCtx.gridHeight = GRID_H;
-		renderSystem.fillContext(tmpCtx);
+		tmpCtx.gridWidth = GRID_W;
+		tmpCtx.gridHeight = GRID_H;
+		renderSystem.fillContext(tmpCtx, nullptr);
 		animationSystem.init(SCREEN_W, SCREEN_H,
 			static_cast<int>(tmpCtx.arenaBounds.x),
 			static_cast<int>(tmpCtx.arenaBounds.y),
@@ -211,17 +215,21 @@ int main() {
 		FrameContext ctx;
 		ctx.arena       = &arena;
 		ctx.state		= &state;
-		ctx.gridWidth   = GRID_W;
-		ctx.gridHeight  = GRID_H;
+		ctx.gridWidth   = state == GameState::Menu ? MENU_W : GRID_W;
+		ctx.gridHeight  = state == GameState::Menu ? MENU_H : GRID_W;
 		ctx.renderMode  = &renderMode;
 		ctx.playerDied  = false;
-		renderSystem.fillContext(ctx);
+		renderSystem.fillContext(ctx, &state);
+
+		if (state == GameState::Menu) arena.setMenuArena();
 
 		// UPDATE phase
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
 				uiInteractionSystem.update(registry, eventQueue);
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
 				break;
 			
 			case GameState::Playing:
@@ -230,6 +238,7 @@ int main() {
 				movementSystem.update(registry, dt);
 				collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
 				arena.tickSpawnTimer(dt);
 				arena.tickDespawnTimer(dt);
 				break;
@@ -249,6 +258,7 @@ int main() {
 		}
 
 		// Process button events from UI
+		// Maybe there's a better way to code this than 3 nested switches, but hell yeah
 		for (const auto& event : eventQueue.getEvents()) {
 			switch (event.type) {
 				case GameEvent::Type::ButtonClicked:
@@ -292,13 +302,17 @@ int main() {
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
-			case GameState::Exiting:
+				renderSystem.beginMode2D();
+				animationSystem.render();
+				particleSystem.render();
+				renderSystem.renderMenu();
+				renderSystem.endMode2D();
 				break;
 			
 			case GameState::Playing:
 				if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
 					renderSystem.beginMode2D();
-					animationSystem.update(dt, arena);
+					//animationSystem.update(dt, arena);
 					animationSystem.render();
 					particleSystem.render();
 					renderSystem.render2D(registry, ctx);
@@ -311,6 +325,9 @@ int main() {
 
 			case GameState::Paused:
 				// todo pause stuff
+				break;
+			
+			case GameState::Exiting:
 				break;
 		}
 

@@ -1,6 +1,6 @@
 {
     "dust": {
-        "maxDensity":       15,
+        "maxDensity":       20,
         "spawnInterval":    0.08,
         "minSize":          3.0,
         "maxSize":          15.0,
