@@ -84,12 +84,15 @@ namespace {
 
 		switch (currentState) {
 			case GameState::Menu:
+				ctx.arena.setMenuArena();
 				ctx.menuSystem.setupStartButtons(ctx.registry, ctx.menuButtons.start);
 				break;
 			case GameState::Playing:
+				ctx.arena.setGameplayArena();
 				GameManager::resetGame(ctx.registry, ctx.inputSystem, ctx.playerSnake, ctx.secondSnake, ctx.food, GRID_W, GRID_H, ctx.arena, ctx.AIPresets, ctx.mode);
 				break;
 			case GameState::GameOver:
+				ctx.arena.setMenuArena();
 				ctx.menuSystem.setupGameOverButtons(ctx.registry, ctx.menuButtons.gameOver);
 				break;
 			case GameState::Paused:
@@ -166,6 +169,7 @@ int main() {
 
 	// initial world
 	ArenaGrid arena(GRID_W, GRID_H);
+	arena.setMenuArena();
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
 	RenderMode renderMode = RenderMode::MODE2D;
 	
@@ -215,13 +219,16 @@ int main() {
 		FrameContext ctx;
 		ctx.arena       = &arena;
 		ctx.state		= &state;
-		ctx.gridWidth   = state == GameState::Menu ? MENU_W : GRID_W;
-		ctx.gridHeight  = state == GameState::Menu ? MENU_H : GRID_W;
+		const bool menuLikeState = (state == GameState::Menu || state == GameState::GameOver);
+		ctx.gridWidth   = menuLikeState ? MENU_W : GRID_W;
+		ctx.gridHeight  = menuLikeState ? MENU_H : GRID_H;
 		ctx.renderMode  = &renderMode;
 		ctx.playerDied  = false;
 		renderSystem.fillContext(ctx, &state);
-
-		if (state == GameState::Menu) arena.setMenuArena();
+		animationSystem.init(SCREEN_W, SCREEN_H,
+			static_cast<int>(ctx.arenaBounds.x),
+			static_cast<int>(ctx.arenaBounds.y),
+			ctx.cellSize);
 
 		// UPDATE phase
 		switch (state) {
@@ -305,7 +312,7 @@ int main() {
 				renderSystem.beginMode2D();
 				animationSystem.render();
 				particleSystem.render();
-				renderSystem.renderMenu();
+				renderSystem.renderMenu(ctx);
 				renderSystem.endMode2D();
 				break;
 			

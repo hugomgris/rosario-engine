@@ -34,18 +34,46 @@ void RenderSystem::init(int gridWidth, int gridHeight) {
 
 // entry point
 void RenderSystem::fillContext(FrameContext& ctx, GameState* state) const {
+	bool stateIsMenu = false;
+	if (state && (*state == GameState::Menu || *state == GameState::GameOver)) stateIsMenu = true;
+
+	if (stateIsMenu && ctx.gridWidth > 0 && ctx.gridHeight > 0) {
+		int usableWidth = _screenWidth - (2 * _borderThickness);
+		int usableHeight = _screenHeight - (2 * _borderThickness);
+
+		int cellFromWidth = usableWidth / ctx.gridWidth;
+		int cellFromHeight = usableHeight / ctx.gridHeight;
+		int menuCellSize = (cellFromWidth < cellFromHeight) ? cellFromWidth : cellFromHeight;
+		if (menuCellSize < 1) menuCellSize = 1;
+		int menuBorderThickness = menuCellSize;
+
+		float menuArenaWidth = static_cast<float>(ctx.gridWidth * menuCellSize + (2 * menuBorderThickness));
+		float menuArenaHeight = static_cast<float>(ctx.gridHeight * menuCellSize + (2 * menuBorderThickness));
+		float menuOffsetX = (_screenWidth - menuArenaWidth) / 2.0f;
+		float menuOffsetY = (_screenHeight - menuArenaHeight) / 2.0f;
+
+		ctx.arenaBounds = {
+			menuOffsetX,
+			menuOffsetY,
+			menuArenaWidth,
+			menuArenaHeight
+		};
+		ctx.cellSize = menuCellSize;
+		ctx.gameAreaX = menuOffsetX + menuBorderThickness;
+		ctx.gameAreaY = menuOffsetY + menuBorderThickness;
+		return;
+	}
+
 	ctx.arenaBounds = {
 		_arenaOffsetX,
 		_arenaOffsetY,
 		_arenaWidth,
 		_arenaHeight
 	};
-	bool stateIsMenu = false;
-	if (state && (*state == GameState::Menu || *state == GameState::GameOver)) stateIsMenu = true;
 
 	ctx.cellSize	= _squareSize;
-	ctx.gameAreaX	= stateIsMenu ? 0 :_gameAreaX;
-	ctx.gameAreaY	= stateIsMenu ? 0 :_gameAreaY;
+	ctx.gameAreaX	= _gameAreaX;
+	ctx.gameAreaY	= _gameAreaY;
 }
 
 void RenderSystem::render(Registry& registry, float deltaTime, FrameContext& ctx) {
@@ -80,20 +108,20 @@ Vector2 RenderSystem::gridToScreen2D(int gridX, int gridY) const {
 	};
 }
 
-Color RenderSystem::baseColorToRaylib(const BaseColor& c) const {
-	return { c.r, c.g, c.b, c.a };
+Color RenderSystem::baseColorToRaylib(const BaseColor& color) const {
+	return { color.r, color.g, color.b, color.a };
 }
 
 // 2D pipeline
 void RenderSystem::render2D(Registry& registry, const FrameContext& ctx) {
 	if (ctx.arena)
-		drawArena2D(*ctx.arena);
+		drawArena2D(*ctx.arena, ctx);
 
 	drawFood2D(registry);
 	drawSnakes2D(registry);
 }
 
-void RenderSystem::drawArena2D(const ArenaGrid& arena) const {
+void RenderSystem::drawArena2D(const ArenaGrid& arena, const FrameContext& ctx) const {
 	const bool  spawning   = arena.isSpawning();
 	const bool  despawning = arena.isDespawning();
 	const float spawnAlpha = spawning   ? arena.getSpawnFadeProgress()   : 1.0f;
@@ -113,19 +141,26 @@ void RenderSystem::drawArena2D(const ArenaGrid& arena) const {
 			int gameX = gx - 1;
 			int gameY = gy - 1;
 
-			Color c = wallColor;
+			bool inMenuState = false;
+			if (*ctx.state == GameState::Menu || *ctx.state == GameState::GameOver)
+				inMenuState = true;
+
+			Color color = inMenuState ? customWhite : wallColor;
 			if (cell == CellType::Obstacle) {
-				if (spawning) c.a = static_cast<unsigned char>(spawnAlpha * 255.0f);
+				if (spawning) color.a = static_cast<unsigned char>(spawnAlpha * 255.0f);
 			} else if (cell == CellType::DespawningSolid) {
-				c.a = static_cast<unsigned char>(despAlpha * 255.0f);
+				color.a = static_cast<unsigned char>(despAlpha * 255.0f);
 			} else if (cell == CellType::Wall) {
-				c.a = 255.0f;
+				color.a = 255.0f;
 			}
 
-			Vector2 screen = gridToScreen2D(gameX, gameY);
+			Vector2 screen = {
+				ctx.gameAreaX + static_cast<float>(gameX * ctx.cellSize),
+				ctx.gameAreaY + static_cast<float>(gameY * ctx.cellSize)
+			};
 			DrawRectangle(
 				static_cast<int>(screen.x), static_cast<int>(screen.y),
-				_squareSize, _squareSize, c
+				ctx.cellSize, ctx.cellSize, color
 			);
 		}
 	}
@@ -372,7 +407,7 @@ void RenderSystem::drawCubeCustomFaces(Vector3 position, float width, float heig
 	rlPopMatrix();
 }
 
-void RenderSystem::renderMenu() {
-	Rectangle border = { 0, 0, static_cast<float>(_screenWidth), static_cast<float>(_screenHeight) };
-	DrawRectangleLinesEx(border, _squareSize, customWhite);  
+void RenderSystem::renderMenu(const FrameContext& ctx) {
+	if (ctx.arena)
+		drawArena2D(*ctx.arena, ctx);
 }

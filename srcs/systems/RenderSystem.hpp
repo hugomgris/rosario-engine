@@ -44,7 +44,7 @@ class RenderSystem {
 		// 2D helpers
 		void drawSnakes2D(Registry& registry);  // non-const: places ParticleSpawnRequests
 		void drawFood2D(Registry& registry) const;
-		void drawArena2D(const ArenaGrid& arena) const;
+		void drawArena2D(const ArenaGrid& arena, const FrameContext& ctx) const;
 
 		// 3D helpers
 		void setupCamera3D();
@@ -66,7 +66,7 @@ class RenderSystem {
 		void fillContext(FrameContext& ctx, GameState* state) const;  // populates arenaBounds + cellSize before update phase
 		void render(Registry& registry, float deltaTime, FrameContext& ctx);
 		void render2D(Registry& registry, const FrameContext& ctx);  // draw without Mode2D bracket
-		void renderMenu();
+		void renderMenu(const FrameContext& ctx);
 		void beginMode2D() const;
 		void endMode2D() const;
 };

@@ -35,6 +35,8 @@ class ArenaGrid {
 		
 		int _gridWidth;
 		int _gridHeight;
+		int _defaultGridWidth;
+		int _defaultGridHeight;
 
 		float _spawnTimer		= 0.0f;
 		float _spawnDuration	= 0.0f;
@@ -73,6 +75,7 @@ class ArenaGrid {
 		int getFullHeight()	const { return _gridHeight; }
 
 		void setMenuArena();
+		void setGameplayArena();
 
 		void	beginSpawn(float solidifyDelay);
 		void	tickSpawnTimer(float dt);

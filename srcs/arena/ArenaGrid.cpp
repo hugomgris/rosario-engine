@@ -3,7 +3,8 @@
 
 // construction
 ArenaGrid::ArenaGrid(int width, int height)
-	: _gridWidth(width + 2), _gridHeight(height + 2) {
+	: _gridWidth(width + 2), _gridHeight(height + 2),
+	  _defaultGridWidth(width + 2), _defaultGridHeight(height + 2) {
 	clearArena();
 }
 
@@ -16,7 +17,7 @@ void ArenaGrid::setCell(int x, int y, CellType type) {
 }
 
 CellType ArenaGrid::getCell(int x, int y) const {
-	if (y < 0 || y >= _gridWidth || x < 0 || x >= _gridWidth - 2) {
+	if (y < 0 || y >= _gridHeight - 2 || x < 0 || x >= _gridWidth - 2) {
 		return CellType::Wall;
 	}
 	return _grid[y + 1][x + 1];
@@ -33,7 +34,7 @@ std::vector<Vec2> ArenaGrid::getAvailableCells() const {
 	std::vector<Vec2> free;
 
 	for (int y = 1; y < _gridHeight - 1; ++y) {
-		for (int x = 1; x < _gridHeight - 1; ++x) {
+		for (int x = 1; x < _gridWidth - 1; ++x) {
 			if (_grid[y][x] == CellType::Empty) {
 				free.push_back({ x - 1, y - 1 });
 			}
@@ -263,4 +264,28 @@ bool ArenaGrid::isDespawning() const {
 float ArenaGrid::getDespawnFadeProgress() const {
 	if (_fadeOutDuration <= 0.0f || _fadeOutTimer <= 0.0f) return 0.0f;
 	return _fadeOutTimer / _fadeOutDuration;
+}
+
+void ArenaGrid::setMenuArena() {
+	static constexpr int MENU_PLAY_W = 60;
+	static constexpr int MENU_PLAY_H = 33;
+
+	const int targetGridWidth  = MENU_PLAY_W + 2;
+	const int targetGridHeight = MENU_PLAY_H + 2;
+
+	if (_gridWidth != targetGridWidth || _gridHeight != targetGridHeight) {
+		_gridWidth = targetGridWidth;
+		_gridHeight = targetGridHeight;
+	}
+
+	clearArena();
+}
+
+void ArenaGrid::setGameplayArena() {
+	if (_gridWidth != _defaultGridWidth || _gridHeight != _defaultGridHeight) {
+		_gridWidth = _defaultGridWidth;
+		_gridHeight = _defaultGridHeight;
+	}
+
+	clearArena();
 }
