@@ -1,12 +1,29 @@
 {
   "presets": [
     {
+      "id": "menu_logo",
+      "text": "rosario",
+      "x": 960,
+      "y": 130,
+      "scale": 2.0,
+      "centerX": true,
+      "color": [230, 230, 230, 255],
+      "visibleInStates": ["Menu"]
+    },
+    {
       "id": "gameover_title",
-      "text": "ga\n o",
-      "x": 640,
+      "text": "game\n over",
+      "x": 960,
       "y": 180,
       "scale": 2.0,
+      "centerX": true,
       "color": [230, 230, 230, 255],
+      "glyphOverrides": [
+        { "index": 0, "glyph": "g_logo" }
+      ],
+      "glyphLigatures": [
+        { "index": 1, "length": 2, "glyph": "am_join" }
+      ],
       "visibleInStates": ["GameOver"]
     }
   ]

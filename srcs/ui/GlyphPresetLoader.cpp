@@ -28,6 +28,7 @@ GlyphPresetLoader::PresetTable GlyphPresetLoader::load(const std::string& path) 
 			entry.at("y").get<float>()
 		};
 		preset.scale = entry.value("scale", 1.0f);
+		preset.centerX = entry.value("centerX", false);
 		preset.visible = entry.value("visible", false);
 
 		if (entry.contains("color") && entry.at("color").is_array() && entry.at("color").size() == 4) {
@@ -38,6 +39,24 @@ GlyphPresetLoader::PresetTable GlyphPresetLoader::load(const std::string& path) 
 				static_cast<unsigned char>(c.at(2).get<int>()),
 				static_cast<unsigned char>(c.at(3).get<int>())
 			};
+		}
+
+		if (entry.contains("glyphOverrides") && entry.at("glyphOverrides").is_array()) {
+			for (const auto& override : entry.at("glyphOverrides")) {
+				size_t index = override.at("index").get<size_t>();
+				std::string glyphId = override.at("glyph").get<std::string>();
+				preset.glyphOverrides[index] = glyphId;
+			}
+		}
+
+		if (entry.contains("glyphLigatures") && entry.at("glyphLigatures").is_array()) {
+			for (const auto& ligature : entry.at("glyphLigatures")) {
+				size_t index = ligature.at("index").get<size_t>();
+				GlyphLigatureOverride override;
+				override.length = ligature.value("length", static_cast<size_t>(2));
+				override.glyph = ligature.at("glyph").get<std::string>();
+				preset.glyphLigatures[index] = override;
+			}
 		}
 
 		table[preset.id] = preset;

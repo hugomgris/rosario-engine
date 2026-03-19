@@ -63,11 +63,22 @@ static constexpr int MENU_H = 33;
 
 // TODO: move this somewhere else, I don't like it here in main
 namespace {
+	bool tryMakePresetTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
+									const std::string& id,
+									PixelTextComponent& outTemplate) {
+		auto it = glyphPresets.find(id);
+		if (it == glyphPresets.end()) {
+			return false;
+		}
+
+		outTemplate = it->second;
+		outTemplate.visible = false;
+		return true;
+	}
+
 	PixelTextComponent makeGameOverTitleTemplate(const GlyphPresetLoader::PresetTable& glyphPresets) {
-		auto it = glyphPresets.find("gameover_title");
-		if (it != glyphPresets.end()) {
-			PixelTextComponent preset = it->second;
-			preset.visible = false;
+		PixelTextComponent preset;
+		if (tryMakePresetTemplate(glyphPresets, "gameover_title", preset)) {
 			return preset;
 		}
 
@@ -81,14 +92,19 @@ namespace {
 		};
 	}
 
-	Entity ensureGameOverTitleEntity(Registry& registry, Entity& gameOverTitle, const PixelTextComponent& gameOverTemplate) {
-		if (registry.hasComponent<PixelTextComponent>(gameOverTitle)
-			&& registry.hasComponent<PixelTextLayoutComponent>(gameOverTitle)) {
-			return gameOverTitle;
+	bool makeMenuLogoTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
+								PixelTextComponent& outTemplate) {
+		return tryMakePresetTemplate(glyphPresets, "menu_logo", outTemplate);
+	}
+
+	Entity ensurePixelTextEntity(Registry& registry, Entity& entity, const PixelTextComponent& templateData) {
+		if (registry.hasComponent<PixelTextComponent>(entity)
+			&& registry.hasComponent<PixelTextLayoutComponent>(entity)) {
+			return entity;
 		}
 
-		gameOverTitle = Factories::spawnPixelText(registry, gameOverTemplate, true);
-		return gameOverTitle;
+		entity = Factories::spawnPixelText(registry, templateData, true);
+		return entity;
 	}
 
 	struct TransitionContext {
@@ -181,8 +197,14 @@ int main() {
 
 	textSystem.init();
 	PixelTextComponent gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
+	PixelTextComponent menuLogoTemplate;
+	const bool hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
 
 	Entity gameOverTitle = Factories::spawnPixelText(registry, gameOverTitleTemplate, true);
+	Entity menuLogo(0u);
+	if (hasMenuLogoTemplate) {
+		menuLogo = Factories::spawnPixelText(registry, menuLogoTemplate, true);
+	}
 
 	// Visual systems
 	PostProcessingSystem    postProcessingSystem;
@@ -389,7 +411,7 @@ int main() {
 		uiQueue.clear();
 		switch (state) {
 			case GameState::Menu:
-				ensureGameOverTitleEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
 				{
 					auto& title = registry.getComponent<PixelTextComponent>(gameOverTitle);
 					auto& layout = registry.getComponent<PixelTextLayoutComponent>(gameOverTitle);
@@ -398,6 +420,17 @@ int main() {
 						layout.dirty = true;
 					}
 				}
+
+				if (hasMenuLogoTemplate) {
+					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+					auto& logo = registry.getComponent<PixelTextComponent>(menuLogo);
+					auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
+					if (!logo.visible) {
+						logo.visible = true;
+						layout.dirty = true;
+					}
+				}
+
 				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildStartMenuUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
@@ -405,7 +438,7 @@ int main() {
 				pixelTextRenderSystem.render(registry);
 				break;
 			case GameState::GameOver:
-				ensureGameOverTitleEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
 				{
 					auto& title = registry.getComponent<PixelTextComponent>(gameOverTitle);
 					auto& layout = registry.getComponent<PixelTextLayoutComponent>(gameOverTitle);
@@ -414,6 +447,17 @@ int main() {
 						layout.dirty = true;
 					}
 				}
+
+				if (hasMenuLogoTemplate) {
+					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+					auto& logo = registry.getComponent<PixelTextComponent>(menuLogo);
+					auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
+					if (logo.visible) {
+						logo.visible = false;
+						layout.dirty = true;
+					}
+				}
+
 				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildGameOverUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
