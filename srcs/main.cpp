@@ -16,6 +16,8 @@
 #include "components/FoodTag.hpp"
 #include "components/ButtonComponent.hpp"
 #include "components/ButtonActionComponent.hpp"
+#include "components/PixelTextComponent.hpp"
+#include "components/PixelTextLayoutComponent.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/CollisionSystem.hpp"
@@ -44,6 +46,10 @@
 #include "animations/TunnelConfigLoader.hpp"
 #include "ui/ButtonConfigLoader.hpp"
 #include "ui/UIQueue.hpp"
+#include "ui/GlyphLibraryLoader.hpp"
+#include "ui/GlyphPresetLoader.hpp"
+#include "ui/PixelTextLayoutSystem.hpp"
+#include "ui/PixelTextRenderSystem.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -57,6 +63,34 @@ static constexpr int MENU_H = 33;
 
 // TODO: move this somewhere else, I don't like it here in main
 namespace {
+	PixelTextComponent makeGameOverTitleTemplate(const GlyphPresetLoader::PresetTable& glyphPresets) {
+		auto it = glyphPresets.find("gameover_title");
+		if (it != glyphPresets.end()) {
+			PixelTextComponent preset = it->second;
+			preset.visible = false;
+			return preset;
+		}
+
+		return PixelTextComponent{
+			.id = "gameover_title",
+			.text = "GAME OVER",
+			.position = {640.0f, 180.0f},
+			.scale = 2.0f,
+			.color = customWhite,
+			.visible = false
+		};
+	}
+
+	Entity ensureGameOverTitleEntity(Registry& registry, Entity& gameOverTitle, const PixelTextComponent& gameOverTemplate) {
+		if (registry.hasComponent<PixelTextComponent>(gameOverTitle)
+			&& registry.hasComponent<PixelTextLayoutComponent>(gameOverTitle)) {
+			return gameOverTitle;
+		}
+
+		gameOverTitle = Factories::spawnPixelText(registry, gameOverTemplate, true);
+		return gameOverTitle;
+	}
+
 	struct TransitionContext {
 		ParticleSystem& particleSystem;
 		MenuSystem& menuSystem;
@@ -114,6 +148,8 @@ int main() {
 	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
 	TunnelConfigLoader::PresetTable tunnelPresets = TunnelConfigLoader::load("data/TunnelConfig.json");
 	std::vector<WallPreset> arenaPresetList = ArenaPresetLoader::load("data/ArenaPresets.json");
+	GlyphLibrary glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
+	GlyphPresetLoader::PresetTable glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
 	
 	ButtonConfigLoader::ButtonTable menuButtons = ButtonConfigLoader::load("data/ButtonConfig.json");
 
@@ -140,8 +176,13 @@ int main() {
 	MenuSystem	menuSystem(SCREEN_W, SCREEN_H);
 	TextSystem	textSystem;
 	UISystem	uiSystem;
+	PixelTextLayoutSystem pixelTextLayoutSystem;
+	PixelTextRenderSystem pixelTextRenderSystem;
 
 	textSystem.init();
+	PixelTextComponent gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
+
+	Entity gameOverTitle = Factories::spawnPixelText(registry, gameOverTitleTemplate, true);
 
 	// Visual systems
 	PostProcessingSystem    postProcessingSystem;
@@ -348,14 +389,36 @@ int main() {
 		uiQueue.clear();
 		switch (state) {
 			case GameState::Menu:
+				ensureGameOverTitleEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				{
+					auto& title = registry.getComponent<PixelTextComponent>(gameOverTitle);
+					auto& layout = registry.getComponent<PixelTextLayoutComponent>(gameOverTitle);
+					if (title.visible) {
+						title.visible = false;
+						layout.dirty = true;
+					}
+				}
+				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildStartMenuUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
+				pixelTextRenderSystem.render(registry);
 				break;
 			case GameState::GameOver:
+				ensureGameOverTitleEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				{
+					auto& title = registry.getComponent<PixelTextComponent>(gameOverTitle);
+					auto& layout = registry.getComponent<PixelTextLayoutComponent>(gameOverTitle);
+					if (!title.visible) {
+						title.visible = true;
+						layout.dirty = true;
+					}
+				}
+				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildGameOverUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
+				pixelTextRenderSystem.render(registry);
 				break;
 			case GameState::Playing:
 			case GameState::Paused:

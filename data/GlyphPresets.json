@@ -1,0 +1,13 @@
+{
+  "presets": [
+    {
+      "id": "gameover_title",
+      "text": "ga\n o",
+      "x": 640,
+      "y": 180,
+      "scale": 2.0,
+      "color": [230, 230, 230, 255],
+      "visibleInStates": ["GameOver"]
+    }
+  ]
+}

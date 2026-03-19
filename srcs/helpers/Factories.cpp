@@ -63,3 +63,14 @@ Entity Factories::spawnFood(Registry& registry, Vec2 pos) {
 	
 	return e;
 }
+
+Entity Factories::spawnPixelText(Registry& registry,
+							 const PixelTextComponent& pixelText,
+							 bool withLayout) {
+	Entity e = registry.createEntity();
+	registry.addComponent(e, pixelText);
+	if (withLayout) {
+		registry.addComponent(e, PixelTextLayoutComponent{});
+	}
+	return e;
+}

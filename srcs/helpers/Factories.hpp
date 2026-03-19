@@ -11,6 +11,8 @@
 #include "../components/AIComponent.hpp"
 #include "../components/FoodTag.hpp"
 #include "../components/SolidTag.hpp"
+#include "../components/PixelTextComponent.hpp"
+#include "../components/PixelTextLayoutComponent.hpp"
 #include "../arena/ArenaGrid.hpp"
 #include "../systems/InputSystem.hpp"
 #include "../AI/AIPresetLoader.hpp"
@@ -36,4 +38,8 @@ class Factories {
 								const AIPresetLoader::PresetTable& presets);
 
 		static Entity spawnFood(Registry& registry, Vec2 pos);
+
+		static Entity spawnPixelText(Registry& registry,
+									const PixelTextComponent& pixelText,
+									bool withLayout = true);
 };
