@@ -38,12 +38,14 @@ void RenderSystem::fillContext(FrameContext& ctx, GameState* state) const {
 	if (state && (*state == GameState::Menu || *state == GameState::GameOver)) stateIsMenu = true;
 
 	if (stateIsMenu && ctx.gridWidth > 0 && ctx.gridHeight > 0) {
-		int usableWidth = _screenWidth - (2 * _borderThickness);
-		int usableHeight = _screenHeight - (2 * _borderThickness);
+		const int totalCellsX = ctx.gridWidth + 2;
+		const int totalCellsY = ctx.gridHeight + 2;
 
-		int cellFromWidth = usableWidth / ctx.gridWidth;
-		int cellFromHeight = usableHeight / ctx.gridHeight;
-		int menuCellSize = (cellFromWidth < cellFromHeight) ? cellFromWidth : cellFromHeight;
+		const float requiredCellX = static_cast<float>(_screenWidth) / static_cast<float>(totalCellsX);
+		const float requiredCellY = static_cast<float>(_screenHeight) / static_cast<float>(totalCellsY);
+		const float requiredCell = (requiredCellX > requiredCellY) ? requiredCellX : requiredCellY;
+
+		int menuCellSize = static_cast<int>(std::ceil(requiredCell));
 		if (menuCellSize < 1) menuCellSize = 1;
 		int menuBorderThickness = menuCellSize;
 
