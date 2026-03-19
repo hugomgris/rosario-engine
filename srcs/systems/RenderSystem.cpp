@@ -409,3 +409,26 @@ void RenderSystem::renderMenu(const FrameContext& ctx) {
 	if (ctx.arena)
 		drawArena2D(*ctx.arena, ctx);
 }
+
+void RenderSystem::renderDebugLayout(const FrameContext& ctx) const {
+	Rectangle arenaRect = {
+		ctx.arenaBounds.x,
+		ctx.arenaBounds.y,
+		ctx.arenaBounds.width,
+		ctx.arenaBounds.height
+	};
+
+	Rectangle playRect = {
+		ctx.gameAreaX,
+		ctx.gameAreaY,
+		static_cast<float>(ctx.gridWidth * ctx.cellSize),
+		static_cast<float>(ctx.gridHeight * ctx.cellSize)
+	};
+
+	DrawRectangleLinesEx(arenaRect, 2.0f, RED);
+	DrawRectangleLinesEx(playRect, 2.0f, GREEN);
+
+	DrawText(TextFormat("DBG F10 | menuLike:%d  cell:%d", ctx.menuLikeFrame ? 1 : 0, ctx.cellSize), 75, 44, 18, YELLOW);
+	DrawText(TextFormat("arena: (%.1f, %.1f) %.1fx%.1f", arenaRect.x, arenaRect.y, arenaRect.width, arenaRect.height), 75, 68, 18, YELLOW);
+	DrawText(TextFormat("play : (%.1f, %.1f) %.1fx%.1f", playRect.x, playRect.y, playRect.width, playRect.height), 75, 90, 18, YELLOW);
+}

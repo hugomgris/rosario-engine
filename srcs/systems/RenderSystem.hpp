@@ -67,6 +67,7 @@ class RenderSystem {
 		void render(Registry& registry, float deltaTime, FrameContext& ctx);
 		void render2D(Registry& registry, const FrameContext& ctx);  // draw without Mode2D bracket
 		void renderMenu(const FrameContext& ctx);
+		void renderDebugLayout(const FrameContext& ctx) const;
 		void beginMode2D() const;
 		void endMode2D() const;
 };

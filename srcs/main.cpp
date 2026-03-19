@@ -172,6 +172,7 @@ int main() {
 	arena.setMenuArena();
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
 	RenderMode renderMode = RenderMode::MODE2D;
+	bool debugLayout = false;
 	
 	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
@@ -207,6 +208,7 @@ int main() {
 		if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
 		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
 		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
+		if (IsKeyPressed(KEY_F10)) debugLayout = !debugLayout;
 		if (IsKeyPressed(KEY_TAB)) {
 			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
 			animationSystem.notifyArenaSpawning(arena);
@@ -274,7 +276,7 @@ int main() {
 			ctx.cellSize
 		);
 
-		// 5) UPDATE phase (optional: skip just one transitioned frame for gameplay sim)
+		// 5) UPDATE phase
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
@@ -283,12 +285,11 @@ int main() {
 				break;
 
 			case GameState::Playing:
-				// keep collision pipeline intact; only skip one-frame sim right after transition if desired
 				if (!transitionedThisFrame) {
 					inputSystem.update(registry);
 					aiSystem.update(registry, ctx);
 					movementSystem.update(registry, dt);
-					collisionSystem.update(registry, ruleTable, dispatcher, ctx); // <- collision stays here
+					collisionSystem.update(registry, ruleTable, dispatcher, ctx);
 					arena.tickSpawnTimer(dt);
 					arena.tickDespawnTimer(dt);
 				}
@@ -303,7 +304,7 @@ int main() {
 				break;
 		}
 
-		// Death check must remain after collision update
+		// Death check happens after update phase
 		if (ctx.playerDied) {
 			std::cout << "PLAYER DIED" << std::endl;
 			state = GameState::GameOver;
@@ -318,6 +319,7 @@ int main() {
 				animationSystem.render();
 				particleSystem.render();
 				renderSystem.renderMenu(ctx);
+				if (debugLayout) renderSystem.renderDebugLayout(ctx);
 				renderSystem.endMode2D();
 				break;
 
@@ -327,6 +329,7 @@ int main() {
 					animationSystem.render();
 					particleSystem.render();
 					renderSystem.render2D(registry, ctx);
+					if (debugLayout) renderSystem.renderDebugLayout(ctx);
 					renderSystem.endMode2D();
 				} else {
 					renderSystem.render(registry, dt, ctx);
@@ -338,7 +341,7 @@ int main() {
 				break;
 		}
 
-		// UI phase
+		// 7) UI phase
 		uiQueue.clear();
 		switch (state) {
 			case GameState::Menu:
@@ -359,6 +362,7 @@ int main() {
 
 		postProcessingSystem.endCapture();
 
+		// 8) PRESENTING phase (post processing et al)
 		BeginDrawing();
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);

@@ -9,6 +9,7 @@
 	- [Why the Long Face?](#415-why-the-long-face)
 	- [DAYLIGHT](#416-daylight-or-pánico-en-el-túnel-starring-silvester-stallone)
 	- [Do You Want to See the Menu?](#417-do-you-want-to-see-the-menu)
+2. [The Current State of Main Things (or The Main State of Current Things)](#42---the-current-state-of-main-things-or-the-main-state-of-current-things)
 
 <br>
 <br>
@@ -970,3 +971,199 @@ case GameState::GameOver:
 
 And I'm happy with all of this.
 
+<br>
+<br>
+
+# 4.2 - The Current State of Main Things (or The Main State of Current Things)
+After a lot of porting sheanenigans (how the hell is this word written?), everything worked pretty much correctly, but there were some syncronization issues along the different phases that comprise the `main` game loop. Transitions from menus into gameplay and back were funcionally fine, but I was getting some visual bugs related to a bad order management, things like frame flashing of uncomplete transitions. For example, the arena based wall rendering was producing a visual layout transition in the first frame when going from the start menu into gameplay, but not a fully update of its position (basically, a game world state complete check), which resulted in a visual, mid-transition-frame bug. In the way out, from gameplay into gameover, the bug was more subtle but still annoying (and, as everything, under the infinte gaze of God's judgement): the drawn walls changed colors (from `wallColor` to `customWhite`) first, then everything else. These issues, as I mentioned, pointed to the need of re-evaluating the game loop and its order of operations, which was rewritten as follows:
+```cpp
+while (true) {
+		if (state == GameState::Exiting || WindowShouldClose()) break;
+
+		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
+
+		if (IsKeyPressed(KEY_F)) ToggleFullscreen();
+		if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
+		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
+		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
+		if (IsKeyPressed(KEY_TAB)) {
+			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
+			animationSystem.notifyArenaSpawning(arena);
+			arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+			float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
+			arena.beginSpawn(lineLifetime);
+		}
+
+		// 1) Gather UI input for menu-like states (fills eventQueue)
+		if (state == GameState::Menu || state == GameState::GameOver) {
+			uiInteractionSystem.update(registry, eventQueue);
+		}
+
+		// 2) Process button events (state/mode mutations only)
+		for (const auto& event : eventQueue.getEvents()) {
+			switch (event.type) {
+				case GameEvent::Type::ButtonClicked:
+					switch (event.buttonAction) {
+						case ButtonActionType::StartGame:
+							state = GameState::Playing;
+							break;
+						case ButtonActionType::ChangeMode:
+							switch (mode) {
+								case GameMode::SINGLE: mode = GameMode::MULTI; break;
+								case GameMode::MULTI:  mode = GameMode::VSAI;  break;
+								case GameMode::VSAI:   mode = GameMode::SINGLE; break;
+							}
+							break;
+						case ButtonActionType::Quit:
+							state = GameState::Exiting;
+							break;
+						case ButtonActionType::ReturnToMenu:
+							GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food,
+												GRID_W, GRID_H, arena, AIPresets, mode);
+							state = GameState::Menu;
+							break;
+					}
+					break;
+				default:
+					break;
+			}
+		}
+		eventQueue.clear();
+
+		// 3) Apply transitions BEFORE building context
+		const bool transitionedThisFrame = (state != previousState);
+		applyStateTransitionEffects(previousState, state, transitionContext);
+
+		// 4) Build fresh context from current state/arena
+		FrameContext ctx;
+		ctx.arena      = &arena;
+		ctx.state      = &state;
+		const bool menuLikeState = (state == GameState::Menu || state == GameState::GameOver);
+		ctx.menuLikeFrame = menuLikeState;
+		ctx.gridWidth  = menuLikeState ? MENU_W : GRID_W;
+		ctx.gridHeight = menuLikeState ? MENU_H : GRID_H;
+		ctx.renderMode = &renderMode;
+		ctx.playerDied = false;
+
+		renderSystem.fillContext(ctx, &state);
+		animationSystem.init(
+			SCREEN_W, SCREEN_H,
+			static_cast<int>(ctx.arenaBounds.x),
+			static_cast<int>(ctx.arenaBounds.y),
+			ctx.cellSize
+		);
+
+		// 5) UPDATE phase
+		switch (state) {
+			case GameState::Menu:
+			case GameState::GameOver:
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
+				break;
+
+			case GameState::Playing:
+				if (!transitionedThisFrame) {
+					inputSystem.update(registry);
+					aiSystem.update(registry, ctx);
+					movementSystem.update(registry, dt);
+					collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+					arena.tickSpawnTimer(dt);
+					arena.tickDespawnTimer(dt);
+				}
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
+				break;
+
+			case GameState::Paused:
+				break;
+
+			case GameState::Exiting:
+				break;
+		}
+
+		// Death check happens after update phase
+		if (ctx.playerDied) {
+			std::cout << "PLAYER DIED" << std::endl;
+			state = GameState::GameOver;
+		}
+
+		// 6) RENDER phase
+		postProcessingSystem.beginCapture();
+		switch (state) {
+			case GameState::Menu:
+			case GameState::GameOver:
+				renderSystem.beginMode2D();
+				animationSystem.render();
+				particleSystem.render();
+				renderSystem.renderMenu(ctx);
+				renderSystem.endMode2D();
+				break;
+
+			case GameState::Playing:
+				if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+					renderSystem.beginMode2D();
+					animationSystem.render();
+					particleSystem.render();
+					renderSystem.render2D(registry, ctx);
+					renderSystem.endMode2D();
+				} else {
+					renderSystem.render(registry, dt, ctx);
+				}
+				break;
+
+			case GameState::Paused:
+			case GameState::Exiting:
+				break;
+		}
+
+		// 7) UI phase
+		uiQueue.clear();
+		switch (state) {
+			case GameState::Menu:
+				menuSystem.buildStartMenuUI(registry, uiQueue);
+				uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
+				break;
+			case GameState::GameOver:
+				menuSystem.buildGameOverUI(registry, uiQueue);
+				uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
+				break;
+			case GameState::Playing:
+			case GameState::Paused:
+			case GameState::Exiting:
+				break;
+		}
+
+		postProcessingSystem.endCapture();
+
+		// 8) PRESENTING phase (post processing et al)
+		BeginDrawing();
+		ClearBackground(customBlack);
+		postProcessingSystem.applyAndPresent(dt);
+		DrawFPS(SCREEN_W - 95, 10);
+		EndDrawing();
+	}
+```
+In broadstrokes, what needed to be restructured was the sequence of `ctx` building and management, the state related updates and click processing, the transition applies and the rendering branch calls. A more robust structure was needed to ensure that sequence coherence, so that this new order could be set up:
+1. State change
+2. Transition effects
+3. Context rebuild
+4. Update/render
+5. Presentation
+
+The key was to **skip gameplay update once if a state transition happens** to avoid mixed data (old/new). Which in itself meant taking care of these:
+- Making sure that **no frame can render with `state=Playing` but `ctx/menu layout` from a previous state
+- Assuring that **transition side effects stay atomic for their initial frame**
+- Rely on the optional one-frame update skip to **prevent stale entities/particles from stepping in a mixed transition frame**.
+
+For the `Playing -> GameOver` case in particular, there is one additional little guard worth noting: the wall color decision is no longer pulled from a potentially already-mutated live `state` pointer in the render pass. Instead, the frame carries a snapshot bool (`ctx.menuLikeFrame`) built together with the rest of the context, so the visual mode remains consistent for that whole frame. This is what prevented the subtle one-frame white-wall flash while keeping the transition order intact.
+
+In practice, the new `main` loop is shaped like this:
+1. Poll menu input (`uiInteractionSystem`) first (but just for menu/gameover)
+2. Process events and mutate the `state` if necessary
+3. Apply transition effects
+4. Build `ctx` **AFTER** any possible state transition
+5. Run simulation updates with a fresh `ctx`
+6. Render everything
+7. Present the render (post process and display it)
