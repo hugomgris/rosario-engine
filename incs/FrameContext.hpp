@@ -17,6 +17,7 @@ struct FrameContext {
 	// arena
 	ArenaGrid*	arena		= nullptr;
 	GameState*	state		= nullptr;
+	bool		menuLikeFrame = false;
 	int			gridWidth	= 0;
 	int			gridHeight	= 0;
 	ArenaBounds	arenaBounds;

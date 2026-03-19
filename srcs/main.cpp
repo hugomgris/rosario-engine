@@ -215,57 +215,12 @@ int main() {
 			arena.beginSpawn(lineLifetime);
 		}
 
-		// fresh context each frame
-		FrameContext ctx;
-		ctx.arena       = &arena;
-		ctx.state		= &state;
-		const bool menuLikeState = (state == GameState::Menu || state == GameState::GameOver);
-		ctx.gridWidth   = menuLikeState ? MENU_W : GRID_W;
-		ctx.gridHeight  = menuLikeState ? MENU_H : GRID_H;
-		ctx.renderMode  = &renderMode;
-		ctx.playerDied  = false;
-		renderSystem.fillContext(ctx, &state);
-		animationSystem.init(SCREEN_W, SCREEN_H,
-			static_cast<int>(ctx.arenaBounds.x),
-			static_cast<int>(ctx.arenaBounds.y),
-			ctx.cellSize);
-
-		// UPDATE phase
-		switch (state) {
-			case GameState::Menu:
-			case GameState::GameOver:
-				uiInteractionSystem.update(registry, eventQueue);
-				particleSystem.update(dt, registry, ctx);
-				animationSystem.update(dt, arena);
-				break;
-			
-			case GameState::Playing:
-				inputSystem.update(registry);
-				aiSystem.update(registry, ctx);
-				movementSystem.update(registry, dt);
-				collisionSystem.update(registry, ruleTable, dispatcher, ctx);
-				particleSystem.update(dt, registry, ctx);
-				animationSystem.update(dt, arena);
-				arena.tickSpawnTimer(dt);
-				arena.tickDespawnTimer(dt);
-				break;
-
-			case GameState::Paused:
-				// Todo implement pause
-				break;
-			
-			case GameState::Exiting:
-				break;
-		}			
-
-		// Death check
-		if (ctx.playerDied) {
-			std::cout << "PLAYER DIED" << std::endl;
-			state = GameState::GameOver;
+		// 1) Gather UI input for menu-like states (fills eventQueue)
+		if (state == GameState::Menu || state == GameState::GameOver) {
+			uiInteractionSystem.update(registry, eventQueue);
 		}
 
-		// Process button events from UI
-		// Maybe there's a better way to code this than 3 nested switches, but hell yeah
+		// 2) Process button events (state/mode mutations only)
 		for (const auto& event : eventQueue.getEvents()) {
 			switch (event.type) {
 				case GameEvent::Type::ButtonClicked:
@@ -275,22 +230,17 @@ int main() {
 							break;
 						case ButtonActionType::ChangeMode:
 							switch (mode) {
-								case GameMode::SINGLE:
-									mode = GameMode::MULTI;
-									break;
-								case GameMode::MULTI:
-									mode = GameMode::VSAI;
-									break;
-								case GameMode::VSAI:
-									mode = GameMode::SINGLE;
-									break;
+								case GameMode::SINGLE: mode = GameMode::MULTI; break;
+								case GameMode::MULTI:  mode = GameMode::VSAI;  break;
+								case GameMode::VSAI:   mode = GameMode::SINGLE; break;
 							}
 							break;
 						case ButtonActionType::Quit:
 							state = GameState::Exiting;
 							break;
 						case ButtonActionType::ReturnToMenu:
-							GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food, GRID_W, GRID_H, arena, AIPresets, mode);
+							GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food,
+												GRID_W, GRID_H, arena, AIPresets, mode);
 							state = GameState::Menu;
 							break;
 					}
@@ -301,11 +251,66 @@ int main() {
 		}
 		eventQueue.clear();
 
-		// State transition initialization
+		// 3) Apply transitions BEFORE building context
+		const bool transitionedThisFrame = (state != previousState);
 		applyStateTransitionEffects(previousState, state, transitionContext);
 
-		// RENDER phase
-		postProcessingSystem.beginCapture(); // FOr now, PP affects all states
+		// 4) Build fresh context from current state/arena
+		FrameContext ctx;
+		ctx.arena      = &arena;
+		ctx.state      = &state;
+		const bool menuLikeState = (state == GameState::Menu || state == GameState::GameOver);
+		ctx.menuLikeFrame = menuLikeState;
+		ctx.gridWidth  = menuLikeState ? MENU_W : GRID_W;
+		ctx.gridHeight = menuLikeState ? MENU_H : GRID_H;
+		ctx.renderMode = &renderMode;
+		ctx.playerDied = false;
+
+		renderSystem.fillContext(ctx, &state);
+		animationSystem.init(
+			SCREEN_W, SCREEN_H,
+			static_cast<int>(ctx.arenaBounds.x),
+			static_cast<int>(ctx.arenaBounds.y),
+			ctx.cellSize
+		);
+
+		// 5) UPDATE phase (optional: skip just one transitioned frame for gameplay sim)
+		switch (state) {
+			case GameState::Menu:
+			case GameState::GameOver:
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
+				break;
+
+			case GameState::Playing:
+				// keep collision pipeline intact; only skip one-frame sim right after transition if desired
+				if (!transitionedThisFrame) {
+					inputSystem.update(registry);
+					aiSystem.update(registry, ctx);
+					movementSystem.update(registry, dt);
+					collisionSystem.update(registry, ruleTable, dispatcher, ctx); // <- collision stays here
+					arena.tickSpawnTimer(dt);
+					arena.tickDespawnTimer(dt);
+				}
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
+				break;
+
+			case GameState::Paused:
+				break;
+
+			case GameState::Exiting:
+				break;
+		}
+
+		// Death check must remain after collision update
+		if (ctx.playerDied) {
+			std::cout << "PLAYER DIED" << std::endl;
+			state = GameState::GameOver;
+		}
+
+		// 6) RENDER phase
+		postProcessingSystem.beginCapture();
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
@@ -315,11 +320,10 @@ int main() {
 				renderSystem.renderMenu(ctx);
 				renderSystem.endMode2D();
 				break;
-			
+
 			case GameState::Playing:
 				if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
 					renderSystem.beginMode2D();
-					//animationSystem.update(dt, arena);
 					animationSystem.render();
 					particleSystem.render();
 					renderSystem.render2D(registry, ctx);
@@ -328,12 +332,8 @@ int main() {
 					renderSystem.render(registry, dt, ctx);
 				}
 				break;
-			
 
 			case GameState::Paused:
-				// todo pause stuff
-				break;
-			
 			case GameState::Exiting:
 				break;
 		}
@@ -346,31 +346,19 @@ int main() {
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
 				break;
-			
-			case GameState::Playing:
-				// todo game ui
-				break;
-				
-			case GameState::Paused:
-				// todo implement puase
-				break;
-
 			case GameState::GameOver:
 				menuSystem.buildGameOverUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
 				break;
-
+			case GameState::Playing:
+			case GameState::Paused:
 			case GameState::Exiting:
 				break;
 		}
-		/* uiSystem.renderRects(uiQueue);
-		textSystem.render(uiQueue); */
-		
-		// end pp capture
+
 		postProcessingSystem.endCapture();
 
-		// POST PROCESING phase (PRESENT)
 		BeginDrawing();
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);

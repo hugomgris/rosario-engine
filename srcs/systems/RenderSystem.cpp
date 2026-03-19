@@ -141,11 +141,7 @@ void RenderSystem::drawArena2D(const ArenaGrid& arena, const FrameContext& ctx) 
 			int gameX = gx - 1;
 			int gameY = gy - 1;
 
-			bool inMenuState = false;
-			if (*ctx.state == GameState::Menu || *ctx.state == GameState::GameOver)
-				inMenuState = true;
-
-			Color color = inMenuState ? customWhite : wallColor;
+			Color color = ctx.menuLikeFrame ? customWhite : wallColor;
 			if (cell == CellType::Obstacle) {
 				if (spawning) color.a = static_cast<unsigned char>(spawnAlpha * 255.0f);
 			} else if (cell == CellType::DespawningSolid) {
