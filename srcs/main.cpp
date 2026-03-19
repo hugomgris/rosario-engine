@@ -219,7 +219,10 @@ int main() {
 
 		// 1) Gather UI input for menu-like states (fills eventQueue)
 		if (state == GameState::Menu || state == GameState::GameOver) {
-			uiInteractionSystem.update(registry, eventQueue);
+			const ButtonMenu activeMenu = (state == GameState::Menu)
+				? ButtonMenu::Start
+				: ButtonMenu::GameOver;
+			uiInteractionSystem.update(registry, eventQueue, activeMenu);
 		}
 
 		// 2) Process button events (state/mode mutations only)

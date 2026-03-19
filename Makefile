@@ -39,6 +39,7 @@ SYSTEMS_SRC     := systems/InputSystem.cpp				\
 					systems/PostProcessingSystem.cpp	\
 					systems/CollisionSystem.cpp			\
 					systems/AISystem.cpp				\
+					systems/UIInteractionSystem.cpp		\
 					systems/ParticleSystem.cpp			\
 					systems/AnimationSystem.cpp			\
 

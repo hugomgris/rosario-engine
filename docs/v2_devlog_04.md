@@ -1167,3 +1167,5 @@ In practice, the new `main` loop is shaped like this:
 5. Run simulation updates with a fresh `ctx`
 6. Render everything
 7. Present the render (post process and display it)
+
+> *This is a good spot to end this long ass log. There's a couple things left in the port, but I'll take them to the next one (5). See you there.*

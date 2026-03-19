@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+#include <vector>
 #include <raylib.h>
 #include "../ecs/Registry.hpp"
 #include "../components/ButtonComponent.hpp"
@@ -8,30 +10,21 @@
 #include "../ui/EventQueue.hpp"
 
 class UIInteractionSystem {
-public:
-    UIInteractionSystem() = default;
+	private:
+		std::optional<Entity> _hoveredButton;
+		Vector2 _lastMousePos = {0.0f, 0.0f};
+		bool _mouseInitialized = false;
 
-    void update(Registry& registry, EventQueue& eventQueue) {
-        Vector2 mousePos = GetMousePosition();
-        bool mouseClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+		void enqueueButtonClickEvent(Registry& registry, EventQueue& eventQueue, Entity entity);
+		void clearInactiveMenuHover(Registry& registry, ButtonMenu activeMenu);
+		void setHoveredEntity(Registry& registry, const std::vector<Entity>& ordered, std::optional<Entity> entity);
+		std::optional<size_t> hoveredIndexIn(const std::vector<Entity>& ordered) const;
+		std::optional<Entity> pickByMouse(Registry& registry, const std::vector<Entity>& ordered, Vector2 mousePos);
+		std::optional<Entity> findButtonById(Registry& registry, const std::vector<Entity>& ordered, const std::string& buttonId) const;
 
-        auto buttonView = registry.view<ButtonComponent, UIInteractableComponent, ButtonActionComponent>();
+	public:
+		UIInteractionSystem() = default;
 
-        bool clickHandled = false;
-
-        for (Entity entity : buttonView) {
-            auto& button = registry.getComponent<ButtonComponent>(entity);
-            auto& action = registry.getComponent<ButtonActionComponent>(entity);
-
-            button.hovered = CheckCollisionPointRec(mousePos, button.bounds);
-
-            if (mouseClicked && button.hovered && !clickHandled) {
-                GameEvent event;
-                event.type = GameEvent::Type::ButtonClicked;
-                event.buttonAction = action.actionType;
-                eventQueue.enqueue(event);
-                clickHandled = true;
-            }
-        }
-    }
+		void update(Registry& registry, EventQueue& eventQueue, ButtonMenu activeMenu);
+		std::vector<Entity> getOrderedButtonsForMenu(Registry& registry, ButtonMenu activeMenu);
 };
