@@ -9,20 +9,16 @@
       "centerX": true,
       "color": [255, 255, 255, 255],
       "glyphOverrides": [
-        { "index": 0, "glyph": "r_logo" },
-        { "index": 2, "glyph": "s_logo" },
-        { "index": 5, "glyph": "i_logo" },
-        { "index": 6, "glyph": "o_logo_1" }
+        { "index": 5, "glyph": "i_logo" }
       ],
       "glyphColorOverrides": [
-        { "index": 2, "color": [255, 165, 0, 255] },
         { "index": 5, "color": [70, 130, 180, 255] }
       ],
       "glyphCellColorOverrides": [
         {
           "index": 5,
           "cells": [
-            { "x": 0, "y": -4, "color": [255, 120, 120, 255] }
+            { "x": 0, "y": -2, "color": [255, 120, 120, 255] }
           ]
         }
       ],

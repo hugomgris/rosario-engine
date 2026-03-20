@@ -10,8 +10,8 @@ void PixelTextRenderSystem::render(Registry& registry) const {
         const auto& lay = registry.getComponent<PixelTextLayoutComponent>(entity);
         if (!txt.visible) continue;
 
-        for (const auto& r : lay.quads) {
-            DrawRectangleRec(r, txt.color);
+        for (const auto& quad : lay.quads) {
+            DrawRectangleRec(quad.rect, quad.color);
         }
     }
 }

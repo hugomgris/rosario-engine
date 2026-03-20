@@ -82,14 +82,53 @@ namespace {
 			return preset;
 		}
 
-		return PixelTextComponent{
-			.id = "gameover_title",
-			.text = "GAME OVER",
-			.position = {640.0f, 180.0f},
-			.scale = 2.0f,
-			.color = customWhite,
-			.visible = false
-		};
+		PixelTextComponent fallback;
+		fallback.visibleInStates.push_back(GameState::GameOver);
+		fallback.id = "gameover_title";
+		fallback.text = "GAME OVER";
+		fallback.position = {640.0f, 180.0f};
+		fallback.scale = 2.0f;
+		fallback.color = customWhite;
+		fallback.visible = false;
+		return fallback;
+	}
+
+	void applyPixelTextTemplate(Registry& registry, Entity entity, const PixelTextComponent& templateData) {
+		if (!registry.hasComponent<PixelTextComponent>(entity)
+			|| !registry.hasComponent<PixelTextLayoutComponent>(entity)) {
+			return;
+		}
+
+		auto& text = registry.getComponent<PixelTextComponent>(entity);
+		auto& layout = registry.getComponent<PixelTextLayoutComponent>(entity);
+		text = templateData;
+		layout.dirty = true;
+	}
+
+	bool shouldBeVisibleForState(const PixelTextComponent& text, GameState state) {
+		if (text.visibleInStates.empty()) {
+			return text.visible;
+		}
+
+		for (GameState s : text.visibleInStates) {
+			if (s == state) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void applyPixelTextStateVisibility(Registry& registry, GameState state) {
+		auto view = registry.view<PixelTextComponent, PixelTextLayoutComponent>();
+		for (Entity e : view) {
+			auto& text = registry.getComponent<PixelTextComponent>(e);
+			auto& layout = registry.getComponent<PixelTextLayoutComponent>(e);
+			const bool expectedVisible = shouldBeVisibleForState(text, state);
+			if (text.visible != expectedVisible) {
+				text.visible = expectedVisible;
+				layout.dirty = true;
+			}
+		}
 	}
 
 	bool makeMenuLogoTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
@@ -198,7 +237,7 @@ int main() {
 	textSystem.init();
 	PixelTextComponent gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
 	PixelTextComponent menuLogoTemplate;
-	const bool hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
+	bool hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
 
 	Entity gameOverTitle = Factories::spawnPixelText(registry, gameOverTitleTemplate, true);
 	Entity menuLogo(0u);
@@ -272,6 +311,35 @@ int main() {
 		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
 		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
 		if (IsKeyPressed(KEY_F10)) debugLayout = !debugLayout;
+		if (IsKeyPressed(KEY_F9)) {
+			try {
+				glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
+				glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
+
+				gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
+				hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
+
+				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				applyPixelTextTemplate(registry, gameOverTitle, gameOverTitleTemplate);
+
+				if (hasMenuLogoTemplate) {
+					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+					applyPixelTextTemplate(registry, menuLogo, menuLogoTemplate);
+				} else if (registry.hasComponent<PixelTextComponent>(menuLogo)
+					&& registry.hasComponent<PixelTextLayoutComponent>(menuLogo)) {
+					auto& text = registry.getComponent<PixelTextComponent>(menuLogo);
+					auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
+					text.visible = false;
+					text.visibleInStates.clear();
+					layout.dirty = true;
+				}
+
+				applyPixelTextStateVisibility(registry, state);
+				std::cout << "[GlyphPipeline] Hot reload successful" << std::endl;
+			} catch (const std::exception& e) {
+				std::cerr << "[GlyphPipeline] Hot reload failed: " << e.what() << std::endl;
+			}
+		}
 		if (IsKeyPressed(KEY_TAB)) {
 			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
 			animationSystem.notifyArenaSpawning(arena);
@@ -412,25 +480,12 @@ int main() {
 		switch (state) {
 			case GameState::Menu:
 				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
-				{
-					auto& title = registry.getComponent<PixelTextComponent>(gameOverTitle);
-					auto& layout = registry.getComponent<PixelTextLayoutComponent>(gameOverTitle);
-					if (title.visible) {
-						title.visible = false;
-						layout.dirty = true;
-					}
-				}
 
 				if (hasMenuLogoTemplate) {
 					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
-					auto& logo = registry.getComponent<PixelTextComponent>(menuLogo);
-					auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
-					if (!logo.visible) {
-						logo.visible = true;
-						layout.dirty = true;
-					}
 				}
 
+				applyPixelTextStateVisibility(registry, state);
 				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildStartMenuUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
@@ -439,25 +494,12 @@ int main() {
 				break;
 			case GameState::GameOver:
 				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
-				{
-					auto& title = registry.getComponent<PixelTextComponent>(gameOverTitle);
-					auto& layout = registry.getComponent<PixelTextLayoutComponent>(gameOverTitle);
-					if (!title.visible) {
-						title.visible = true;
-						layout.dirty = true;
-					}
-				}
 
 				if (hasMenuLogoTemplate) {
 					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
-					auto& logo = registry.getComponent<PixelTextComponent>(menuLogo);
-					auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
-					if (logo.visible) {
-						logo.visible = false;
-						layout.dirty = true;
-					}
 				}
 
+				applyPixelTextStateVisibility(registry, state);
 				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildGameOverUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);

@@ -5,7 +5,7 @@
             "id": "start",
             "index": 0,
             "height": 50.0,
-            "width": 200.0,
+            "width": 500.0,
             "verticalPositionFactor" : 0.66,
             "outlineColor": [70, 130, 180, 255],
             "backgroundColor": [23, 23, 23, 255],
@@ -47,7 +47,7 @@
         {
             "label": "MAIN MENU",
             "id": "returnToMainMenu",
-            "index": 0,
+            "index": 1,
             "height": 50.0,
             "width": 200.0,
             "verticalPositionFactor" : 0.66,
@@ -61,7 +61,7 @@
         {
             "label": "QUIT",
             "id": "gameoverQuit",
-            "index": 1,
+            "index": 2,
             "height": 50.0,
             "width": 200.0,
             "verticalPositionFactor" : 0.66,

@@ -89,6 +89,18 @@ void PixelTextLayoutSystem::update(Registry& registry, const GlyphLibrary& lib) 
                 gDef = lib.find(ch);
             }
 
+            Color glyphColor = text.color;
+            auto glyphColorIt = text.glyphColorOverrides.find(glyphIndex);
+            if (glyphColorIt != text.glyphColorOverrides.end()) {
+                glyphColor = glyphColorIt->second;
+            }
+
+            const std::vector<GlyphCellColorOverride>* cellOverrides = nullptr;
+            auto cellOverrideIt = text.glyphCellColorOverrides.find(glyphIndex);
+            if (cellOverrideIt != text.glyphCellColorOverrides.end()) {
+                cellOverrides = &cellOverrideIt->second;
+            }
+
             if (atLineStart && ch == ' ') {
                 hadLeadingSpace = true;
             }
@@ -105,11 +117,24 @@ void PixelTextLayoutSystem::update(Registry& registry, const GlyphLibrary& lib) 
             }
 
             for (const auto& c : gDef->cells) {
-                layout.quads.push_back(Rectangle {
-                    cursorX + (static_cast<float>(c.x + gDef->offsetX) * cell),
-                    cursorY + (static_cast<float>(c.y + gDef->offsetY) * cell),
-                    cell,
-                    cell
+                Color cellColor = glyphColor;
+                if (cellOverrides) {
+                    for (const auto& overrideCell : *cellOverrides) {
+                        if (overrideCell.x == c.x && overrideCell.y == c.y) {
+                            cellColor = overrideCell.color;
+                            break;
+                        }
+                    }
+                }
+
+                layout.quads.push_back(PixelTextQuad{
+                    Rectangle {
+                        cursorX + (static_cast<float>(c.x + gDef->offsetX) * cell),
+                        cursorY + (static_cast<float>(c.y + gDef->offsetY) * cell),
+                        cell,
+                        cell
+                    },
+                    cellColor
                 });
             }
 
@@ -128,14 +153,14 @@ void PixelTextLayoutSystem::update(Registry& registry, const GlyphLibrary& lib) 
             float maxX = std::numeric_limits<float>::lowest();
 
             for (const auto& quad : layout.quads) {
-                minX = std::min(minX, quad.x);
-                maxX = std::max(maxX, quad.x + quad.width);
+                minX = std::min(minX, quad.rect.x);
+                maxX = std::max(maxX, quad.rect.x + quad.rect.width);
             }
 
             const float currentCenterX = (minX + maxX) * 0.5f;
             const float deltaX = text.position.x - currentCenterX;
             for (auto& quad : layout.quads) {
-                quad.x += deltaX;
+                quad.rect.x += deltaX;
             }
         }
 
