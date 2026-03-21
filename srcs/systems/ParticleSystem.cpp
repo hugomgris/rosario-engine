@@ -87,25 +87,36 @@ void ParticleSystem::spawnTrailAt(float x, float y, Color color) {
     spawnTrail(x, y, Direction::RIGHT, color); // direction ignored: scatter only
 }
 
-void ParticleSystem::spawnMenuTrailAt(float x, float y, Color color) {
-    float scatter = static_cast<float>(_config.menuTrailScatter);
-    for (int i = 0; i < _config.menuTrailCount; ++i) {
-        float spawnX = x + randFloat(-scatter * 0.3f, scatter * 0.3f);
-        float spawnY = y + randFloat(-scatter,         scatter);
-        // Emit rightward: base angle 0 (positive X), spread ±PI/4 (45 degrees)
-        float angle  = randFloat(-PI / 4.0f, PI / 4.0f);
-        float speed  = randFloat(_config.menuTrailMinSpeed, _config.menuTrailMaxSpeed);
-        Particle p(
-            spawnX, spawnY,
-            _config.menuTrailMinSize, _config.menuTrailMaxSize,
-            _config.menuTrailMinLifetime, _config.menuTrailMaxLifetime,
-            color,
-            pType::MenuTrail,
-            std::cos(angle) * speed,
-            std::sin(angle) * speed
-        );
-        _particles.push_back(p);
+void ParticleSystem::spawnMenuTrail(float x, float y, Direction direction, Color color, int count) {
+    const int bursts = std::max(1, count);
+    const float scatter = static_cast<float>(_config.trailCount > 1 ? _config.trailScatter : 0.0f);
+    const float baseAngle = directionToAngle(direction);
+
+    for (int i = 0; i < bursts; ++i) {
+        for (int j = 0; j < _config.trailCount; ++j) {
+            float spawnX = x + randFloat(-scatter, scatter);
+            float spawnY = y + randFloat(-scatter,         scatter);
+            float spread = randFloat(-0.4f, 0.4f);
+            float angle  = baseAngle + spread;
+            float speed  = randFloat(_config.trailMinSpeed, _config.trailMaxSpeed);
+            Particle p(
+                spawnX, spawnY,
+                _config.trailMinSize, _config.trailMaxSize,
+                _config.trailMinLifetime, _config.trailMaxLifetime,
+                color,
+                pType::MenuTrail,
+                std::cos(angle) * speed,
+                std::sin(angle) * speed
+            );
+            p.rotationSpeed = 0.0f;
+            p.rotation      = 0.0f;
+            _particles.push_back(p);
+        }
     }
+}
+
+void ParticleSystem::spawnMenuTrailAt(float x, float y, Color color) {
+    spawnMenuTrail(x, y, Direction::RIGHT, color, 1);
 }
 
 void ParticleSystem::spawnTrail(float x, float y, Direction direction, Color color) {
@@ -147,6 +158,8 @@ void ParticleSystem::drawRotatedSquare(float cx, float cy, float size,
 
 void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ctx) {
     // 1. consume ParticleSpawnRequests from the registry
+    _lastMenuTrailRequestCount = 0;
+
     // advance trail timer
     bool emitTrail = (_config.trailSpawnInterval <= 0.0f);
     if (_config.trailSpawnInterval > 0.0f) {
@@ -168,16 +181,37 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
 
         switch (req.type) {
             case pType::Explosion:
-                spawnExplosion(spawnX, spawnY);
+                for (int i = 0; i < std::max(1, req.count); ++i) {
+                    spawnExplosion(spawnX, spawnY);
+                }
                 break;
             case pType::Trail:
-                if (emitTrail)
-                    spawnTrail(spawnX, spawnY, req.direction, req.color);
+                if (emitTrail) {
+                    for (int i = 0; i < std::max(1, req.count); ++i) {
+                        spawnTrail(spawnX, spawnY, req.direction, req.color);
+                    }
+                }
                 break;
             case pType::Dust:
                 break;
             case pType::MenuTrail:
-                // MenuTrail particles are spawned directly via spawnMenuTrailAt(),
+                {
+                    const float interval = req.spawnInterval;
+                    bool emitMenuTrail = (interval <= 0.0f);
+                    if (interval > 0.0f) {
+                        float& timer = _menuTrailEmitterTimers[req.emitterKey];
+                        timer += dt;
+                        if (timer >= interval) {
+                            timer = 0.0f;
+                            emitMenuTrail = true;
+                        }
+                    }
+
+                    if (emitMenuTrail) {
+                        spawnMenuTrail(spawnX, spawnY, req.direction, req.color, req.count);
+                    }
+                    _lastMenuTrailRequestCount += static_cast<size_t>(std::max(1, req.count));
+                }
                 break;
         }
         registry.removeComponent<ParticleSpawnRequest>(e);
@@ -204,9 +238,7 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
-        float drag = (p.type == pType::Dust)      ? 0.98f
-                   : (p.type == pType::MenuTrail)  ? 0.97f
-                   : 0.92f;
+        float drag = (p.type == pType::Dust) ? 0.98f : 0.92f;
         p.vx *= drag;
         p.vy *= drag;
 
@@ -258,12 +290,27 @@ void ParticleSystem::handleStateTransition(GameState previousState, GameState cu
 
     switch (currentState) {
         case GameState::Menu:
-        case GameState::Playing:
-        case GameState::GameOver:
             clearGameplay();
             _dustSpawnTimer = 0.0f;
             _trailSpawnTimer = 0.0f;
+            _menuTrailEmitterTimers.clear();
             break;
+
+        case GameState::Playing:
+            clear();
+            _dustSpawnTimer = 0.0f;
+            _trailSpawnTimer = 0.0f;
+            _menuTrailEmitterTimers.clear();
+            break;
+
+        case GameState::GameOver:
+            clearGameplay();
+            clearMenuTrail();
+            _dustSpawnTimer = 0.0f;
+            _trailSpawnTimer = 0.0f;
+            _menuTrailEmitterTimers.clear();
+            break;
+
         case GameState::Paused:
         case GameState::Exiting:
             break;
@@ -272,4 +319,18 @@ void ParticleSystem::handleStateTransition(GameState previousState, GameState cu
 
 size_t ParticleSystem::getParticleCount() const {
     return _particles.size();
+}
+
+size_t ParticleSystem::getMenuTrailParticleCount() const {
+    size_t count = 0;
+    for (const auto& p : _particles) {
+        if (p.type == pType::MenuTrail) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+size_t ParticleSystem::getLastMenuTrailRequestCount() const {
+    return _lastMenuTrailRequestCount;
 }

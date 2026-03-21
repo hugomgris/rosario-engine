@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <ctime>
+#include <limits>
 #include <raylib.h>
 
 #include "../incs/DataStructs.hpp"
@@ -16,6 +17,7 @@
 #include "components/FoodTag.hpp"
 #include "components/ButtonComponent.hpp"
 #include "components/ButtonActionComponent.hpp"
+#include "components/ParticleSpawnRequest.hpp"
 #include "components/PixelTextComponent.hpp"
 #include "components/PixelTextLayoutComponent.hpp"
 #include "systems/InputSystem.hpp"
@@ -146,6 +148,72 @@ namespace {
 		return entity;
 	}
 
+	bool enqueueMenuLogoTrailRequests(
+		Registry& registry,
+		Entity menuLogo,
+		const ParticleConfig& particleConfig,
+		std::vector<Entity>& emitters
+	) {
+		if (!registry.hasComponent<PixelTextComponent>(menuLogo)
+			|| !registry.hasComponent<PixelTextLayoutComponent>(menuLogo)) {
+			return false;
+		}
+
+		const auto& text = registry.getComponent<PixelTextComponent>(menuLogo);
+		const auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
+		if (!text.visible || layout.quads.empty() || particleConfig.menuTrails.empty()) {
+			return false;
+		}
+
+		float minY = std::numeric_limits<float>::max();
+		float maxX = std::numeric_limits<float>::lowest();
+		float maxY = std::numeric_limits<float>::lowest();
+
+		for (const auto& quad : layout.quads) {
+			const Rectangle& r = quad.rect;
+			minY = std::min(minY, r.y);
+			maxX = std::max(maxX, r.x + r.width);
+			maxY = std::max(maxY, r.y + r.height);
+		}
+
+		while (emitters.size() < particleConfig.menuTrails.size()) {
+			emitters.push_back(registry.createEntity());
+		}
+
+		for (size_t i = 0; i < particleConfig.menuTrails.size(); ++i) {
+			const auto& preset = particleConfig.menuTrails[i];
+			ParticleSpawnRequest req;
+			req.type = ParticleSpawnRequest::ParticleType::MenuTrail;
+			req.spawnInterval = preset.spawnInterval;
+			req.emitterKey = static_cast<unsigned int>(i + 1);
+			if (preset.hasManualPosition) {
+				req.x = preset.x;
+				req.y = preset.y;
+			} else {
+				req.x = maxX;
+				req.y = (minY + maxY) * 0.5f;
+			}
+			req.direction = preset.direction;
+			req.color = preset.color;
+			req.gridCoords = false;
+
+			Entity emitter = emitters[i];
+			if (registry.hasComponent<ParticleSpawnRequest>(emitter)) {
+				registry.getComponent<ParticleSpawnRequest>(emitter) = req;
+			} else {
+				registry.addComponent<ParticleSpawnRequest>(emitter, req);
+			}
+		}
+
+		for (size_t i = particleConfig.menuTrails.size(); i < emitters.size(); ++i) {
+			if (registry.hasComponent<ParticleSpawnRequest>(emitters[i])) {
+				registry.removeComponent<ParticleSpawnRequest>(emitters[i]);
+			}
+		}
+
+		return true;
+	}
+
 	struct TransitionContext {
 		ParticleSystem& particleSystem;
 		MenuSystem& menuSystem;
@@ -241,6 +309,7 @@ int main() {
 
 	Entity gameOverTitle = Factories::spawnPixelText(registry, gameOverTitleTemplate, true);
 	Entity menuLogo(0u);
+	std::vector<Entity> menuTrailEmitters;
 	if (hasMenuLogoTemplate) {
 		menuLogo = Factories::spawnPixelText(registry, menuLogoTemplate, true);
 	}
@@ -275,6 +344,7 @@ int main() {
 	Entity playerSnake(0u), secondSnake(0u), food(0u);
 	RenderMode renderMode = RenderMode::MODE2D;
 	bool debugLayout = false;
+	bool debugParticle = false;
 	
 	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
@@ -311,6 +381,7 @@ int main() {
 		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
 		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
 		if (IsKeyPressed(KEY_F10)) debugLayout = !debugLayout;
+		if (IsKeyPressed(KEY_F8)) debugParticle = !debugParticle;
 		if (IsKeyPressed(KEY_F9)) {
 			try {
 				glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
@@ -414,6 +485,19 @@ int main() {
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
+				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
+
+				if (hasMenuLogoTemplate) {
+					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+				}
+
+				applyPixelTextStateVisibility(registry, state);
+				pixelTextLayoutSystem.update(registry, glyphLib);
+
+				if (hasMenuLogoTemplate) {
+					enqueueMenuLogoTrailRequests(registry, menuLogo, particleConfig, menuTrailEmitters);
+				}
+
 				particleSystem.update(dt, registry, ctx);
 				animationSystem.update(dt, arena);
 				break;
@@ -479,28 +563,12 @@ int main() {
 		uiQueue.clear();
 		switch (state) {
 			case GameState::Menu:
-				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
-
-				if (hasMenuLogoTemplate) {
-					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
-				}
-
-				applyPixelTextStateVisibility(registry, state);
-				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildStartMenuUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
 				pixelTextRenderSystem.render(registry);
 				break;
 			case GameState::GameOver:
-				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
-
-				if (hasMenuLogoTemplate) {
-					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
-				}
-
-				applyPixelTextStateVisibility(registry, state);
-				pixelTextLayoutSystem.update(registry, glyphLib);
 				menuSystem.buildGameOverUI(registry, uiQueue);
 				uiSystem.renderRects(uiQueue);
 				textSystem.render(uiQueue);
@@ -519,6 +587,20 @@ int main() {
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);
 		DrawFPS(SCREEN_W - 95, 10);
+		if (debugParticle) {
+			DrawText(
+				TextFormat(
+					"Particles:%d  MenuTrail:%d  MenuTrailReq:%d",
+					static_cast<int>(particleSystem.getParticleCount()),
+					static_cast<int>(particleSystem.getMenuTrailParticleCount()),
+					static_cast<int>(particleSystem.getLastMenuTrailRequestCount())
+				),
+				SCREEN_W - 460,
+				36,
+				20,
+				customWhite
+			);
+		}
 		EndDrawing();
 	}
 

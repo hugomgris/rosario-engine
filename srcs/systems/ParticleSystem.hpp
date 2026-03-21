@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 #include <iostream>
 #include <raylib.h>
 #include "../animations/ParticleConfig.hpp"
@@ -35,12 +36,15 @@ class ParticleSystem {
 	int     _screenHeight;
 	float   _dustSpawnTimer  = 0.0f;
 	float   _trailSpawnTimer = 0.0f;
+	std::unordered_map<unsigned int, float> _menuTrailEmitterTimers;
+	size_t  _lastMenuTrailRequestCount = 0;
 	ParticleConfig          _config;
 
 	// internal spawn helpers
 	void    spawnDust(const ArenaBounds& bounds);
 	void    spawnExplosion(float x, float y);
 	void    spawnTrail(float x, float y, Direction direction, Color color);
+	void    spawnMenuTrail(float x, float y, Direction direction, Color color, int count);
 
 	// render helper
 	void    drawRotatedSquare(float cx, float cy, float size,
@@ -52,7 +56,7 @@ public:
 	void    update(float dt, Registry& registry, const FrameContext& ctx);   // consumes ParticleSpawnRequests
 	void    render() const;
 
-	// direct spawn (for non-ECS callers, e.g. menu logo trail)
+	// direct spawn compatibility helpers
 	void    spawnTrailAt(float x, float y, Color color);
 	void    spawnMenuTrailAt(float x, float y, Color color);
 
@@ -62,4 +66,6 @@ public:
 	void    clearMenuTrail();   // clears only MenuTrail
 	void    handleStateTransition(GameState previousState, GameState currentState);
 	size_t  getParticleCount() const;
+	size_t  getMenuTrailParticleCount() const;
+	size_t  getLastMenuTrailRequestCount() const;
 };

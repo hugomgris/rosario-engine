@@ -1,5 +1,18 @@
 #pragma once
 
+#include <vector>
+#include <raylib.h>
+#include "../../incs/DataStructs.hpp"
+
+struct MenuTrailPreset {
+    Direction   direction = Direction::RIGHT;
+    Color       color = {255, 255, 255, 255};
+    float       spawnInterval = 0.05f;
+    bool        hasManualPosition = false;
+    float       x = 0.0f;
+    float       y = 0.0f;
+};
+
 struct ParticleConfig {
     int     dustMaxDensity      = 30;
     float   dustSpawnInterval   = 0.15f;
@@ -26,13 +39,5 @@ struct ParticleConfig {
     float   trailScatter        = 15.0f;
     float   trailSpawnInterval  = 0.0f;
 
-    // Menu logo trail — rightward cone, visible drift, fade-out
-    float   menuTrailMinSize        = 6.0f;
-    float   menuTrailMaxSize        = 16.0f;
-    float   menuTrailMinLifetime    = 0.4f;
-    float   menuTrailMaxLifetime    = 0.8f;
-    float   menuTrailMinSpeed       = 40.0f;
-    float   menuTrailMaxSpeed       = 120.0f;
-    int     menuTrailCount          = 1;
-    float   menuTrailScatter        = 6.0f;
+    std::vector<MenuTrailPreset> menuTrails;
 };

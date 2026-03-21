@@ -27,14 +27,18 @@
         "scatter":          15.0,
         "spawnInterval":    0.05
     },
-    "menuTrail": {
-        "minSize":          6.0,
-        "maxSize":          16.0,
-        "minLifetime":      0.4,
-        "maxLifetime":      0.8,
-        "minSpeed":         40.0,
-        "maxSpeed":         120.0,
-        "count":            1,
-        "scatter":          6.0
+    "menuTrail_yellow": {
+        "direction":        "LEFT",
+        "color":            [255, 165, 0, 255],
+        "spawnInterval":    0.1,
+        "x":                160,
+        "y":                700
+    },
+    "menuTrail_blue": {
+        "direction":        "LEFT",
+        "color":            [70, 130, 180, 255],
+        "spawnInterval":    0.1,
+        "x":                340,
+        "y":                770
     }
 }
