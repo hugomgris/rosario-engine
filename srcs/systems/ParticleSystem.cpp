@@ -178,7 +178,6 @@ void ParticleSystem::update(float dt, Registry& registry, const FrameContext& ct
                 break;
             case pType::MenuTrail:
                 // MenuTrail particles are spawned directly via spawnMenuTrailAt(),
-                // not through the spawn-request queue — nothing to do here.
                 break;
         }
         registry.removeComponent<ParticleSpawnRequest>(e);

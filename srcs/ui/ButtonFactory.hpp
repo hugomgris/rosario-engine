@@ -20,13 +20,32 @@ public:
 
         for (const auto& [configId, buttonConfig] : buttonConfigs) {
             Entity buttonEntity = registry.createEntity();
+
+            const float defaultX = (screenWidth / 2.0f) - (buttonConfig.width / 2.0f);
+            const float defaultY = (screenHeight * buttonConfig.verticalPositionFactor)
+							- (buttonConfig.height / 2.0f)
+							+ (buttonConfig.index * buttonConfig.verticalSpacing);
+
+            float x = defaultX;
+            if (buttonConfig.hasX) {
+                x = buttonConfig.centerX
+                    ? (buttonConfig.x - (buttonConfig.width / 2.0f))
+                    : buttonConfig.x;
+            }
+
+            float y = defaultY;
+            if (buttonConfig.hasY) {
+                y = buttonConfig.centerY
+                    ? (buttonConfig.y - (buttonConfig.height / 2.0f))
+                    : buttonConfig.y;
+            }
             
             ButtonComponent button;
             button.id = buttonConfig.id;
             button.config = buttonConfig;
             button.bounds = {
-                (screenWidth / 2.0f) - (buttonConfig.width / 2.0f),
-                (screenHeight * button.config.verticalPositionFactor) - (buttonConfig.height / 2.0f) + (buttonConfig.index * buttonConfig.verticalSpacing),
+                x,
+                y,
                 buttonConfig.width,
                 buttonConfig.height
             };

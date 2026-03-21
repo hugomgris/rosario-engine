@@ -50,10 +50,23 @@ ButtonConfig parseButtonConfig(const json& entry, ButtonMenu menu) {
 	cfg.index   = entry.at("index").get<int>();
 	cfg.height  = entry.at("height").get<float>();
 	cfg.width   = entry.at("width").get<float>();
+	cfg.hasX = entry.contains("x");
+	cfg.hasY = entry.contains("y");
+	cfg.x = cfg.hasX ? entry.at("x").get<float>() : cfg.x;
+	cfg.y = cfg.hasY ? entry.at("y").get<float>() : cfg.y;
+	cfg.centerX = entry.contains("centerX")
+		? entry.at("centerX").get<bool>()
+		: cfg.centerX;
+	cfg.centerY = entry.contains("centerY")
+		? entry.at("centerY").get<bool>()
+		: cfg.centerY;
 	cfg.verticalPositionFactor = entry.at("verticalPositionFactor").get<float>();
 	cfg.fontSize = entry.contains("fontSize")
 		? entry.at("fontSize").get<float>()
 		: cfg.fontSize;
+	cfg.fontPath = entry.contains("fontPath")
+		? entry.at("fontPath").get<std::string>()
+		: cfg.fontPath;
 	cfg.outlineThickness = entry.contains("outlineThickness")
 		? entry.at("outlineThickness").get<float>()
 		: cfg.outlineThickness;

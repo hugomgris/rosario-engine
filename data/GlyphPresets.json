@@ -3,16 +3,18 @@
     {
       "id": "menu_logo",
       "text": "rosario",
-      "x": 960,
-      "y": 330,
-      "scale": 1.75,
+      "x": 915,
+      "y": 360,
+      "scale": 1.8,
       "centerX": true,
-      "color": [255, 255, 255, 255],
+      "color": [255, 248, 227, 255],
       "glyphOverrides": [
         { "index": 0, "glyph": "r_logo" },
         { "index": 2, "glyph": "s_logo" },
+        { "index": 3, "glyph": "a_logo" },
+        { "index": 4, "glyph": "r_logo_2" },
         { "index": 5, "glyph": "i_logo" },
-        { "index": 6, "glyph": "o_logo_1" }
+        { "index": 6, "glyph": "o_logo" }
       ],
       "glyphColorOverrides": [
         { "index": 2, "color": [255, 165, 0, 255] },
@@ -22,12 +24,9 @@
         {
           "index": 5,
           "cells": [
-            { "x": 0, "y": -4, "color": [255, 120, 120, 255] }
+            { "x": -1, "y": -7, "color": [255, 120, 120, 255] }
           ]
         }
-      ],
-      "glyphLigatures": [
-        { "index": 3, "length": 2, "glyph": "ar_join"}
       ],
       "visibleInStates": ["Menu"]
     },
@@ -35,7 +34,7 @@
       "id": "gameover_title",
       "text": "game\n over",
       "x": 960,
-      "y": 180,
+      "y": 280,
       "scale": 2.0,
       "centerX": true,
       "color": [230, 230, 230, 255],

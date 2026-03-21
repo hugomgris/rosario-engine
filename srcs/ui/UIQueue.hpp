@@ -17,6 +17,7 @@ struct UITextCmd {
     float   y;
     float   fontSize;
     Color   color;
+    std::string fontPath;
     bool    centered = false;
 };
 

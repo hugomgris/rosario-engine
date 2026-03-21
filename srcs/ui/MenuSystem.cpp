@@ -84,6 +84,7 @@ void MenuSystem::enqueueButtonRenderCommands(const ButtonComponent& button, UIRe
 		button.bounds.y + button.bounds.height * 0.5f,
 		button.config.fontSize,
 		text,
+		button.config.fontPath,
 		true
 	});
 }

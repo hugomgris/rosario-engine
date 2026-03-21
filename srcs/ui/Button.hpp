@@ -41,6 +41,7 @@ struct Button {
 			bounds.y + bounds.height * 0.5f,
 			config.fontSize,
 			text,
+			config.fontPath,
 			true
 		});
 	}
