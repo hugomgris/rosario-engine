@@ -357,25 +357,6 @@ This keeps pixel text where it belongs in the frame graph: after world render, i
 
 <br>
 
-## 5.4.11 What Is Done vs What Is Next
-
-Done in this cycle:
-- ECS componentized pixel text pipeline
-- JSON glyph lib + JSON preset loading
-- Dirty layout caching and render split
-- Registry-reset-safe text entity lifecycle
-- Cell/pixel spacing correction
-- Per-index special glyph overrides
-- Ligatures for connected letters
-- Newline-leading-space handling improvements
-- Line advance correction
-- Full-composition horizontal centering
-- Optional `menu_logo` preset integration
-
-Likely next steps:
-- score/result dynamic text through same pipeline
-- optional `centerY` / block anchor modes
-- preset/state filtering helper (currently visibility is state-managed in `main`)
-- optional hot reload for glyph jsons during iteration
-
+<img src="rosario_logo_pp.png" alt="new, temporary custom logo for the game (post-processed)">
+<img src="rosario_logo_normal.png" alt="new, temporary custom logo for the game (no post-processing)">
 

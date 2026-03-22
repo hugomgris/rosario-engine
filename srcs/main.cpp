@@ -586,7 +586,7 @@ int main() {
 		BeginDrawing();
 		ClearBackground(customBlack);
 		postProcessingSystem.applyAndPresent(dt);
-		DrawFPS(SCREEN_W - 95, 10);
+		if (debugLayout) DrawFPS(SCREEN_W - 95, 10);
 		if (debugParticle) {
 			DrawText(
 				TextFormat(
