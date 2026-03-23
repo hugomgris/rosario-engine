@@ -5,8 +5,14 @@
 #include <stdexcept>
 #include "ecs/Entity.hpp"
 
+class IComponentPool {
+	public:
+		virtual ~IComponentPool() = default;
+		virtual void removeEntity(Entity entity) = 0;
+};
+
 template<typename T>
-class ComponentPool {
+class ComponentPool : public IComponentPool {
 	private:
 		std::vector<T>							_components;
 		std::vector<Entity>						_entityList;
@@ -41,6 +47,10 @@ class ComponentPool {
 
 		bool has(Entity entity) const {
 			return _entityToIndex.count(entity.getID()) > 0;
+		}
+
+		void removeEntity(Entity entity) override {
+			remove(entity);
 		}
 
 		void remove(Entity entity) {

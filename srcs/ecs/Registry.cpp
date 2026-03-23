@@ -10,6 +10,10 @@ Entity Registry::createEntity() {
 void Registry::destroyEntity(Entity entity) {
     auto it = std::remove(_entities.begin(), _entities.end(), entity);
     _entities.erase(it, _entities.end());
+
+    for (auto& [_, pool] : _componentPools) {
+        pool->removeEntity(entity);
+    }
 }
 
 const std::vector<Entity>& Registry::getEntities() const {

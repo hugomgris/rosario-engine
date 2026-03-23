@@ -87,4 +87,6 @@ TEST(EntityDestruction, NoDanglingReferences) {
 
 	auto entities = registry.view<DummyComponent>();
 	EXPECT_EQ(entities.size(), 0);
+	auto entities2 = registry.view<OtherDummyComponent>();
+	EXPECT_EQ(entities2.size(), 0);
 }

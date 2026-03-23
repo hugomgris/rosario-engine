@@ -13,7 +13,7 @@
 ### Unit Tests - Core ECS
 - [x] Registry: Multiple component types on single entity
 - [x] Registry: Component pool isolation (one component type doesn't affect another)
-- [ ] Registry: Entity destruction and cleanup (no dangling references)
+- [x] Registry: Entity destruction and cleanup (no dangling references)
 - [ ] Registry: hasComponent() returns false after removeComponent()
 - [ ] Registry: forEach() with single component type
 - [ ] Registry: view() with multiple component filters

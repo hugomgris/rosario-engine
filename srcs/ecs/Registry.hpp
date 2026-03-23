@@ -11,9 +11,9 @@
 
 class Registry {
 	private:
-		std::vector<Entity>											_entities;
-		std::unordered_map<std::type_index, std::shared_ptr<void>>	_componentPools;
-		size_t														_entityCount = 0;
+		std::vector<Entity>														_entities;
+		std::unordered_map<std::type_index, std::shared_ptr<IComponentPool>>	_componentPools;
+		size_t																	_entityCount = 0;
 		
 		template<typename T>
 		ComponentPool<T>& getPool();
