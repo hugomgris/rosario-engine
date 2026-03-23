@@ -285,7 +285,7 @@ if (entry.contains("glyphLigatures") && entry.at("glyphLigatures").is_array()) {
         override.glyph = ligature.at("glyph").get<std::string>();
         preset.glyphLigatures[index] = override;
     }
-}
+}	
 ```
 
 <br>

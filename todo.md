@@ -1,5 +1,5 @@
 ## Todo list
-- [ ] Documentation
+- [x] Documentation
 - [ ] Linkedin post
 - [x] Recover tests
 - [x] cleanup main.cpp
@@ -11,8 +11,8 @@
 ## Test Suite (GTest-based)
 
 ### Unit Tests - Core ECS
-- [ ] Registry: Multiple component types on single entity
-- [ ] Registry: Component pool isolation (one component type doesn't affect another)
+- [x] Registry: Multiple component types on single entity
+- [x] Registry: Component pool isolation (one component type doesn't affect another)
 - [ ] Registry: Entity destruction and cleanup (no dangling references)
 - [ ] Registry: hasComponent() returns false after removeComponent()
 - [ ] Registry: forEach() with single component type
