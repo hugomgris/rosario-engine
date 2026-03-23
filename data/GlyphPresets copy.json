@@ -1,0 +1,50 @@
+{
+  "presets": [
+    {
+      "id": "menu_logo",
+      "text": "rosario",
+      "x": 915,
+      "y": 360,
+      "scale": 1.8,
+      "centerX": true,
+      "color": [255, 248, 227, 255],
+      "glyphOverrides": [
+        { "index": 0, "glyph": "r_logo" },
+        { "index": 2, "glyph": "s_logo" },
+        { "index": 3, "glyph": "a_logo" },
+        { "index": 4, "glyph": "r_logo_2" },
+        { "index": 5, "glyph": "i_logo" },
+        { "index": 6, "glyph": "o_logo" }
+      ],
+      "glyphColorOverrides": [
+        { "index": 2, "color": [255, 165, 0, 255] },
+        { "index": 5, "color": [70, 130, 180, 255] }
+      ],
+      "glyphCellColorOverrides": [
+        {
+          "index": 5,
+          "cells": [
+            { "x": -1, "y": -7, "color": [255, 120, 120, 255] }
+          ]
+        }
+      ],
+      "visibleInStates": ["Menu"]
+    },
+    {
+      "id": "gameover_title",
+      "text": "game\n over",
+      "x": 960,
+      "y": 280,
+      "scale": 2.0,
+      "centerX": true,
+      "color": [230, 230, 230, 255],
+      "glyphOverrides": [
+        { "index": 0, "glyph": "g_logo" }
+      ],
+      "glyphLigatures": [
+        { "index": 1, "length": 2, "glyph": "am_join" }
+      ],
+      "visibleInStates": ["GameOver"]
+    }
+  ]
+}

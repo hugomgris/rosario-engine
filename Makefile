@@ -56,10 +56,13 @@ UI_SRC			:= ui/TextSystem.cpp				\
 					ui/GlyphPresetLoader.cpp		\
 					ui/PixelTextLayoutSystem.cpp	\
 					ui/PixelTextRenderSystem.cpp	\
+					ui/PixelTextHelper.cpp	\
 
 GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
 					helpers/Factories.cpp	\
-					helpers/GameManager.cpp
+					helpers/GameManager.cpp	\
+					helpers/StateTransitionHelper.cpp	\
+					helpers/MenuLogoParticleHelper.cpp
 
 COLLISION_SRC   := collision/CollisionRuleLoader.cpp		\
 					collision/CollisionEffects.cpp			\

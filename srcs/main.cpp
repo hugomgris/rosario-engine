@@ -52,6 +52,9 @@
 #include "ui/GlyphPresetLoader.hpp"
 #include "ui/PixelTextLayoutSystem.hpp"
 #include "ui/PixelTextRenderSystem.hpp"
+#include "ui/PixelTextHelper.hpp"
+#include "helpers/StateTransitionHelper.hpp"
+#include "helpers/MenuLogoParticleHelper.hpp"
 
 // constants
 static constexpr int SCREEN_W = 1920;
@@ -62,204 +65,6 @@ static constexpr int GRID_H = 32;
 
 static constexpr int MENU_W = 60;
 static constexpr int MENU_H = 33;
-
-// TODO: move this somewhere else, I don't like it here in main
-namespace {
-	bool tryMakePresetTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
-									const std::string& id,
-									PixelTextComponent& outTemplate) {
-		auto it = glyphPresets.find(id);
-		if (it == glyphPresets.end()) {
-			return false;
-		}
-
-		outTemplate = it->second;
-		outTemplate.visible = false;
-		return true;
-	}
-
-	PixelTextComponent makeGameOverTitleTemplate(const GlyphPresetLoader::PresetTable& glyphPresets) {
-		PixelTextComponent preset;
-		if (tryMakePresetTemplate(glyphPresets, "gameover_title", preset)) {
-			return preset;
-		}
-
-		PixelTextComponent fallback;
-		fallback.visibleInStates.push_back(GameState::GameOver);
-		fallback.id = "gameover_title";
-		fallback.text = "GAME OVER";
-		fallback.position = {640.0f, 180.0f};
-		fallback.scale = 2.0f;
-		fallback.color = customWhite;
-		fallback.visible = false;
-		return fallback;
-	}
-
-	void applyPixelTextTemplate(Registry& registry, Entity entity, const PixelTextComponent& templateData) {
-		if (!registry.hasComponent<PixelTextComponent>(entity)
-			|| !registry.hasComponent<PixelTextLayoutComponent>(entity)) {
-			return;
-		}
-
-		auto& text = registry.getComponent<PixelTextComponent>(entity);
-		auto& layout = registry.getComponent<PixelTextLayoutComponent>(entity);
-		text = templateData;
-		layout.dirty = true;
-	}
-
-	bool shouldBeVisibleForState(const PixelTextComponent& text, GameState state) {
-		if (text.visibleInStates.empty()) {
-			return text.visible;
-		}
-
-		for (GameState s : text.visibleInStates) {
-			if (s == state) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	void applyPixelTextStateVisibility(Registry& registry, GameState state) {
-		auto view = registry.view<PixelTextComponent, PixelTextLayoutComponent>();
-		for (Entity e : view) {
-			auto& text = registry.getComponent<PixelTextComponent>(e);
-			auto& layout = registry.getComponent<PixelTextLayoutComponent>(e);
-			const bool expectedVisible = shouldBeVisibleForState(text, state);
-			if (text.visible != expectedVisible) {
-				text.visible = expectedVisible;
-				layout.dirty = true;
-			}
-		}
-	}
-
-	bool makeMenuLogoTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
-								PixelTextComponent& outTemplate) {
-		return tryMakePresetTemplate(glyphPresets, "menu_logo", outTemplate);
-	}
-
-	Entity ensurePixelTextEntity(Registry& registry, Entity& entity, const PixelTextComponent& templateData) {
-		if (registry.hasComponent<PixelTextComponent>(entity)
-			&& registry.hasComponent<PixelTextLayoutComponent>(entity)) {
-			return entity;
-		}
-
-		entity = Factories::spawnPixelText(registry, templateData, true);
-		return entity;
-	}
-
-	bool enqueueMenuLogoTrailRequests(
-		Registry& registry,
-		Entity menuLogo,
-		const ParticleConfig& particleConfig,
-		std::vector<Entity>& emitters
-	) {
-		if (!registry.hasComponent<PixelTextComponent>(menuLogo)
-			|| !registry.hasComponent<PixelTextLayoutComponent>(menuLogo)) {
-			return false;
-		}
-
-		const auto& text = registry.getComponent<PixelTextComponent>(menuLogo);
-		const auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
-		if (!text.visible || layout.quads.empty() || particleConfig.menuTrails.empty()) {
-			return false;
-		}
-
-		float minY = std::numeric_limits<float>::max();
-		float maxX = std::numeric_limits<float>::lowest();
-		float maxY = std::numeric_limits<float>::lowest();
-
-		for (const auto& quad : layout.quads) {
-			const Rectangle& r = quad.rect;
-			minY = std::min(minY, r.y);
-			maxX = std::max(maxX, r.x + r.width);
-			maxY = std::max(maxY, r.y + r.height);
-		}
-
-		while (emitters.size() < particleConfig.menuTrails.size()) {
-			emitters.push_back(registry.createEntity());
-		}
-
-		for (size_t i = 0; i < particleConfig.menuTrails.size(); ++i) {
-			const auto& preset = particleConfig.menuTrails[i];
-			ParticleSpawnRequest req;
-			req.type = ParticleSpawnRequest::ParticleType::MenuTrail;
-			req.spawnInterval = preset.spawnInterval;
-			req.emitterKey = static_cast<unsigned int>(i + 1);
-			if (preset.hasManualPosition) {
-				req.x = preset.x;
-				req.y = preset.y;
-			} else {
-				req.x = maxX;
-				req.y = (minY + maxY) * 0.5f;
-			}
-			req.direction = preset.direction;
-			req.color = preset.color;
-			req.gridCoords = false;
-
-			Entity emitter = emitters[i];
-			if (registry.hasComponent<ParticleSpawnRequest>(emitter)) {
-				registry.getComponent<ParticleSpawnRequest>(emitter) = req;
-			} else {
-				registry.addComponent<ParticleSpawnRequest>(emitter, req);
-			}
-		}
-
-		for (size_t i = particleConfig.menuTrails.size(); i < emitters.size(); ++i) {
-			if (registry.hasComponent<ParticleSpawnRequest>(emitters[i])) {
-				registry.removeComponent<ParticleSpawnRequest>(emitters[i]);
-			}
-		}
-
-		return true;
-	}
-
-	struct TransitionContext {
-		ParticleSystem& particleSystem;
-		MenuSystem& menuSystem;
-		Registry& registry;
-		const ButtonConfigLoader::ButtonTable& menuButtons;
-		InputSystem& inputSystem;
-		Entity& playerSnake;
-		Entity& secondSnake;
-		Entity& food;
-		ArenaGrid& arena;
-		const AIPresetLoader::PresetTable& AIPresets;
-		GameMode& mode;
-	};
-
-	void applyStateTransitionEffects(
-		GameState& previousState,
-		GameState currentState,
-		TransitionContext& ctx
-	) {
-		ctx.particleSystem.handleStateTransition(previousState, currentState);
-
-		if (currentState == previousState) {
-			return;
-		}
-
-		switch (currentState) {
-			case GameState::Menu:
-				ctx.arena.setMenuArena();
-				ctx.menuSystem.setupStartButtons(ctx.registry, ctx.menuButtons.start);
-				break;
-			case GameState::Playing:
-				ctx.arena.setGameplayArena();
-				GameManager::resetGame(ctx.registry, ctx.inputSystem, ctx.playerSnake, ctx.secondSnake, ctx.food, GRID_W, GRID_H, ctx.arena, ctx.AIPresets, ctx.mode);
-				break;
-			case GameState::GameOver:
-				ctx.arena.setMenuArena();
-				ctx.menuSystem.setupGameOverButtons(ctx.registry, ctx.menuButtons.gameOver);
-				break;
-			case GameState::Paused:
-			case GameState::Exiting:
-				break;
-		}
-
-		previousState = currentState;
-	}
-}
 
 int main() {
 	std::srand(static_cast<unsigned>(std::time(nullptr)));
@@ -303,9 +108,9 @@ int main() {
 	PixelTextRenderSystem pixelTextRenderSystem;
 
 	textSystem.init();
-	PixelTextComponent gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
+	PixelTextComponent gameOverTitleTemplate = PixelTextHelper::makeGameOverTitleTemplate(glyphPresets);
 	PixelTextComponent menuLogoTemplate;
-	bool hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
+	bool hasMenuLogoTemplate = PixelTextHelper::makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
 
 	Entity gameOverTitle = Factories::spawnPixelText(registry, gameOverTitleTemplate, true);
 	Entity menuLogo(0u);
@@ -355,7 +160,7 @@ int main() {
 	menuSystem.setupStartButtons(registry, menuButtons.start);
 	menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
 
-	TransitionContext transitionContext {
+	StateTransitionContext transitionContext {
 		particleSystem,
 		menuSystem,
 		registry,
@@ -387,15 +192,15 @@ int main() {
 				glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
 				glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
 
-				gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
-				hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
+			gameOverTitleTemplate = PixelTextHelper::makeGameOverTitleTemplate(glyphPresets);
+			hasMenuLogoTemplate = PixelTextHelper::makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
 
-				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
-				applyPixelTextTemplate(registry, gameOverTitle, gameOverTitleTemplate);
+			PixelTextHelper::ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
+			PixelTextHelper::applyPixelTextTemplate(registry, gameOverTitle, gameOverTitleTemplate);
 
 				if (hasMenuLogoTemplate) {
-					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
-					applyPixelTextTemplate(registry, menuLogo, menuLogoTemplate);
+				PixelTextHelper::ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+				PixelTextHelper::applyPixelTextTemplate(registry, menuLogo, menuLogoTemplate);
 				} else if (registry.hasComponent<PixelTextComponent>(menuLogo)
 					&& registry.hasComponent<PixelTextLayoutComponent>(menuLogo)) {
 					auto& text = registry.getComponent<PixelTextComponent>(menuLogo);
@@ -405,7 +210,7 @@ int main() {
 					layout.dirty = true;
 				}
 
-				applyPixelTextStateVisibility(registry, state);
+				PixelTextHelper::applyPixelTextStateVisibility(registry, state);
 				std::cout << "[GlyphPipeline] Hot reload successful" << std::endl;
 			} catch (const std::exception& e) {
 				std::cerr << "[GlyphPipeline] Hot reload failed: " << e.what() << std::endl;
@@ -460,7 +265,7 @@ int main() {
 
 		// 3) Apply transitions BEFORE building context
 		const bool transitionedThisFrame = (state != previousState);
-		applyStateTransitionEffects(previousState, state, transitionContext);
+		StateTransitionHelper::applyStateTransitionEffects(previousState, state, transitionContext);
 
 		// 4) Build fresh context from current state/arena
 		FrameContext ctx;
@@ -485,17 +290,17 @@ int main() {
 		switch (state) {
 			case GameState::Menu:
 			case GameState::GameOver:
-				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				PixelTextHelper::ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
 
 				if (hasMenuLogoTemplate) {
-					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+					PixelTextHelper::ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
 				}
 
-				applyPixelTextStateVisibility(registry, state);
+				PixelTextHelper::applyPixelTextStateVisibility(registry, state);
 				pixelTextLayoutSystem.update(registry, glyphLib);
 
 				if (hasMenuLogoTemplate) {
-					enqueueMenuLogoTrailRequests(registry, menuLogo, particleConfig, menuTrailEmitters);
+					MenuLogoParticleHelper::enqueueMenuLogoTrailRequests(registry, menuLogo, particleConfig, menuTrailEmitters);
 				}
 
 				particleSystem.update(dt, registry, ctx);
