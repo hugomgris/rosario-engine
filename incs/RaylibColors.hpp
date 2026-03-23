@@ -2,9 +2,18 @@
 #include <raylib.h>
 
 // DECLARATIONS ONLY (extern = defined elsewhere)
+// shared
 extern const Color customWhite;
+extern const Color customGray;
 extern const Color customBlack;
 
+// 2D
+extern const Color wallColor;
+extern const Color wallColorFade;
+extern const Color explosionColor;
+extern const Color food2DColor;
+
+// 3D
 extern const Color groundLightFront;
 extern const Color groundLightTop;
 extern const Color groundLightSide;
@@ -41,8 +50,3 @@ extern const Color foodFront;
 extern const Color foodTop;
 extern const Color foodSide;
 extern const Color foodHidden;
-
-extern const Color wallColor;
-extern const Color wallColorFade;
-
-extern const Color explosionColor;

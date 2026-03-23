@@ -1,0 +1,24 @@
+#pragma once
+
+#include "../ecs/Registry.hpp"
+#include "../ecs/Entity.hpp"
+#include "../systems/InputSystem.hpp"
+#include "../arena/ArenaGrid.hpp"
+#include "../AI/AIPresetLoader.hpp"
+#include "../../incs/Colors.hpp"
+#include "../../incs/RaylibColors.hpp"
+#include "Factories.hpp"
+
+class GameManager {
+	public:
+		static void resetGame(Registry& registry,
+								InputSystem& inputSystem,
+								Entity& playerSnake, Entity& secondSnake, Entity& food,
+								int gridWidth, int gridHeight,
+								ArenaGrid& arena,
+								const AIPresetLoader::PresetTable& AIPresets, GameMode mode);
+
+		static void relocateFood(Registry& registry, Entity foodEntity,
+								int gridWidth, int gridHeight,
+								const ArenaGrid* arena = nullptr);
+};

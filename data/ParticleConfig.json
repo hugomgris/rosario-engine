@@ -1,0 +1,44 @@
+{
+    "dust": {
+        "maxDensity":       20,
+        "spawnInterval":    0.08,
+        "minSize":          3.0,
+        "maxSize":          15.0,
+        "minLifetime":      3.0,
+        "maxLifetime":      6.0
+    },
+    "explosion": {
+        "minSize":          4.0,
+        "maxSize":          18.0,
+        "minLifetime":      0.3,
+        "maxLifetime":      0.9,
+        "minSpeed":         80.0,
+        "maxSpeed":         350.0,
+        "count":            28
+    },
+    "trail": {
+        "minSize":          10.0,
+        "maxSize":          20.0,
+        "minLifetime":      0.2,
+        "maxLifetime":      1.0,
+        "minSpeed":         50.0,
+        "maxSpeed":         60.0,
+        "count":            3,
+        "scatter":          15.0,
+        "spawnInterval":    0.05
+    },
+    "menuTrail_yellow": {
+        "direction":        "LEFT",
+        "color":            [255, 165, 0, 255],
+        "spawnInterval":    0.1,
+        "x":                160,
+        "y":                700
+    },
+    "menuTrail_blue": {
+        "direction":        "LEFT",
+        "color":            [70, 130, 180, 255],
+        "spawnInterval":    0.1,
+        "x":                340,
+        "y":                770
+    }
+}

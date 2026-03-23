@@ -1,0 +1,31 @@
+{
+    "AIPresets": [
+        {
+            "name":             "easy",
+            "behavior":         "EASY",
+            "maxSearchDepth":   50,
+            "useSafetyCheck":   false,
+            "hasSurvivalMode":  false,
+            "randomMoveChance": 0.15,
+            "aggressiveness":   0.8
+        },
+        {
+            "name":             "medium",
+            "behavior":         "MEDIUM",
+            "maxSearchDepth":   150,
+            "useSafetyCheck":   true,
+            "hasSurvivalMode":  true,
+            "randomMoveChance": 0.0,
+            "aggressiveness":   0.5
+        },
+        {
+            "name":             "hard",
+            "behavior":         "HARD",
+            "maxSearchDepth":   300,
+            "useSafetyCheck":   true,
+            "hasSurvivalMode":  true,
+            "randomMoveChance": 0.0,
+            "aggressiveness":   0.3
+        }
+    ]
+}

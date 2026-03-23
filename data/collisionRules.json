@@ -1,0 +1,24 @@
+{
+    "collisionRules": [
+        {
+            "subject": "Snake",
+            "object": "Food",
+            "effects": ["GrowSnake", "RelocateFood", "IncrementScore"]
+        },
+        {
+            "subject": "Snake",
+            "object": "Wall",
+            "effects": ["KillSnake"]
+        },
+        {
+            "subject": "Snake",
+            "object": "Self",
+            "effects": ["KillSnake"]
+        },
+        {
+            "subject": "Snake",
+            "object": "Snake",
+            "effects": ["KillSnake"]
+        }
+    ]
+}

@@ -1,0 +1,27 @@
+{
+   glfw_glx_extension_string
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   fun:realloc
+   ...
+   fun:extensionSupportedGLX
+   fun:_glfwInitGLX
+   fun:_glfwCreateWindowX11
+   fun:glfwCreateWindow
+   fun:InitPlatform
+   fun:InitWindow
+   ...
+}
+
+{
+   raylib_end_texture_mode_batch
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   fun:calloc
+   ...
+   fun:rlDrawRenderBatch
+   fun:rlDrawRenderBatchActive
+   fun:EndTextureMode
+   fun:*
+   fun:main
+}

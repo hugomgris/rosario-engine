@@ -1,0 +1,6 @@
+leak:extensionSupportedGLX
+leak:_glfwInitGLX
+leak:_glfwCreateWindowX11
+leak:rlDrawRenderBatch
+leak:rlDrawRenderBatchActive
+leak:EndTextureMode

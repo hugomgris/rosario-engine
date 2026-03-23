@@ -1,58 +1,55 @@
-#include "../../incs/FloodFill.hpp"
-#include "../../incs/Arena.hpp"
+#include "AI/FloodFill.hpp"
+#include "components/SnakeComponent.hpp"
+#include <queue>
 
-int FloodFill::countReachable(const GameState& state, Vec2 start, 
-							const std::vector<Vec2>& ignorePositions) {
-	// Check arena walls for start position (includes bounds checking)
-	CellType startCell = state.arena ? state.arena->getCell(start.x, start.y) : CellType::Empty;
-	if (startCell == CellType::Wall || startCell == CellType::Obstacle || startCell == CellType::DespawningSolid)
-		return 0;
-	
-	std::vector<std::vector<bool>> visited(state.width, 
-										std::vector<bool>(state.height, false));
-	
-	std::queue<Vec2> queue;
-	queue.push(start);
-	visited[start.x][start.y] = true;
-	
-	int count = 0;
-	
-	while (!queue.empty()) {
-		Vec2 current = queue.front();
-		queue.pop();
-		count++;
-		
-		for (Vec2 neighbor : getNeighbors(current)) {
-			// Pass ignorePositions to isWalkable
-			if (isWalkable(state, neighbor, ignorePositions) && 
-				!visited[neighbor.x][neighbor.y]) {
-				visited[neighbor.x][neighbor.y] = true;
-				queue.push(neighbor);
-			}
-		}
-	}
-	
-	return count;
+int FloodFill::countReachable(const std::vector<std::vector<bool>>& blocked,
+                               Vec2 start,
+                               int gridWidth,
+                               int gridHeight,
+                               const std::vector<Vec2>& ignorePositions) const {
+    if (!gridHelper.isWalkable(blocked, start, gridWidth, gridHeight, ignorePositions))
+        return 0;
+
+    std::vector<std::vector<bool>> visited(gridWidth, std::vector<bool>(gridHeight, false));
+    std::queue<Vec2> queue;
+    queue.push(start);
+    visited[start.x][start.y] = true;
+    int count = 0;
+
+    while (!queue.empty()) {
+        Vec2 current = queue.front();
+        queue.pop();
+        ++count;
+
+        for (Vec2 neighbor : gridHelper.getNeighbors(current, gridWidth, gridHeight)) {
+            if (!gridHelper.isWalkable(blocked, neighbor, gridWidth, gridHeight, ignorePositions))
+                continue;
+            if (visited[neighbor.x][neighbor.y])
+                continue;
+            visited[neighbor.x][neighbor.y] = true;
+            queue.push(neighbor);
+        }
+    }
+    return count;
 }
 
-bool FloodFill::canReachTail(const GameState &state, const Snake *aiSnake, const std::vector<Vec2> &proposedPath) {
-	if (proposedPath.empty())
-		return false;
+bool FloodFill::canReachTail(const Registry& registry,
+                              const std::vector<std::vector<bool>>& blocked,
+                              Entity aiEntity,
+                              const std::vector<Vec2>& proposedPath,
+                              int gridWidth,
+                              int gridHeight) const {
+    if (proposedPath.empty())
+        return false;
 
-	// 1 get the new head position (i.e., end of path)
-	Vec2 newHead = proposedPath[proposedPath.size() - 1];
+    const auto& snake = registry.getComponent<SnakeComponent>(aiEntity);
+    if (snake.segments.empty())
+        return false;
 
-	// 2 Calculate new tail position
-	const Vec2 *segments = aiSnake->getSegments();
-	int length = aiSnake->getLength();
+    const Vec2 newHead     = proposedPath.back();
+    const Vec2 currentTail = snake.segments.back().position;
 
-	Vec2 currentTail = segments[length - 1];
-
-	// 3 count reachable cells from the new head, while treating the current tail as empty (it will be after one move)
-	int reachableCells = countReachable(state, newHead, {currentTail});
-
-	// 4 Safety check: is there enough space for the snake after it grows?
-	int requiredSpace = length + 1;
-
-	return reachableCells >= requiredSpace;
+    int reachable     = countReachable(blocked, newHead, gridWidth, gridHeight, { currentTail });
+    const int required = static_cast<int>(snake.segments.size()) + 1;
+    return reachable >= required;
 }

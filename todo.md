@@ -1,5 +1,9 @@
 ## Todo list
+- Documentation
+- Fix head-to-head collisions, which make the game crash
+- Color switching following mode in main menu
+- Extra text info in start and gameover screens
 
-- have the spawning walls break the snake, not the other way around
-- add a first bead prototype (ram)
-- add a first 2D->3D translation
+
+### Long Run
+- Entity ID recycling/reusing

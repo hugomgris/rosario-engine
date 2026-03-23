@@ -21,29 +21,51 @@ INCDIR          := incs
 # -=-=-=-=-    SOURCE FILES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 MAIN_SRC        := main.cpp
-CORE_SRC        := core/GameController.cpp	\
-					core/InputManager.cpp	\
-					core/Arena.cpp			\
-					core/ArenaPresets.cpp	\
-					core/Snake.cpp			\
-					core/Food.cpp			\
-					core/Utils.cpp
 
-AI_SRC          := AI/AIConfig.cpp			\
-					AI/FloodFill.cpp		\
+ECS_SRC         := ecs/Registry.cpp
+
+AI_SRC			:= AI/FloodFill.cpp		\
+					AI/GridHelper.cpp		\
 					AI/Pathfinder.cpp		\
-					AI/SnakeAI.cpp			\
-					AI/GridHelper.cpp
+					AI/AIPresetLoader.cpp
 
-GRAPHICS_SRC    := graphics/Renderer.cpp				\
-					graphics/TextSystem.cpp				\
-					graphics/ParticleSystem.cpp			\
-					graphics/AnimationSystem.cpp		\
-					graphics/MenuSystem.cpp				\
-					graphics/RaylibColors.cpp			\
-					graphics/PostProcessingSystem.cpp
+ARENA_SRC		:= arena/ArenaGrid.cpp		\
+					arena/ArenaPresets.cpp		\
+					arena/ArenaPresetLoader.cpp
 
-ALL_SRC         := $(MAIN_SRC) $(CORE_SRC) $(AI_SRC) $(GRAPHICS_SRC)
+SYSTEMS_SRC     := systems/InputSystem.cpp				\
+					systems/MovementSystem.cpp			\
+					systems/RenderSystem.cpp			\
+					systems/PostProcessingSystem.cpp	\
+					systems/CollisionSystem.cpp			\
+					systems/AISystem.cpp				\
+					systems/UIInteractionSystem.cpp		\
+					systems/ParticleSystem.cpp			\
+					systems/AnimationSystem.cpp			\
+
+ANIMATIONS_SRC	:= animations/ParticleConfigLoader.cpp	\
+					animations/TunnelConfigLoader.cpp
+
+PP_SRC			:= postprocessing/PostProcessConfigLoader.cpp
+
+UI_SRC			:= ui/TextSystem.cpp				\
+					ui/MenuSystem.cpp				\
+					ui/UISystem.cpp					\
+					ui/ButtonConfigLoader.cpp		\
+					ui/GlyphLibraryLoader.cpp		\
+					ui/GlyphPresetLoader.cpp		\
+					ui/PixelTextLayoutSystem.cpp	\
+					ui/PixelTextRenderSystem.cpp	\
+
+GRAPHICS_SRC    := helpers/RaylibColors.cpp	\
+					helpers/Factories.cpp	\
+					helpers/GameManager.cpp
+
+COLLISION_SRC   := collision/CollisionRuleLoader.cpp		\
+					collision/CollisionEffects.cpp			\
+					collision/CollisionEffectDispatcher.cpp
+
+ALL_SRC         := $(MAIN_SRC) $(ECS_SRC) $(SYSTEMS_SRC) $(ARENA_SRC) $(GRAPHICS_SRC) $(COLLISION_SRC) $(AI_SRC) $(ANIMATIONS_SRC) $(PP_SRC) $(UI_SRC)
 
 SRCS            := $(addprefix $(SRCDIR)/, $(ALL_SRC))
 OBJS            := $(addprefix $(OBJDIR)/, $(ALL_SRC:.cpp=.o))
@@ -51,16 +73,16 @@ DEPS            := $(addprefix $(DEPDIR)/, $(ALL_SRC:.cpp=.d))
 
 # -=-=-=-=-    INCLUDES -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
-INCLUDES        := -I$(INCDIR)
+INCLUDES        := -I$(INCDIR) -I$(SRCDIR)
 
 # -=-=-=-=-    FLAGS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 CC              := c++
-CFLAGS := -std=c++20 -g3 -O0 -Wall -Wextra \
-			-Wno-unused-parameter \
-			-Wno-unused-variable \
-			-Wno-sign-compare \
-			$(INCLUDES)
+CFLAGS			:= -std=c++20 -g3 -O0 -Wall -Wextra	\
+					-Wno-unused-parameter			\
+					-Wno-unused-variable			\
+					-Wno-sign-compare				\
+					$(INCLUDES)
 
 # PRODUCTION FLAGS#
 #CFLAGS := -std=c++20 -g3 -O0 -Wall -Wextra -Werror \
@@ -104,8 +126,9 @@ TEST_SRCS		:= $(wildcard $(TEST_DIR)/unit/*.cpp) \
 TEST_OBJS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_OBJDIR)/%.o,$(TEST_SRCS))
 TEST_DEPS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_DEPDIR)/%.d,$(TEST_SRCS))
 
-TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(SRCS))
-TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS))
+TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(addprefix $(SRCDIR)/, $(ALL_SRC)))
+TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS)) \
+				   $(OBJDIR)/RaylibColors.o
 
 TEST_CFLAGS		:= $(CFLAGS) $(GTEST_INCLUDES) $(RAYLIB_INCLUDES)
 TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
@@ -115,13 +138,13 @@ TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
 all: $(RAYLIB_SRC_DIR)/libraylib.a $(NAME)
 
 game: all
-	./rosario 31 31
+	./rosario
 
 gamere: re
-	./rosario 31 31
+	./rosario
 
 gamecheck: re
-	valgrind --leak-check=full --track-origins=yes --show-leak-kinds=all ./rosario 30 30
+	valgrind --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --num-callers=40 ./rosario 2> mem_logs.tc
 
 check_gtest:
 	@if [ ! -f "$(GTEST_LIB)" ]; then \
@@ -170,6 +193,13 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $(DEPDIR)/$*.d)
 	@echo "$(YELLOW)Compiling $<...$(DEF_COLOR)"
 	@$(CC) $(CFLAGS) $(ALL_INCLUDES) $(DEPFLAGS) -c $< -o $@ -MF $(DEPDIR)/$*.d
+
+# RaylibColors specal rule
+$(OBJDIR)/RaylibColors.o: srcs/helpers/RaylibColors.cpp
+	@mkdir -p $(OBJDIR)
+	@mkdir -p $(DEPDIR)
+	@echo "$(YELLOW)Compiling $<...$(DEF_COLOR)"
+	@$(CC) $(CFLAGS) $(ALL_INCLUDES) $(DEPFLAGS) -c $< -o $@ -MF $(DEPDIR)/RaylibColors.d
 
 -include $(DEPS)
 
@@ -228,6 +258,5 @@ info:
 	@echo "Compiler: $(CC)"
 	@echo "Flags:    $(CFLAGS)"
 	@echo "Raylib:   $(RAYLIB_LIBS)"
-	@echo "SDL2:     $(SDL_LIBS)"
 
 .PHONY: all clean fclean re test check_gtest check_raylib

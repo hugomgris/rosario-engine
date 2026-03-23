@@ -1,0 +1,14 @@
+{
+    "presets": [
+        { "name": "InterLock1",   "key": "InterLock1"   },
+        { "name": "Spiral1",      "key": "Spiral1"      },
+        { "name": "Columns1",     "key": "Columns1"     },
+        { "name": "Columns2",     "key": "Columns2"     },
+        { "name": "Cross",        "key": "Cross"        },
+        { "name": "Checkerboard", "key": "Checkerboard" },
+        { "name": "Maze",         "key": "Maze"         },
+        { "name": "Diamond",      "key": "Diamond"      },
+        { "name": "Tunnels",      "key": "Tunnels"      },
+        { "name": "FourRooms",    "key": "FourRooms"    }
+    ]
+}

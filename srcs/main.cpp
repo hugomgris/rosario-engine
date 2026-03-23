@@ -1,275 +1,611 @@
-#include "../incs/Renderer.hpp"
-#include "../incs/RaylibColors.hpp"
-#include "../incs/ParticleSystem.hpp"
-#include "../incs/TextSystem.hpp"
-#include "../incs/AnimationSystem.hpp"
-#include "../incs/MenuSystem.hpp"
-#include "../incs/PostProcessingSystem.hpp"
-#include "../incs/Arena.hpp"
-#include "../incs/Snake.hpp"
-#include "../incs/SnakeAI.hpp"
-#include "../incs/Food.hpp"
-#include "../incs/DataStructs.hpp"
-#include "../incs/GameController.hpp"
-#include "../incs/InputManager.hpp"
-#include "../incs/Utils.hpp"
-#include "../incs/colors.h"
-#include <thread>
 #include <iostream>
-#include <memory>
+#include <algorithm>
+#include <ctime>
+#include <limits>
+#include <raylib.h>
 
-bool parseArguments(int argc, char **argv)
-{
-	for (int i = 1; i < argc; i++) {
-		std::string str(argv[i]);
-		if (str.find_first_not_of("0123456789") != std::string::npos) {
-			std::cerr << "error: bad argument {" << argv[i] << "}: only numeric arguments accepted" << std::endl;
+#include "../incs/DataStructs.hpp"
+#include "../incs/Colors.hpp"
+#include "../incs/RaylibColors.hpp"
+#include "ecs/Registry.hpp"
+#include "components/PositionComponent.hpp"
+#include "components/MovementComponent.hpp"
+#include "components/SnakeComponent.hpp"
+#include "components/InputComponent.hpp"
+#include "components/RenderComponent.hpp"
+#include "components/SolidTag.hpp"
+#include "components/FoodTag.hpp"
+#include "components/ButtonComponent.hpp"
+#include "components/ButtonActionComponent.hpp"
+#include "components/ParticleSpawnRequest.hpp"
+#include "components/PixelTextComponent.hpp"
+#include "components/PixelTextLayoutComponent.hpp"
+#include "systems/InputSystem.hpp"
+#include "systems/MovementSystem.hpp"
+#include "systems/CollisionSystem.hpp"
+#include "systems/RenderSystem.hpp"
+#include "systems/PostProcessingSystem.hpp"
+#include "systems/UIInteractionSystem.hpp"
+#include "ui/MenuSystem.hpp"
+#include "ui/TextSystem.hpp"
+#include "ui/UISystem.hpp"
+#include "ui/EventQueue.hpp"
+#include "postprocessing/PostProcessConfigLoader.hpp"
+#include "arena/ArenaGrid.hpp"
+#include "arena/ArenaPresets.hpp"
+#include "arena/ArenaPresetLoader.hpp"
+#include "helpers/Factories.hpp"
+#include "helpers/GameManager.hpp"
+#include "collision/CollisionRule.hpp"
+#include "collision/CollisionRuleLoader.hpp"
+#include "collision/CollisionEffectDispatcher.hpp"
+#include "../incs/FrameContext.hpp"
+#include "AI/AIPresetLoader.hpp"
+#include "systems/AISystem.hpp"
+#include "systems/ParticleSystem.hpp"
+#include "animations/ParticleConfigLoader.hpp"
+#include "systems/AnimationSystem.hpp"
+#include "animations/TunnelConfigLoader.hpp"
+#include "ui/ButtonConfigLoader.hpp"
+#include "ui/UIQueue.hpp"
+#include "ui/GlyphLibraryLoader.hpp"
+#include "ui/GlyphPresetLoader.hpp"
+#include "ui/PixelTextLayoutSystem.hpp"
+#include "ui/PixelTextRenderSystem.hpp"
+
+// constants
+static constexpr int SCREEN_W = 1920;
+static constexpr int SCREEN_H = 1080;
+
+static constexpr int GRID_W = 32;
+static constexpr int GRID_H = 32;
+
+static constexpr int MENU_W = 60;
+static constexpr int MENU_H = 33;
+
+// TODO: move this somewhere else, I don't like it here in main
+namespace {
+	bool tryMakePresetTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
+									const std::string& id,
+									PixelTextComponent& outTemplate) {
+		auto it = glyphPresets.find(id);
+		if (it == glyphPresets.end()) {
 			return false;
 		}
+
+		outTemplate = it->second;
+		outTemplate.visible = false;
+		return true;
 	}
 
-	return true;
+	PixelTextComponent makeGameOverTitleTemplate(const GlyphPresetLoader::PresetTable& glyphPresets) {
+		PixelTextComponent preset;
+		if (tryMakePresetTemplate(glyphPresets, "gameover_title", preset)) {
+			return preset;
+		}
+
+		PixelTextComponent fallback;
+		fallback.visibleInStates.push_back(GameState::GameOver);
+		fallback.id = "gameover_title";
+		fallback.text = "GAME OVER";
+		fallback.position = {640.0f, 180.0f};
+		fallback.scale = 2.0f;
+		fallback.color = customWhite;
+		fallback.visible = false;
+		return fallback;
+	}
+
+	void applyPixelTextTemplate(Registry& registry, Entity entity, const PixelTextComponent& templateData) {
+		if (!registry.hasComponent<PixelTextComponent>(entity)
+			|| !registry.hasComponent<PixelTextLayoutComponent>(entity)) {
+			return;
+		}
+
+		auto& text = registry.getComponent<PixelTextComponent>(entity);
+		auto& layout = registry.getComponent<PixelTextLayoutComponent>(entity);
+		text = templateData;
+		layout.dirty = true;
+	}
+
+	bool shouldBeVisibleForState(const PixelTextComponent& text, GameState state) {
+		if (text.visibleInStates.empty()) {
+			return text.visible;
+		}
+
+		for (GameState s : text.visibleInStates) {
+			if (s == state) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void applyPixelTextStateVisibility(Registry& registry, GameState state) {
+		auto view = registry.view<PixelTextComponent, PixelTextLayoutComponent>();
+		for (Entity e : view) {
+			auto& text = registry.getComponent<PixelTextComponent>(e);
+			auto& layout = registry.getComponent<PixelTextLayoutComponent>(e);
+			const bool expectedVisible = shouldBeVisibleForState(text, state);
+			if (text.visible != expectedVisible) {
+				text.visible = expectedVisible;
+				layout.dirty = true;
+			}
+		}
+	}
+
+	bool makeMenuLogoTemplate(const GlyphPresetLoader::PresetTable& glyphPresets,
+								PixelTextComponent& outTemplate) {
+		return tryMakePresetTemplate(glyphPresets, "menu_logo", outTemplate);
+	}
+
+	Entity ensurePixelTextEntity(Registry& registry, Entity& entity, const PixelTextComponent& templateData) {
+		if (registry.hasComponent<PixelTextComponent>(entity)
+			&& registry.hasComponent<PixelTextLayoutComponent>(entity)) {
+			return entity;
+		}
+
+		entity = Factories::spawnPixelText(registry, templateData, true);
+		return entity;
+	}
+
+	bool enqueueMenuLogoTrailRequests(
+		Registry& registry,
+		Entity menuLogo,
+		const ParticleConfig& particleConfig,
+		std::vector<Entity>& emitters
+	) {
+		if (!registry.hasComponent<PixelTextComponent>(menuLogo)
+			|| !registry.hasComponent<PixelTextLayoutComponent>(menuLogo)) {
+			return false;
+		}
+
+		const auto& text = registry.getComponent<PixelTextComponent>(menuLogo);
+		const auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
+		if (!text.visible || layout.quads.empty() || particleConfig.menuTrails.empty()) {
+			return false;
+		}
+
+		float minY = std::numeric_limits<float>::max();
+		float maxX = std::numeric_limits<float>::lowest();
+		float maxY = std::numeric_limits<float>::lowest();
+
+		for (const auto& quad : layout.quads) {
+			const Rectangle& r = quad.rect;
+			minY = std::min(minY, r.y);
+			maxX = std::max(maxX, r.x + r.width);
+			maxY = std::max(maxY, r.y + r.height);
+		}
+
+		while (emitters.size() < particleConfig.menuTrails.size()) {
+			emitters.push_back(registry.createEntity());
+		}
+
+		for (size_t i = 0; i < particleConfig.menuTrails.size(); ++i) {
+			const auto& preset = particleConfig.menuTrails[i];
+			ParticleSpawnRequest req;
+			req.type = ParticleSpawnRequest::ParticleType::MenuTrail;
+			req.spawnInterval = preset.spawnInterval;
+			req.emitterKey = static_cast<unsigned int>(i + 1);
+			if (preset.hasManualPosition) {
+				req.x = preset.x;
+				req.y = preset.y;
+			} else {
+				req.x = maxX;
+				req.y = (minY + maxY) * 0.5f;
+			}
+			req.direction = preset.direction;
+			req.color = preset.color;
+			req.gridCoords = false;
+
+			Entity emitter = emitters[i];
+			if (registry.hasComponent<ParticleSpawnRequest>(emitter)) {
+				registry.getComponent<ParticleSpawnRequest>(emitter) = req;
+			} else {
+				registry.addComponent<ParticleSpawnRequest>(emitter, req);
+			}
+		}
+
+		for (size_t i = particleConfig.menuTrails.size(); i < emitters.size(); ++i) {
+			if (registry.hasComponent<ParticleSpawnRequest>(emitters[i])) {
+				registry.removeComponent<ParticleSpawnRequest>(emitters[i]);
+			}
+		}
+
+		return true;
+	}
+
+	struct TransitionContext {
+		ParticleSystem& particleSystem;
+		MenuSystem& menuSystem;
+		Registry& registry;
+		const ButtonConfigLoader::ButtonTable& menuButtons;
+		InputSystem& inputSystem;
+		Entity& playerSnake;
+		Entity& secondSnake;
+		Entity& food;
+		ArenaGrid& arena;
+		const AIPresetLoader::PresetTable& AIPresets;
+		GameMode& mode;
+	};
+
+	void applyStateTransitionEffects(
+		GameState& previousState,
+		GameState currentState,
+		TransitionContext& ctx
+	) {
+		ctx.particleSystem.handleStateTransition(previousState, currentState);
+
+		if (currentState == previousState) {
+			return;
+		}
+
+		switch (currentState) {
+			case GameState::Menu:
+				ctx.arena.setMenuArena();
+				ctx.menuSystem.setupStartButtons(ctx.registry, ctx.menuButtons.start);
+				break;
+			case GameState::Playing:
+				ctx.arena.setGameplayArena();
+				GameManager::resetGame(ctx.registry, ctx.inputSystem, ctx.playerSnake, ctx.secondSnake, ctx.food, GRID_W, GRID_H, ctx.arena, ctx.AIPresets, ctx.mode);
+				break;
+			case GameState::GameOver:
+				ctx.arena.setMenuArena();
+				ctx.menuSystem.setupGameOverButtons(ctx.registry, ctx.menuButtons.gameOver);
+				break;
+			case GameState::Paused:
+			case GameState::Exiting:
+				break;
+		}
+
+		previousState = currentState;
+	}
 }
 
-int main(int argc, char **argv) {
-	if (argc != 3)
-	{
-		std::cerr << BYEL << "Usage: ./rosario <width> <height>" << RESET << std::endl;
-		return 1;
-	}
+int main() {
+	std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-	if (!parseArguments(argc, argv))
-	{
-		return 1;
-	}
-
-	int width = std::stoi(argv[1]);
-	int height = std::stoi(argv[2]);
-
-	// right now, 58x32 is the size of the full 1920x1080 screen
-	if (width < 16 || height < 16 || width > 58 || height > 32)
-	{
-		std::cerr << "Minimal arena width and height values are 16 units! Try running again with those or higher values!" << std::endl;
-		return 1;
-	}
-
-	// ENTITIES
-	int squareSize2D = 32;
-	Arena arena(width, height, squareSize2D);
-	Snake snake_A(width, height);
-	Snake snake_B(snake_A, width, height);
-	Food food(Vec2{0, 0}, width, height);
-
-	// CONFIGURATION AND STATE
-	GameState state;
-	state.width = width;
-	state.height = height;
-	state.arena = &arena;
-	state.snake_A = &snake_A;
-	state.snake_B = &snake_B;
-	state.food = &food;
-	state.gameOver = false;
-	state.isRunning = true;
-	state.isPaused = false;
-	state.currentState = GameStateType::Menu;
-	state.score = 0;
-	state.scoreB = 0;
-	state.config.mode = GameMode::SINGLE;
-	state.renderMode = RenderMode::MODE2D;
-	state.timing.accumulator = 0.0f;
-	state.aiController = nullptr;
-
-	// SYSTEMS
-	GameController gameController(&state);
-	gameController.setAIController(nullptr);
-	gameController.updateSnakeInArena(*state.snake_A, CellType::Snake_A);
-
-	Renderer renderer;
-	renderer.init(width, height);
+	// Config json load
+	CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
+	AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
+	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
+	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
+	TunnelConfigLoader::PresetTable tunnelPresets = TunnelConfigLoader::load("data/TunnelConfig.json");
+	std::vector<WallPreset> arenaPresetList = ArenaPresetLoader::load("data/ArenaPresets.json");
+	GlyphLibrary glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
+	GlyphPresetLoader::PresetTable glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
 	
-	const int screenWidth = 1920;
-	const int screenHeight = 1080;
-	
-	ParticleSystem particles(screenWidth, screenHeight, 10, 0, 30, 0.15f);
-	
-	TextSystem textSystem;
+	ButtonConfigLoader::ButtonTable menuButtons = ButtonConfigLoader::load("data/ButtonConfig.json");
+
+	// Dispatcher set up
+	CollisionEffectDispatcher dispatcher;
+	dispatcher.registerDefaults();
+
+	// ECS core
+	Registry		registry;
+	UIRenderQueue	uiQueue;
+	GameState		state = GameState::Menu;
+	GameMode		mode = GameMode::SINGLE;
+
+	// Gameplay systems
+	InputSystem				inputSystem;
+	MovementSystem			movementSystem;
+	CollisionSystem			collisionSystem;
+	AISystem				aiSystem(GRID_W, GRID_H);
+	RenderSystem            renderSystem;
+
+	renderSystem.init(GRID_W, GRID_H);
+
+	// UI systems
+	MenuSystem	menuSystem(SCREEN_W, SCREEN_H);
+	TextSystem	textSystem;
+	UISystem	uiSystem;
+	PixelTextLayoutSystem pixelTextLayoutSystem;
+	PixelTextRenderSystem pixelTextRenderSystem;
+
 	textSystem.init();
+	PixelTextComponent gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
+	PixelTextComponent menuLogoTemplate;
+	bool hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
 
-	AnimationSystem animations;
-	animations.init(&state, 1920, 1080);
-	animations.enableTunnelEffect(true, TunnelConfig::menu());
+	Entity gameOverTitle = Factories::spawnPixelText(registry, gameOverTitleTemplate, true);
+	Entity menuLogo(0u);
+	std::vector<Entity> menuTrailEmitters;
+	if (hasMenuLogoTemplate) {
+		menuLogo = Factories::spawnPixelText(registry, menuLogoTemplate, true);
+	}
 
-	MenuSystem menu(gameController);
-	menu.init(width, height);
-	menu.setState(MenuState::Start);
+	// Visual systems
+	PostProcessingSystem    postProcessingSystem;
+	ParticleSystem          particleSystem(SCREEN_W, SCREEN_H, particleConfig);
+	AnimationSystem         animationSystem;
 
-	InputManager inputManager;
-	inputManager.registerNavigationCallback([&menu](NavigationAction action) {
-		menu.handleNavigation(action);
-	});
-	inputManager.registerMouseCallback([&menu](Vector2 pos, bool clicked) {
-		menu.handleMouseInput(pos, clicked);
-	});
+	postProcessingSystem.init(SCREEN_W, SCREEN_H);
+	postProcessingSystem.setConfig(ppPresets.at("crt_bloom"));
 
-	PostProcessingSystem postProcess;
-	postProcess.init(screenWidth, screenHeight);
-	postProcess.setConfig(PostProcessingSystem::presetCRTBloom());
+	// temporary Arena and Context to kickstart the animation system
+	{
+		ArenaGrid tmpArena(GRID_W, GRID_H);
+		FrameContext tmpCtx;
+		tmpCtx.arena = &tmpArena;
+		tmpCtx.state = &state;
+		tmpCtx.gridWidth = GRID_W;
+		tmpCtx.gridHeight = GRID_H;
+		renderSystem.fillContext(tmpCtx, nullptr);
+		animationSystem.init(SCREEN_W, SCREEN_H,
+			static_cast<int>(tmpCtx.arenaBounds.x),
+			static_cast<int>(tmpCtx.arenaBounds.y),
+			tmpCtx.cellSize);
+	}
+	animationSystem.enable(true, tunnelPresets.at("realm2D"));
 
-	// TIMING and preparations
-	food.replaceInFreeSpace(&state);
-
-	const double TARGET_FPS = 12.0;					// Snake moves 10 times per second
-	const double FRAME_TIME = 1.0 / TARGET_FPS; 	// 0.1 seconds per update
+	// initial world
+	ArenaGrid arena(GRID_W, GRID_H);
+	arena.setMenuArena();
+	Entity playerSnake(0u), secondSnake(0u), food(0u);
+	RenderMode renderMode = RenderMode::MODE2D;
+	bool debugLayout = false;
+	bool debugParticle = false;
 	
-	auto lastTime = std::chrono::high_resolution_clock::now();
+	int currentPresetIndex = -1; // -1 = empty arena TODO: think about where to handle this
 
-	float lineLifetime = 1.0f / animations.getTunnelConfig().animationSpeed;
+	// Setup UI systems
+	UIInteractionSystem uiInteractionSystem;
+	EventQueue eventQueue;
 
-	gameController.setOnArenaChangeSpawnCallback([&]() {
-		animations.notifyArenaSpawning();
-		arena.beginSpawn(lineLifetime);
-	});
+	menuSystem.setupStartButtons(registry, menuButtons.start);
+	menuSystem.setupGameOverButtons(registry, menuButtons.gameOver);
 
-	gameController.setOnArenaClearCallback([&]() {
-		animations.notifyArenaDespawning();
-		arena.beginDespawn(lineLifetime);
-		animations.onDespawnReadyCallback = [&]() {
-			arena.startFadeOut();
-		};
-	});
+	TransitionContext transitionContext {
+		particleSystem,
+		menuSystem,
+		registry,
+		menuButtons,
+		inputSystem,
+		playerSnake,
+		secondSnake,
+		food,
+		arena,
+		AIPresets,
+		mode
+	};
 
-	// MAIN GAME LOOP
-	bool gameOverStateInitialized = false;
-	
-	while (state.isRunning) {
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> frameTime = currentTime - lastTime;
-		float deltaTime = frameTime.count();
-		lastTime = currentTime;
-		
-		//----  MANAGEMENT PHASE  ----//
-		inputManager.update();
-		arena.tickSpawnTimer(deltaTime);
-		arena.tickDespawnTimer(deltaTime);
+	GameState previousState = state;
 
-		// general, non-gameplay poll input
-		Input preInput = inputManager.pollGameplayInput();
-		if (preInput == Input::ToggleFS) {
-			ToggleFullscreen();
-		}
-		
-		switch (state.currentState) {
-			case GameStateType::Menu: {
-				gameOverStateInitialized = false;
-				inputManager.setContext(InputContext::Menu);
-				menu.update(deltaTime, particles, animations);
-				break;
+	while (true) {
+		if (state == GameState::Exiting || WindowShouldClose()) break;
+
+		const float dt = std::min(GetFrameTime(), 1.0f / 20.0f);
+
+		if (IsKeyPressed(KEY_F)) ToggleFullscreen();
+		if (IsKeyPressed(KEY_ONE)) renderMode = RenderMode::MODE2D;
+		if (IsKeyPressed(KEY_TWO)) renderMode = RenderMode::MODE3D;
+		if (IsKeyPressed(KEY_P)) postProcessingSystem.togglePostprocessing();
+		if (IsKeyPressed(KEY_F10)) debugLayout = !debugLayout;
+		if (IsKeyPressed(KEY_F8)) debugParticle = !debugParticle;
+		if (IsKeyPressed(KEY_F9)) {
+			try {
+				glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
+				glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
+
+				gameOverTitleTemplate = makeGameOverTitleTemplate(glyphPresets);
+				hasMenuLogoTemplate = makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
+
+				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				applyPixelTextTemplate(registry, gameOverTitle, gameOverTitleTemplate);
+
+				if (hasMenuLogoTemplate) {
+					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
+					applyPixelTextTemplate(registry, menuLogo, menuLogoTemplate);
+				} else if (registry.hasComponent<PixelTextComponent>(menuLogo)
+					&& registry.hasComponent<PixelTextLayoutComponent>(menuLogo)) {
+					auto& text = registry.getComponent<PixelTextComponent>(menuLogo);
+					auto& layout = registry.getComponent<PixelTextLayoutComponent>(menuLogo);
+					text.visible = false;
+					text.visibleInStates.clear();
+					layout.dirty = true;
+				}
+
+				applyPixelTextStateVisibility(registry, state);
+				std::cout << "[GlyphPipeline] Hot reload successful" << std::endl;
+			} catch (const std::exception& e) {
+				std::cerr << "[GlyphPipeline] Hot reload failed: " << e.what() << std::endl;
 			}
+		}
+		if (IsKeyPressed(KEY_TAB)) {
+			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
+			animationSystem.notifyArenaSpawning(arena);
+			arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+			float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
+			arena.beginSpawn(lineLifetime);
+		}
 
-			case GameStateType::Playing: {
-				inputManager.setContext(InputContext::Gameplay);
-				Input input = inputManager.pollGameplayInput();
-				
-				if (input == Input::Pause)
-					inputManager.processInput(input, state);
-				else if (input == Input::Switch2D || input == Input::Switch3D)
-					inputManager.processInput(input, state);
-			
-				gameController.bufferInput(input);
+		// 1) Gather UI input for menu-like states (fills eventQueue)
+		if (state == GameState::Menu || state == GameState::GameOver) {
+			const ButtonMenu activeMenu = (state == GameState::Menu)
+				? ButtonMenu::Start
+				: ButtonMenu::GameOver;
+			uiInteractionSystem.update(registry, eventQueue, activeMenu);
+		}
 
-				state.timing.accumulator += deltaTime;
-				
-				while (state.timing.accumulator >= FRAME_TIME) {
-					gameController.update();
-					state.timing.accumulator -= FRAME_TIME;
-					
-					if (!state.isRunning) {
-						state.currentState = GameStateType::GameOver;
-						state.isRunning = true;
-						break;
+		// 2) Process button events (state/mode mutations only)
+		for (const auto& event : eventQueue.getEvents()) {
+			switch (event.type) {
+				case GameEvent::Type::ButtonClicked:
+					switch (event.buttonAction) {
+						case ButtonActionType::StartGame:
+							state = GameState::Playing;
+							break;
+						case ButtonActionType::ChangeMode:
+							switch (mode) {
+								case GameMode::SINGLE: mode = GameMode::MULTI; break;
+								case GameMode::MULTI:  mode = GameMode::VSAI;  break;
+								case GameMode::VSAI:   mode = GameMode::SINGLE; break;
+							}
+							break;
+						case ButtonActionType::Quit:
+							state = GameState::Exiting;
+							break;
+						case ButtonActionType::ReturnToMenu:
+							GameManager::resetGame(registry, inputSystem, playerSnake, secondSnake, food,
+												GRID_W, GRID_H, arena, AIPresets, mode);
+							state = GameState::Menu;
+							break;
 					}
-				}
-				break;
-			}
-				
-			case GameStateType::Paused: {
-				inputManager.setContext(InputContext::Paused);
-				Input input = inputManager.pollGameplayInput();
-				
-				if (input == Input::Pause)
-					inputManager.processInput(input, state);
-				break;
-			}
-				
-			case GameStateType::GameOver: {
-				if (!gameOverStateInitialized) {
-					menu.setState(MenuState::GameOver);
-					gameOverStateInitialized = true;
-				}
-				
-				inputManager.setContext(InputContext::GameOver);
-				break;
+					break;
+				default:
+					break;
 			}
 		}
-		
-		//----  RENDERING PHASE  ----//
+		eventQueue.clear();
 
-		postProcess.beginCapture();
-		ClearBackground(Color{23, 23, 23, 255});
+		// 3) Apply transitions BEFORE building context
+		const bool transitionedThisFrame = (state != previousState);
+		applyStateTransitionEffects(previousState, state, transitionContext);
 
-		// Update particles
-		particles.update(deltaTime);
-				
-		// Update animations (tunnel effect)
-		animations.updateTunnelEffect(deltaTime);
-		
-		switch (state.currentState) {
-			case GameStateType::Menu: {
-				BeginMode2D(renderer.getCamera2D());
-				menu.render(renderer, textSystem, particles, animations, state);
-				EndMode2D();
-				break;
-			}
+		// 4) Build fresh context from current state/arena
+		FrameContext ctx;
+		ctx.arena      = &arena;
+		ctx.state      = &state;
+		const bool menuLikeState = (state == GameState::Menu || state == GameState::GameOver);
+		ctx.menuLikeFrame = menuLikeState;
+		ctx.gridWidth  = menuLikeState ? MENU_W : GRID_W;
+		ctx.gridHeight = menuLikeState ? MENU_H : GRID_H;
+		ctx.renderMode = &renderMode;
+		ctx.playerDied = false;
 
-			case GameStateType::Playing:
-			case GameStateType::Paused: {
-				switch (state.renderMode) {
-					case RenderMode::MODE3D:
-						BeginMode3D(renderer.getCamera3D());
-						renderer.render3D(state, state.isPaused ? 0.0f : deltaTime);
-						EndMode3D();
-						break;
+		renderSystem.fillContext(ctx, &state);
+		animationSystem.init(
+			SCREEN_W, SCREEN_H,
+			static_cast<int>(ctx.arenaBounds.x),
+			static_cast<int>(ctx.arenaBounds.y),
+			ctx.cellSize
+		);
 
-					case RenderMode::MODE2D:
-						BeginMode2D(renderer.getCamera2D());
-						renderer.render2D(state, state.isPaused ? 0.0f : deltaTime, particles, animations, snakeALightTop);
-						EndMode2D();
-						break;
+		// 5) UPDATE phase
+		switch (state) {
+			case GameState::Menu:
+			case GameState::GameOver:
+				ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
 
-					case RenderMode::ASCII:
-						break; // unimplemented yet
+				if (hasMenuLogoTemplate) {
+					ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);
 				}
 
+				applyPixelTextStateVisibility(registry, state);
+				pixelTextLayoutSystem.update(registry, glyphLib);
+
+				if (hasMenuLogoTemplate) {
+					enqueueMenuLogoTrailRequests(registry, menuLogo, particleConfig, menuTrailEmitters);
+				}
+
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
 				break;
-			}			
-		
-			case GameStateType::GameOver: {
-				BeginMode2D((Camera2D){(Vector2){0.0f, 0.0f}, (Vector2){0.0f, 0.0f}, 0.0f, 1.0f});
-				menu.renderGameOver(renderer, textSystem, particles, animations, state);
-				EndMode2D();
+
+			case GameState::Playing:
+				if (!transitionedThisFrame) {
+					inputSystem.update(registry);
+					aiSystem.update(registry, ctx);
+					movementSystem.update(registry, dt);
+					collisionSystem.update(registry, ruleTable, dispatcher, ctx);
+					arena.tickSpawnTimer(dt);
+					arena.tickDespawnTimer(dt);
+				}
+				particleSystem.update(dt, registry, ctx);
+				animationSystem.update(dt, arena);
 				break;
-			}
+
+			case GameState::Paused:
+				break;
+
+			case GameState::Exiting:
+				break;
 		}
-		
-		postProcess.endCapture();
-		
-		//----  POST PROCESSING PHASE  ----//
-		
+
+		// Death check happens after update phase
+		if (ctx.playerDied) {
+			std::cout << "PLAYER DIED" << std::endl;
+			state = GameState::GameOver;
+		}
+
+		// 6) RENDER phase
+		postProcessingSystem.beginCapture();
+		switch (state) {
+			case GameState::Menu:
+			case GameState::GameOver:
+				renderSystem.beginMode2D();
+				animationSystem.render();
+				particleSystem.render();
+				renderSystem.renderMenu(ctx);
+				if (debugLayout) renderSystem.renderDebugLayout(ctx);
+				renderSystem.endMode2D();
+				break;
+
+			case GameState::Playing:
+				if (ctx.renderMode && *ctx.renderMode == RenderMode::MODE2D) {
+					renderSystem.beginMode2D();
+					animationSystem.render();
+					particleSystem.render();
+					renderSystem.render2D(registry, ctx);
+					if (debugLayout) renderSystem.renderDebugLayout(ctx);
+					renderSystem.endMode2D();
+				} else {
+					renderSystem.render(registry, dt, ctx);
+				}
+				break;
+
+			case GameState::Paused:
+			case GameState::Exiting:
+				break;
+		}
+
+		// 7) UI phase
+		uiQueue.clear();
+		switch (state) {
+			case GameState::Menu:
+				menuSystem.buildStartMenuUI(registry, uiQueue);
+				uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
+				pixelTextRenderSystem.render(registry);
+				break;
+			case GameState::GameOver:
+				menuSystem.buildGameOverUI(registry, uiQueue);
+				uiSystem.renderRects(uiQueue);
+				textSystem.render(uiQueue);
+				pixelTextRenderSystem.render(registry);
+				break;
+			case GameState::Playing:
+			case GameState::Paused:
+			case GameState::Exiting:
+				break;
+		}
+
+		postProcessingSystem.endCapture();
+
+		// 8) PRESENTING phase (post processing et al)
 		BeginDrawing();
-		ClearBackground(BLACK);
-		postProcess.applyAndPresent(deltaTime);
+		ClearBackground(customBlack);
+		postProcessingSystem.applyAndPresent(dt);
+		if (debugLayout) DrawFPS(SCREEN_W - 95, 10);
+		if (debugParticle) {
+			DrawText(
+				TextFormat(
+					"Particles:%d  MenuTrail:%d  MenuTrailReq:%d",
+					static_cast<int>(particleSystem.getParticleCount()),
+					static_cast<int>(particleSystem.getMenuTrailParticleCount()),
+					static_cast<int>(particleSystem.getLastMenuTrailRequestCount())
+				),
+				SCREEN_W - 460,
+				36,
+				20,
+				customWhite
+			);
+		}
 		EndDrawing();
 	}
-	
+
+	postProcessingSystem.shutdown();
+	textSystem.shutdown();
+	CloseWindow();
 	return 0;
 }

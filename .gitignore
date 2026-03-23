@@ -11,3 +11,8 @@ run_tests
 nibbler
 libs/googletest/libs/
 libs/
+
+# Mem logs
+asan_logs.txt
+mem_logs_supp.txt
+mem_logs.txt
