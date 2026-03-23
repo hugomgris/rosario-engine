@@ -5,8 +5,14 @@
 #include <stdexcept>
 #include "ecs/Entity.hpp"
 
+class IComponentPool {
+	public:
+		virtual ~IComponentPool() = default;
+		virtual void remove(Entity entity) = 0;
+};
+
 template<typename T>
-class ComponentPool {
+class ComponentPool : public IComponentPool {
 	private:
 		std::vector<T>							_components;
 		std::vector<Entity>						_entityList;
