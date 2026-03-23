@@ -127,8 +127,7 @@ TEST_OBJS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_OBJDIR)/%.o,$(TEST_SRCS))
 TEST_DEPS		:= $(patsubst $(TEST_DIR)/%.cpp,$(TEST_DEPDIR)/%.d,$(TEST_SRCS))
 
 TESTABLE_SRCS	:= $(filter-out $(SRCDIR)/main.cpp, $(addprefix $(SRCDIR)/, $(ALL_SRC)))
-TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS)) \
-				   $(OBJDIR)/RaylibColors.o
+TESTABLE_OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(TESTABLE_SRCS))
 
 TEST_CFLAGS		:= $(CFLAGS) $(GTEST_INCLUDES) $(RAYLIB_INCLUDES)
 TEST_LDFLAGS	:= -lpthread $(ALL_LIBS)
@@ -213,7 +212,7 @@ retest: fclean test
 
 $(TEST_BINARY): $(TESTABLE_OBJS) $(TEST_OBJS) $(GTEST_LIB) $(GTEST_MAIN_LIB)
 	@echo "$(YELLOW)Linking test binary...$(DEF_COLOR)"
-	$(CC) -o $@ $(TESTABLE_OBJS) $(TEST_OBJS) $(GTEST_LIB) $(GTEST_MAIN_LIB) $(TEST_LDFLAGS)
+	$(CC) -o $@ $(TESTABLE_OBJS) $(TEST_OBJS) $(GTEST_MAIN_LIB) $(GTEST_LIB) $(TEST_LDFLAGS)
 	@chmod +x $@
 	@echo "$(GREEN)Test binary created: $(TEST_BINARY)$(DEF_COLOR)"
 
