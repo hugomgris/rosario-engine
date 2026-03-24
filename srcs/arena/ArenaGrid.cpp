@@ -1,5 +1,4 @@
 #include "ArenaGrid.hpp"
-#include "ArenaPresets.hpp"
 
 // construction
 ArenaGrid::ArenaGrid(int width, int height)
@@ -91,19 +90,20 @@ void ArenaGrid::clearArena() {
 }
 
 // preset dispatchng
-void ArenaGrid::transformArenaWithPreset(WallPreset preset) {
+void ArenaGrid::transformArenaWithPreset(const std::vector<std::string>& wallMask) {
 	clearArena();
-	switch (preset) {
-		case WallPreset::InterLock1:  ArenaPresets::applyInterlock1(*this);  break;
-		case WallPreset::Spiral1:     ArenaPresets::applySpiral1(*this);     break;
-		case WallPreset::Columns1:    ArenaPresets::applyColumns1(*this);    break;
-		case WallPreset::Columns2:    ArenaPresets::applyColumns2(*this);    break;
-		case WallPreset::Cross:       ArenaPresets::applyCross(*this);       break;
-		case WallPreset::Checkerboard:ArenaPresets::applyCheckerboard(*this);break;
-		case WallPreset::Maze:        ArenaPresets::applyMaze(*this);        break;
-		case WallPreset::Diamond:     ArenaPresets::applyDiamond(*this);     break;
-		case WallPreset::Tunnels:     ArenaPresets::applyTunnels(*this);     break;
-		case WallPreset::FourRooms:   ArenaPresets::applyFourRooms(*this);   break;
+
+	const int playH = getPlayHeight();
+	const int playW = getPlayWidth();
+	const int rows = std::min(playH, static_cast<int>(wallMask.size()));
+
+	for (int y = 0; y < rows; ++y) {
+		const int cols = std::min(playW, static_cast<int>(wallMask[y].size()));
+		for (int x = 0; x < cols; ++x) {
+			if (wallMask[y][x] == '#') {
+				setCell(x, y, CellType::SpawningSolid);
+			}
+		}
 	}
 }
 

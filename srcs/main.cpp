@@ -32,7 +32,6 @@
 #include "ui/EventQueue.hpp"
 #include "postprocessing/PostProcessConfigLoader.hpp"
 #include "arena/ArenaGrid.hpp"
-#include "arena/ArenaPresets.hpp"
 #include "arena/ArenaPresetLoader.hpp"
 #include "helpers/Factories.hpp"
 #include "helpers/GameManager.hpp"
@@ -75,7 +74,7 @@ int main() {
 	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
 	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");
 	TunnelConfigLoader::PresetTable tunnelPresets = TunnelConfigLoader::load("data/TunnelConfig.json");
-	std::vector<WallPreset> arenaPresetList = ArenaPresetLoader::load("data/ArenaPresets.json");
+	ArenaPresetLoader::PresetList arenaPresetList = ArenaPresetLoader::load("data/ArenaPresets.json");
 	GlyphLibrary glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
 	GlyphPresetLoader::PresetTable glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
 	
@@ -219,7 +218,7 @@ int main() {
 		if (IsKeyPressed(KEY_TAB)) {
 			currentPresetIndex = (currentPresetIndex + 1) % static_cast<int>(arenaPresetList.size());
 			animationSystem.notifyArenaSpawning(arena);
-			arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex]);
+			arena.transformArenaWithPreset(arenaPresetList[currentPresetIndex].walls);
 			float lineLifetime = 1.0f / animationSystem.getAnimationSpeed();
 			arena.beginSpawn(lineLifetime);
 		}

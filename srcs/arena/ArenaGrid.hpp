@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <string>
 #include <cmath>
 #include <iostream>
 #include <raylib.h>
@@ -14,19 +15,6 @@ enum class CellType {
 	Obstacle,
 	SpawningSolid,
 	DespawningSolid
-};
-
-enum class WallPreset {
-	InterLock1,
-	Spiral1,
-	Columns1,
-	Columns2,
-	Cross,
-	Checkerboard,
-	Maze,
-	Diamond,
-	Tunnels,
-	FourRooms
 };
 
 class ArenaGrid {
@@ -64,7 +52,7 @@ class ArenaGrid {
 		void clearCell(int x, int y);
 		void clearArena();
 
-		void transformArenaWithPreset(WallPreset preset);
+		void transformArenaWithPreset(const std::vector<std::string>& wallMask);
 
 		std::vector<std::vector<Vector2>> getAllOutlines(int offsetX, int offsetY) const;
 

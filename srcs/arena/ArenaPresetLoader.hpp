@@ -2,10 +2,21 @@
 
 #include <string>
 #include <vector>
-#include "../arena/ArenaGrid.hpp"
+
+struct ArenaPresetDefinition {
+    std::string name;
+    int width = 0;
+    int height = 0;
+    std::vector<std::string> walls;
+};
 
 class ArenaPresetLoader {
 public:
-    // Returns presets in JSON order — used for cycling with TAB
-    static std::vector<WallPreset> load(const std::string& path);
+    using PresetList = std::vector<ArenaPresetDefinition>;
+
+    // Returns presets in JSON order; each preset carries its full wall mask.
+    static PresetList load(const std::string& path);
+
+    // Picks a random preset from a loaded list.
+    static const ArenaPresetDefinition& pickRandom(const PresetList& presets);
 };

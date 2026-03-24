@@ -101,3 +101,45 @@ The second batch of tests will target all the data loaders set up for the `JSON`
 
 ### Issues found:
 - The test regarding the wall matrix dimension validity signaled that something was off in the way I was loading arena presets. While trying to write the test I realized that it wasn´t *making sense* because the definition of the presets was in the side of the code, not in the json file. This instantly made me think that the way I was managing preset coniguration was not in line with all my other loading pipelines. So a refactoring was due.
+	- I took the opportunity to redefine how the presets were set up, now in the `JSON` files. Instead of defining values via accessing and what not, I now set up the presets with specific characters in the config files. Here's an example"
+```json
+{
+	"name": "Spiral1",
+	"width": 32,
+	"height": 32,
+	"walls": [
+		"................................",
+		"................................",
+		"................................",
+		"...##########################...",
+		"...#............................",
+		"...#............................",
+		"...#............................",
+		"...#...######################...",
+		"...#...#....................#...",
+		"...#...#....................#...",
+		"...#...#....................#...",
+		"...#...#...##############...#...",
+		"...#...#...#............#...#...",
+		"...#...#...#............#...#...",
+		"...#...#...#............#...#...",
+		"...#...#...#...######...#...#...",
+		"...#...#...#...##...#...#...#...",
+		"...#...#...#........#...#...#...",
+		"...#...#...#........#...#...#...",
+		"...#...#...#........#...#...#...",
+		"...#...#...##########...#...#...",
+		"...#...#................#...#...",
+		"...#...#................#...#...",
+		"...#...#................#...#...",
+		"...#...##################...#...",
+		"...#........................#...",
+		"...#........................#...",
+		"...#........................#...",
+		"...##########################...",
+		"................................",
+		"................................",
+		"................................"
+	]
+}
+```

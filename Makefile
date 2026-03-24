@@ -30,7 +30,6 @@ AI_SRC			:= AI/FloodFill.cpp		\
 					AI/AIPresetLoader.cpp
 
 ARENA_SRC		:= arena/ArenaGrid.cpp		\
-					arena/ArenaPresets.cpp		\
 					arena/ArenaPresetLoader.cpp
 
 SYSTEMS_SRC     := systems/InputSystem.cpp				\

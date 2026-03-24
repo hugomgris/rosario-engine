@@ -33,8 +33,8 @@ void GameManager::resetGame(Registry& registry,
 
 	arena.clearArena();
 
-	/* WallPreset preset = ArenaPresets::getRandomPreset();
-	arena.transformArenaWithPreset(preset);
+	/* const auto& preset = ArenaPresetLoader::pickRandom(arenaPresetList);
+	arena.transformArenaWithPreset(preset.walls);
 	arena.beginSpawn(1.2f); */ //TO DO
 }
 
