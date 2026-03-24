@@ -65,7 +65,7 @@ The first batch of tests will focus on the `Registry` management, stressing the 
 - [x] ComponentPool: Capacity growth under stress (many entities)
 - [x] ComponentPool: Copy and move semantics for components
 
-### Bugs found:
+### Issue found:
 - Entity destruction was not thorough. `Registry`'s `destroyEntity()` function was clearing the target entity from the registry's entity list, but not from the component pools. A simple fix to what was a very important bug:
 ```cpp
 void Registry::destroyEntity(Entity entity) {
@@ -89,7 +89,7 @@ The second batch of tests will target all the data loaders set up for the `JSON`
 - [x] AIPresetLoader: Parse AI presets with difficulty levels
 - [x] AIPresetLoader: AIPreset data structures match config
 - [x] AIPresetLoader: Invalid difficulty level throws exception
-- [ ] ArenaPresetLoader: Parse arena preset configurations
+- [x] ArenaPresetLoader: Parse arena preset configurations
 - [ ] ArenaPresetLoader: Wall matrix dimensions valid
 - [ ] CollisionRuleLoader: Parse collision rules from JSON
 - [ ] CollisionRuleLoader: Subject/object pairs correctly stored
@@ -98,3 +98,6 @@ The second batch of tests will target all the data loaders set up for the `JSON`
 - [ ] PostProcessingConfigLoader: Parse post-processing effect settings
 - [ ] All Loaders: Missing config file throws appropriate exception
 - [ ] All Loaders: Corrupted JSON throws parsing exception
+
+### Issues found:
+- The test regarding the wall matrix dimension validity signaled that something was off in the way I was loading arena presets. While trying to write the test I realized that it wasn´t *making sense* because the definition of the presets was in the side of the code, not in the json file. This instantly made me think that the way I was managing preset coniguration was not in line with all my other loading pipelines. So a refactoring was due.
