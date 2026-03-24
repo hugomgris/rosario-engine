@@ -79,17 +79,16 @@ void Registry::destroyEntity(Entity entity) {
 ```
 
 ## 6.2.2 Unit Tests - Data Loaders
-The second batch of tests will target all the data loaders set up for the `JSON` → `struct` pipeline. A lot of parsing, excepcion and edge case stress and missing/corrupted data reactions.
+The second batch of tests will target all the data loaders set up for the `JSON` → `struct` pipeline. A lot of parsing, excepcion and edge case stress and missing/corrupted data reactions. This batch will be split in multiple test files, one for each loader.
 
-- [ ] ParticleConfigLoader: All sections parse correctly (dust, explosion, trail, menuTrail*)
-- [ ] ParticleConfigLoader: ParticleConfig color parsing (array and object formats)
-- [ ] ParticleConfigLoader: Direction enum parsing (UP/DOWN/LEFT/RIGHT)
-- [ ] ParticleConfigLoader: Malformed JSON throws exception
-- [ ] ParticleConfigLoader: Missing required fields throw exception
-- [ ] ParticleConfigLoader: Out-of-range values throw exception
-- [ ] AIPresetLoader: Parse AI presets with difficulty levels
-- [ ] AIPresetLoader: AIPreset data structures match config
-- [ ] AIPresetLoader: Invalid difficulty level throws exception
+- [x] ParticleConfigLoader: Direction enum parsing (UP/DOWN/LEFT/RIGHT)
+- [x] ParticleConfigLoader: Malformed JSON throws exception
+- [x] ParticleConfigLoader: Missing required fields throw exception
+- [x] ParticleConfigLoader: Incomplete values throw exception
+- [x] ParticleConfigLoader: Out-of-range values throw exception
+- [x] AIPresetLoader: Parse AI presets with difficulty levels
+- [x] AIPresetLoader: AIPreset data structures match config
+- [x] AIPresetLoader: Invalid difficulty level throws exception
 - [ ] ArenaPresetLoader: Parse arena preset configurations
 - [ ] ArenaPresetLoader: Wall matrix dimensions valid
 - [ ] CollisionRuleLoader: Parse collision rules from JSON
