@@ -112,7 +112,7 @@ void Registry::forEach(std::function<void(Entity, T&)> fn) {
 
     auto& pool = getPool<T>();
 
-    // snapshot entity list first — removal during fn() would invalidate the pool's iterator
+    // snapshot entity list first
     std::vector<Entity> toProcess = pool.entities();
     for (auto& entity : toProcess) {
         if (pool.has(entity))   // re-check: may have been removed mid-loop

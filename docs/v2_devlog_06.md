@@ -1,14 +1,52 @@
 # Rosario - Devlog - 6
 
 ## Table of Contents
-1. [Oopsies](#51---deep-in-portlandia)
+1. [Back to Testlandia](#61---back-to-testlandia)
+2. [Testiary](#62-testiary)
 
 
 <br>
 <br>
 
-# 6.1 - Oopsies
-I had no plans to log anything related to the test building. That was until one of the first planned tests (from a list of roughly 130) revealed a fundamental error (well, more like a missing step) in the core of the ECS structure, related to entity management in the `Registry`. Therefore, as I predict that this might happen several more times down the line, I'm going to log here the different errors I find. 
+# 6.1 - Back to Testlandia
+I had no plans to log anything related to the test building. That was until one of the first planned tests (from a list of roughly 130) revealed a fundamental error (well, more like a missing step) in the core of the ECS structure, related to entity management in the `Registry`. Therefore, as I predict that this might happen several more times down the line (or not, maybe I'm that good and I only made ONE unit of mistake, huh???), I'm going to spend some time writing about (auto)testing once again.
+
+<br>
+
+## Once More Around the Gtest Sun (@mastodon)
+Back when I was coding [nibbler](https://github.com/hugomgris/nibbler), I thoroughly wrote about how to build an automated test suite (specifically, a gtest based c++ test suite with unit and integration tests). If you're reading this and you have never written your own test suite, and you have never done, it, my first recommendation would be to go back to the [13th devlog](https://github.com/hugomgris/nibbler/blob/main/docs/devlog_13.md#132-testing-testng-one-two-three) to get an introduction (or any other source of your choice, that is). In this document I'll just refresh some specifics, like naming convention, and log any errors, bugs, mistakes, miseries that the 130+ planned tests reveal.
+
+To me, at this point in life, the most difficult step when building a test suite is the foundational question: **what the hell should I test?** This is more difficult than it could seem, as the code that you are attempting to test might be something you fully know and have control of, but imagination has to be put in service of **how your code might fail**, all while writing tests based on predictable outcomes. On some level this *really* isn't that complicated. For example, I'm going to start my suit by testing the core, writing simple unit tests that target one, and just *ONE* implementation around my `Registry`. Some of the first tests couldn't be simpler: let's see if the pipeline to create entities, register them and juggle components attached to them works, let's see if destroying an entity results in a full cleanup of its existence in the registry, let's see if that `forEach` function I added at some point really works and runs the sent function, etc. Those who aim to be very thorough, as should be the case for any test suite because if not what's the point, should go through the structure of the program, it's components and layers, check their contents and functions and basically stress every little component there is. If my `Registry` has a query function to check if a given entity has this or that component attached, it should be tested. If it has a boolean check for the existance of a specific component pool, tested it must be. Every getter, every checker, every remover, every constructor, every whatever *needs* to be tested. So spending some time making a to-do list of things to test by just combing your code is a good way to start. A miserable, time consuming one, but effective.
+
+This is easier, obviously, when planning unit tests. Integration tests are a whole deal on themselves, as you need to think on higher layers of possible interaction inside your program to figure out tests cases. I feel that the ECS approach kinda helps in this regards, as having a clear structure of systems gives more transparency (or immediacy, if you prefer) to said interactions. Is your X system working in cooperation with your Y system? Should your Z system block your X system in any way? What is the order of update calls in XYZ? All of these questions call for integration test planning. Basically, you have to ask yourself: **what functional couplings can I identify in my flows?**. This doesn't mean that just by looking at the code you should come up with a load of tests. This is a continuous process: as you write tests, new cases will come to mind.
+
+There's another way of doing this, one that I'm particularly fond of but that is only really advisable (to me, that is, as everything I write) in cases that really benefit for it. I'm talking about **Test Driven Development**, a specific way of building software that, with functionality laid out, thinks about implementation tests that initially fail (obviously, they exist before the functionality they target) and then codes with passing those tests as objectives. I did this back in my [C# Computorv2](https://github.com/hugomgris/computorv2), mainly because what that program needed to do was perfectly clear and delimited: I knew that if I sent "2+2=?" as argument to the program, it should return 4, so I could write an assertion base test in that direction. Then, I just wrote the logic so that the test passed. Then I amped the stress: what about "2+-2=?". Back to test failing, then passing-bound code writing. And so on. If this is development approach that suits you and your project, it is a great way to kind of kill 2 birds with one stone, as any progress comes with an already laid out test suite section. All that while remembering that this is not always the best course of action: you need to asses, decide, then plan.
+
+There's obviously an in-between possibility. A well planned development with clear progress steps lets you code part of your program first, test it then, rinse and repeat. I guess this is the most rational way of doing things, and I would love to have done that. But I didn't, so now I have to spend a couple of days in Testlandia crying my way through my cursed test-to-do list. It is what it is, for me. You, I hope, can still be saved.
+
+## Naming Names
+With the reality of programming being a cooperative process in the rearview mirror (it depends, I know; you might be coding in solitude, but you will most likely have to integrate yourself in a plural work structure), it is very important to think about how to name your tests. What looks like an extended convention in this regard, and keeping ourselves bounded to `GoogleTest` (in the sense that this convention might not apply to your language+suite combination, give it a research), is:
+- Suite name = feature or unit under test
+- Test name = specific behavior or rule being verified
+- Use specification = clear, comprehensive explanation of what is expected (PascalCase)
+- Think about sentences more than words. It might look weird, but I can't emphasize enough that a test suit that is not clear in its intents, targets and scopes is useless.
+
+With all this in mind, an example would look like this:
+```cpp
+TEST(SubjectOrFeature, ShouldExpectedBehavior_WhenCondition) {}
+```
+
+Which in my specific suite traslates into the following:
+```cpp
+TEST(Registry, ShouldAddGetAndRemoveComponent_WhenSingleComponentLifecycle) {}
+TEST(RegistryMultiComponentEntity, BuildEntityWithMultipleComponents) {}
+TEST(RegistryComponentPoolIsolation, ComponentsDontAffectEachOther)P{}
+```
+
+It goes without saying that you do you, this is just my humble attempt to lay out what I think are good practices regarding all this test writing stuff. And with all this said and behind us, I can focus on test writing itself and logging found errors.
+
+
+
 
 The first found issue, as written above, was a missing step in the entity destroy process. `Registry` had a dedicated `destroyEntity()` function, but this was only removing the entity sent as argument from the `_entities` container, without clearing said entity frmo the pool containers. Luckily, the test revealed this issue (I guess it is a good thing I'm building this big ass suite):
 ```cpp
@@ -39,5 +77,36 @@ void Registry::destroyEntity(Entity entity) {
     for (auto& [_, pool] : _componentPools) {
         pool->removeEntity(entity);
     }
+}
+```
+
+<br>
+<br>
+
+# 6.2 Testiary
+*As in Bestiary, heh*. I'll go section by section through my test-to-do list and register any errors they rise. This might be a long log, so buckle up. And if it ends up not being that long, good for me, that means that my code was awesome and prime and fantastic and job-worthy and you should call me so that we work together.
+
+## 6.1.2 Unit Tests - Core ECS
+- [x] Registry: Multiple component types on single entity
+- [x] Registry: Component pool isolation (one component type doesn't affect another)
+- [x] Registry: Entity destruction and cleanup (no dangling references)
+- [x] Registry: hasComponent() returns false after removeComponent()
+- [x] Registry: forEach() with single component type
+- [x] Registry: view() with multiple component filters
+- [x] Registry: Attempting to get non-existent component throws exception
+- [ ] Registry: Accessing destroyed entity throws exception
+- [ ] ComponentPool: Capacity growth under stress (many entities)
+- [ ] ComponentPool: Copy and move semantics for components
+
+### Bugs found:
+- Entity destruction was not thorough. `Registry`'s `destroyEntity()` function was clearing the target entity from the registry's entity list, but not from the component pools. A simple fix to what was a very important bug:
+```cpp
+void Registry::destroyEntity(Entity entity) {
+	auto it = std::remove(_entities.begin(), _entities.end(), entity);
+	_entities.erase(it, _entities.end());
+
+	for (auto& [_, pool] : _componentPools) {
+		pool->removeEntity(entity);
+	}
 }
 ```

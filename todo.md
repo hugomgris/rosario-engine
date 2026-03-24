@@ -14,10 +14,10 @@
 - [x] Registry: Multiple component types on single entity
 - [x] Registry: Component pool isolation (one component type doesn't affect another)
 - [x] Registry: Entity destruction and cleanup (no dangling references)
-- [ ] Registry: hasComponent() returns false after removeComponent()
-- [ ] Registry: forEach() with single component type
-- [ ] Registry: view() with multiple component filters
-- [ ] Registry: Attempting to get non-existent component throws exception
+- [x] Registry: hasComponent() returns false after removeComponent()
+- [x] Registry: forEach() with single component type
+- [x] Registry: view() with multiple component filters
+- [x] Registry: Attempting to get non-existent component throws exception
 - [ ] Registry: Accessing destroyed entity throws exception
 - [ ] ComponentPool: Capacity growth under stress (many entities)
 - [ ] ComponentPool: Copy and move semantics for components

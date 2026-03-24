@@ -2,20 +2,20 @@
 #include <algorithm>
 
 Entity Registry::createEntity() {
-    Entity entity(static_cast<Entity::ID>(_entityCount++));
-    _entities.push_back(entity);
-    return entity;
+	Entity entity(static_cast<Entity::ID>(_entityCount++));
+	_entities.push_back(entity);
+	return entity;
 }
 
 void Registry::destroyEntity(Entity entity) {
-    auto it = std::remove(_entities.begin(), _entities.end(), entity);
-    _entities.erase(it, _entities.end());
+	auto it = std::remove(_entities.begin(), _entities.end(), entity);
+	_entities.erase(it, _entities.end());
 
-    for (auto& [_, pool] : _componentPools) {
-        pool->removeEntity(entity);
-    }
+	for (auto& [_, pool] : _componentPools) {
+		pool->removeEntity(entity);
+	}
 }
 
 const std::vector<Entity>& Registry::getEntities() const {
-    return _entities;
+	return _entities;
 }

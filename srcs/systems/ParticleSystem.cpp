@@ -41,7 +41,7 @@ Particle::Particle(float px, float py,
 {}
 
 ParticleSystem::ParticleSystem(int screenW, int screenH, ParticleConfig config)
-    : _screenWidth(screenW), _screenHeight(screenH), _config(config)
+    : _config(config)
 {
     _particles.reserve(512);
 }

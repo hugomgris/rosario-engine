@@ -32,8 +32,6 @@ struct Particle {
 class ParticleSystem {
 	std::vector<Particle>   _particles;
 
-	int     _screenWidth;
-	int     _screenHeight;
 	float   _dustSpawnTimer  = 0.0f;
 	float   _trailSpawnTimer = 0.0f;
 	std::unordered_map<unsigned int, float> _menuTrailEmitterTimers;
