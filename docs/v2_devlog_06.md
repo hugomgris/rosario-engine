@@ -39,46 +39,11 @@ TEST(SubjectOrFeature, ShouldExpectedBehavior_WhenCondition) {}
 Which in my specific suite traslates into the following:
 ```cpp
 TEST(Registry, ShouldAddGetAndRemoveComponent_WhenSingleComponentLifecycle) {}
-TEST(RegistryMultiComponentEntity, BuildEntityWithMultipleComponents) {}
-TEST(RegistryComponentPoolIsolation, ComponentsDontAffectEachOther)P{}
+TEST(Registry, ShouldMutateOnlyMatchingComponentType_WhenUsingForEachSingleType) {}
+TEST(Registry, ShouldSupportCopyAndMoveInsertion_WhenAddingComponents){}
 ```
 
 It goes without saying that you do you, this is just my humble attempt to lay out what I think are good practices regarding all this test writing stuff. And with all this said and behind us, I can focus on test writing itself and logging found errors.
-
-
-
-
-The first found issue, as written above, was a missing step in the entity destroy process. `Registry` had a dedicated `destroyEntity()` function, but this was only removing the entity sent as argument from the `_entities` container, without clearing said entity frmo the pool containers. Luckily, the test revealed this issue (I guess it is a good thing I'm building this big ass suite):
-```cpp
-TEST(EntityDestruction, NoDanglingReferences) {
-	Registry registry;
-
-	Entity entity = registry.createEntity();
-
-	registry.addComponent<DummyComponent>(entity, DummyComponent{42});
-	registry.addComponent<OtherDummyComponent>(entity, OtherDummyComponent{'a'});
-
-	registry.destroyEntity(entity);
-
-	EXPECT_TRUE(registry.hasPool<DummyComponent>());
-	EXPECT_TRUE(registry.hasPool<OtherDummyComponent>());
-
-	auto entities = registry.view<DummyComponent>();
-	EXPECT_EQ(entities.size(), 0);
-}
-```
-
-The final assertion in this snippet was failing because the registry query was returning a container of size 1. `view()` was polling the pools and finding an entity in the `DummyComponent` one, which was a clear red flag. An easy fix: loop through the component pools and remove the target entity inside `destroyEntity()`:
-```cpp
-void Registry::destroyEntity(Entity entity) {
-    auto it = std::remove(_entities.begin(), _entities.end(), entity);
-    _entities.erase(it, _entities.end());
-
-    for (auto& [_, pool] : _componentPools) {
-        pool->removeEntity(entity);
-    }
-}
-```
 
 <br>
 <br>
@@ -86,7 +51,9 @@ void Registry::destroyEntity(Entity entity) {
 # 6.2 Testiary
 *As in Bestiary, heh*. I'll go section by section through my test-to-do list and register any errors they rise. This might be a long log, so buckle up. And if it ends up not being that long, good for me, that means that my code was awesome and prime and fantastic and job-worthy and you should call me so that we work together.
 
-## 6.1.2 Unit Tests - Core ECS
+## 6.2.1 Unit Tests - Core ECS
+The first batch of tests will focus on the `Registry` management, stressing the ECS core, and juggling entities and components around.
+
 - [x] Registry: Multiple component types on single entity
 - [x] Registry: Component pool isolation (one component type doesn't affect another)
 - [x] Registry: Entity destruction and cleanup (no dangling references)
@@ -94,9 +61,9 @@ void Registry::destroyEntity(Entity entity) {
 - [x] Registry: forEach() with single component type
 - [x] Registry: view() with multiple component filters
 - [x] Registry: Attempting to get non-existent component throws exception
-- [ ] Registry: Accessing destroyed entity throws exception
-- [ ] ComponentPool: Capacity growth under stress (many entities)
-- [ ] ComponentPool: Copy and move semantics for components
+- [x] Registry: Accessing destroyed entity throws exception
+- [x] ComponentPool: Capacity growth under stress (many entities)
+- [x] ComponentPool: Copy and move semantics for components
 
 ### Bugs found:
 - Entity destruction was not thorough. `Registry`'s `destroyEntity()` function was clearing the target entity from the registry's entity list, but not from the component pools. A simple fix to what was a very important bug:
@@ -110,3 +77,25 @@ void Registry::destroyEntity(Entity entity) {
 	}
 }
 ```
+
+## 6.2.2 Unit Tests - Data Loaders
+The second batch of tests will target all the data loaders set up for the `JSON` → `struct` pipeline. A lot of parsing, excepcion and edge case stress and missing/corrupted data reactions.
+
+- [ ] ParticleConfigLoader: All sections parse correctly (dust, explosion, trail, menuTrail*)
+- [ ] ParticleConfigLoader: ParticleConfig color parsing (array and object formats)
+- [ ] ParticleConfigLoader: Direction enum parsing (UP/DOWN/LEFT/RIGHT)
+- [ ] ParticleConfigLoader: Malformed JSON throws exception
+- [ ] ParticleConfigLoader: Missing required fields throw exception
+- [ ] ParticleConfigLoader: Out-of-range values throw exception
+- [ ] AIPresetLoader: Parse AI presets with difficulty levels
+- [ ] AIPresetLoader: AIPreset data structures match config
+- [ ] AIPresetLoader: Invalid difficulty level throws exception
+- [ ] ArenaPresetLoader: Parse arena preset configurations
+- [ ] ArenaPresetLoader: Wall matrix dimensions valid
+- [ ] CollisionRuleLoader: Parse collision rules from JSON
+- [ ] CollisionRuleLoader: Subject/object pairs correctly stored
+- [ ] CollisionRuleLoader: Malformed rules throw exception
+- [ ] TunnelConfigLoader: Parse tunnel animation config
+- [ ] PostProcessingConfigLoader: Parse post-processing effect settings
+- [ ] All Loaders: Missing config file throws appropriate exception
+- [ ] All Loaders: Corrupted JSON throws parsing exception

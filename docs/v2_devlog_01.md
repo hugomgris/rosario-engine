@@ -62,7 +62,7 @@ BUT as I lay out plans, I realize something: I need a deep re-structuring proces
 - [x] Menu system
 - [x] InputManager
 - [x] Postprocessing System
-- [ ] Custom text system/pipeline/subsystem- [ ] Custom text system/pipeline/subsystem
+- [ ] Custom text system/pipeline/subsystem
 - [x] *Fix the test suite (and extend it)*
 - [x] *Port the 2D realm*
 - [ ] *Port the ASCII realm (maybe)*

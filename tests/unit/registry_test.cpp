@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <utility>
 #include "ecs/Registry.hpp"
 
 namespace {
@@ -16,6 +17,49 @@ namespace {
 
 	struct ForEachComponentTwo {
 		int value = 3;
+	};
+
+	struct TrackingComponent {
+		int value = 0;
+
+		inline static int copyCtorCount = 0;
+		inline static int moveCtorCount = 0;
+		inline static int copyAssignCount = 0;
+		inline static int moveAssignCount = 0;
+
+		explicit TrackingComponent(int v = 0) : value(v) {}
+
+		TrackingComponent(const TrackingComponent& other) : value(other.value) {
+			++copyCtorCount;
+		}
+
+		TrackingComponent(TrackingComponent&& other) noexcept : value(other.value) {
+			++moveCtorCount;
+			other.value = -1;
+		}
+
+		TrackingComponent& operator=(const TrackingComponent& other) {
+			if (this != &other)
+				value = other.value;
+			++copyAssignCount;
+			return *this;
+		}
+
+		TrackingComponent& operator=(TrackingComponent&& other) noexcept {
+			if (this != &other) {
+				value = other.value;
+				other.value = -1;
+			}
+			++moveAssignCount;
+			return *this;
+		}
+
+		static void resetCounters() {
+			copyCtorCount = 0;
+			moveCtorCount = 0;
+			copyAssignCount = 0;
+			moveAssignCount = 0;
+		}
 	};
 }
 
@@ -35,7 +79,7 @@ TEST(Registry, ShouldAddGetAndRemoveComponent_WhenSingleComponentLifecycle) {
 }
 
 // 2 - Registry: Multiple component types on single entity
-TEST(RegistryMultiComponentEntity, BuildEntityWithMultipleComponents) {
+TEST(Registry, ShouldStoreMultipleComponentTypes_OnSameEntity) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -60,7 +104,7 @@ TEST(RegistryMultiComponentEntity, BuildEntityWithMultipleComponents) {
 }
 
 // 3 - Registry: Component pool isolation (one component type doesn't affect another)
-TEST(RegistryComponentPoolIsolation, ComponentsDontAffectEachOther) {
+TEST(Registry, ShouldKeepComponentPoolsIsolated_WhenRemovingDifferentType) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -84,7 +128,7 @@ TEST(RegistryComponentPoolIsolation, ComponentsDontAffectEachOther) {
 }
 
 // 4 - Registry: Entity destruction and cleanup (no dangling references)
-TEST(EntityDestruction, NoDanglingReferences) {
+TEST(Registry, ShouldRemoveAllComponents_WhenEntityIsDestroyed) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -104,7 +148,7 @@ TEST(EntityDestruction, NoDanglingReferences) {
 }
 
 // 5 - Registry: hasComponent() returns false after removeComponent()
-TEST(RemoveComponent, HasComponentReturnsFalse) {
+TEST(Registry, ShouldReturnFalseFromHasComponent_AfterComponentRemoval) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -125,7 +169,7 @@ TEST(RemoveComponent, HasComponentReturnsFalse) {
 }
 
 // 6 - Registry: forEach() with single component type
-TEST(ForEachComponent, ComponentCompartimentalization) {
+TEST(Registry, ShouldMutateOnlyMatchingComponentType_WhenUsingForEachSingleType) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -157,7 +201,7 @@ TEST(ForEachComponent, ComponentCompartimentalization) {
 }
 
 // 7 - Registry: view() with multiple component filters
-TEST(RegistryView, ShouldReturnOnlyEntitiesMatchingAllFilters_WhenUsingViewWithMultipleTypes) {
+TEST(Registry, ShouldReturnOnlyEntitiesMatchingAllFilters_WhenUsingViewWithMultipleTypes) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -217,7 +261,7 @@ TEST(RegistryView, ShouldReturnOnlyEntitiesMatchingAllFilters_WhenUsingViewWithM
 }
 
 // 8 - Registry: Attempting to get non-existent component throws exception
-TEST(NonExistingComponentFetching, ShouldThrow) {
+TEST(Registry, ShouldThrowRuntimeError_WhenGettingNonExistentComponent) {
 	Registry registry;
 
 	Entity entity = registry.createEntity();
@@ -227,3 +271,81 @@ TEST(NonExistingComponentFetching, ShouldThrow) {
 	EXPECT_THROW(registry.getComponent<OtherDummyComponent>(entity), std::runtime_error);
 }
 
+// 9 - Registry: Accessing destroyed entity throws exception
+TEST(Registry, ShouldThrowRuntimeError_WhenGettingComponentFromDestroyedEntity) {
+	Registry registry;
+
+	Entity entity = registry.createEntity();
+
+	registry.addComponent<DummyComponent>(entity, DummyComponent{42});
+	registry.addComponent<OtherDummyComponent>(entity, OtherDummyComponent{'a'});
+
+	registry.destroyEntity(entity);
+
+	EXPECT_TRUE(registry.hasPool<DummyComponent>());
+	EXPECT_TRUE(registry.hasPool<OtherDummyComponent>());
+
+	auto entities = registry.view<DummyComponent>();
+	EXPECT_EQ(entities.size(), 0);
+	auto entities2 = registry.view<OtherDummyComponent>();
+	EXPECT_EQ(entities2.size(), 0);	
+
+	EXPECT_ANY_THROW(registry.getComponent<DummyComponent>(entity));
+	EXPECT_THROW(registry.getComponent<DummyComponent>(entity), std::runtime_error);
+}
+
+// 10 - ComponentPool: Capacity growth under stress (many entities)
+TEST(Registry, ShouldHandleHighEntityVolumeWithoutCrash_WhenGrowingComponentPools) {
+	Registry registry;
+
+	for (int i = 0; i < 1000; i++) {
+		Entity entity = registry.createEntity();
+		registry.addComponent<DummyComponent>(entity, DummyComponent{42});
+	}
+
+	EXPECT_EQ(registry.getEntities().size(), 1000);
+
+	auto entities = registry.view<DummyComponent>();
+	EXPECT_EQ(entities.size(), 1000);
+
+	for (int i = 0; i < 2000; i++) {
+		Entity entity = registry.createEntity();
+		registry.addComponent<OtherDummyComponent>(entity, OtherDummyComponent{'a'});
+		if (i % 2 == 0) {
+			registry.addComponent<ForEachComponentOne>(entity, ForEachComponentOne{42});
+		}
+	}
+
+	EXPECT_EQ(registry.getEntities().size(), 3000);
+	auto entities2 = registry.view<OtherDummyComponent>();
+	EXPECT_EQ(entities2.size(), 2000);
+	
+	auto entities3 = registry.view<ForEachComponentOne>();
+	EXPECT_EQ(entities3.size(), 1000);
+}
+
+// 11 - ComponentPool: Copy and move semantics for components
+TEST(Registry, ShouldSupportCopyAndMoveInsertion_WhenAddingComponents) {
+	TrackingComponent::resetCounters();
+	Registry registry;
+
+	Entity copyEntity = registry.createEntity();
+	Entity moveEntity = registry.createEntity();
+
+	TrackingComponent copySource(7);
+	registry.addComponent<TrackingComponent>(copyEntity, copySource);
+
+	EXPECT_GE(TrackingComponent::copyCtorCount, 1);
+	EXPECT_EQ(registry.getComponent<TrackingComponent>(copyEntity).value, 7);
+
+	TrackingComponent moveSource(13);
+	registry.addComponent<TrackingComponent>(moveEntity, std::move(moveSource));
+
+	EXPECT_GE(TrackingComponent::moveCtorCount, 1);
+	EXPECT_EQ(registry.getComponent<TrackingComponent>(moveEntity).value, 13);
+
+	// Registry still stores independent component state after copy/move insertions.
+	registry.getComponent<TrackingComponent>(copyEntity).value = 21;
+	EXPECT_EQ(registry.getComponent<TrackingComponent>(copyEntity).value, 21);
+	EXPECT_EQ(registry.getComponent<TrackingComponent>(moveEntity).value, 13);
+}

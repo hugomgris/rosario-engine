@@ -18,9 +18,9 @@
 - [x] Registry: forEach() with single component type
 - [x] Registry: view() with multiple component filters
 - [x] Registry: Attempting to get non-existent component throws exception
-- [ ] Registry: Accessing destroyed entity throws exception
-- [ ] ComponentPool: Capacity growth under stress (many entities)
-- [ ] ComponentPool: Copy and move semantics for components
+- [x] Registry: Accessing destroyed entity throws exception
+- [x] ComponentPool: Capacity growth under stress (many entities)
+- [x] ComponentPool: Copy and move semantics for components
 
 ### Unit Tests - Data Loaders
 - [ ] ParticleConfigLoader: All sections parse correctly (dust, explosion, trail, menuTrail*)
