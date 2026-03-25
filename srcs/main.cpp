@@ -191,11 +191,11 @@ int main() {
 				glyphLib = GlyphLibraryLoader::load("data/GlyphLibrary.json");
 				glyphPresets = GlyphPresetLoader::load("data/GlyphPresets.json");
 
-			gameOverTitleTemplate = PixelTextHelper::makeGameOverTitleTemplate(glyphPresets);
-			hasMenuLogoTemplate = PixelTextHelper::makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
+				gameOverTitleTemplate = PixelTextHelper::makeGameOverTitleTemplate(glyphPresets);
+				hasMenuLogoTemplate = PixelTextHelper::makeMenuLogoTemplate(glyphPresets, menuLogoTemplate);
 
-			PixelTextHelper::ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
-			PixelTextHelper::applyPixelTextTemplate(registry, gameOverTitle, gameOverTitleTemplate);
+				PixelTextHelper::ensurePixelTextEntity(registry, gameOverTitle, gameOverTitleTemplate);
+				PixelTextHelper::applyPixelTextTemplate(registry, gameOverTitle, gameOverTitleTemplate);
 
 				if (hasMenuLogoTemplate) {
 				PixelTextHelper::ensurePixelTextEntity(registry, menuLogo, menuLogoTemplate);

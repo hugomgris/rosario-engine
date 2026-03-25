@@ -24,7 +24,8 @@ namespace {
 // 2 - AIPresetLoader: AIPreset data structures match config
 // 2x1 because passing the first test makes an implicit assertion that the second one passes too
 TEST(AIPresetLoader, ParseAllDifficultyLevels) {
-	AIPresetLoader::PresetTable preset = AIPresetLoader::load("data/AIPresets.json");
+	AIPresetLoader::PresetTable preset;
+	EXPECT_NO_THROW(preset = AIPresetLoader::load("data/AIPresets.json"));
 
 	EXPECT_EQ(preset.size(), 3);
 

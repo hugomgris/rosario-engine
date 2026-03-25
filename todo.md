@@ -55,8 +55,8 @@
 - [x] FloodFill: Count reachable from various start positions
 - [x] FloodFill: Properly ignores specified positions
 - [x] FloodFill: Detect unreachable areas (isolated regions)
-- [x] Single cell reachable when surrounded (but not blocked itself)
-- [ ] FloodFill: canReachTail() returns true when tail reachable
+- [x] FloodFill: Single cell reachable when surrounded (but not blocked itself)
+- [x] FloodFill: canReachTail() returns true when tail reachable
 - [ ] FloodFill: canReachTail() returns false when tail blocked
 - [ ] Pathfinder: Find path on empty grid (straight line)
 - [ ] Pathfinder: Find path with single obstacle (circumnavigate)

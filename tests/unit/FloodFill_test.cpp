@@ -9,7 +9,9 @@
 #include "ecs/Registry.hpp"
 #include "arena/ArenaGrid.hpp"
 #include "AI/FloodFill.hpp"
+#include "AI/AIPresetLoader.hpp"
 #include "systems/AISystem.hpp"
+#include "helpers/Factories.hpp"
 
 // 1 - FloodFill: Count reachable cells on empty grid
 TEST(FloodFill, CountReachableCellsInEmptyGrid) {
@@ -108,4 +110,50 @@ TEST(FloodFill, SingleCell_WhenCompletelySurrounded) {
 	Vec2 s1 = {15,14};
 	int r1 = floodFill.countReachable(blocked, s1, 32, 32, {});
 	EXPECT_EQ(r1, 1);
+}
+
+// 7 - FloodFill: canReachTail() returns true when tail reachable
+TEST(FloodFill, CanReachTailReturnsTrue_WhenTailIsRechable) {
+	Registry registry;
+	FloodFill floodFill;
+	std::unique_ptr<ArenaGrid> arena = std::make_unique<ArenaGrid>(32, 32);
+	AISystem aiSystem(32, 32);
+	BlockedGrid blocked = aiSystem.buildBlockedGrid(registry, arena.get());
+
+	AIPresetLoader::PresetTable preset;
+	EXPECT_NO_THROW(preset = AIPresetLoader::load("data/AIPresets.json"));
+
+	EXPECT_EQ(preset.size(), 3);
+
+	Entity aiSnake = Factories::spawnAISnake(registry, {10,10}, 4, {0,0,0,0}, "medium", preset);
+	std::vector<Vec2> path = {{10,11}, {10,12}, {10,13}, {10, 14}};
+
+	bool b1 = floodFill.canReachTail(registry, blocked, aiSnake, path, 32, 32);
+	EXPECT_TRUE(b1);
+}
+
+// 8 - FloodFill: canReachTail() returns false when tail blocked
+TEST(FloodFill, CanReachTailReturnsFalse_WhenTailBlocked) {
+	Registry registry;
+	FloodFill floodFill;
+	std::unique_ptr<ArenaGrid> arena = std::make_unique<ArenaGrid>(32, 32);
+	arena->spawnObstacle(4, 0, 32, 1);
+	arena->spawnObstacle(0, 1, 32, 32);
+	AISystem aiSystem(32, 32);
+	BlockedGrid blocked = aiSystem.buildBlockedGrid(registry, arena.get());
+
+	AIPresetLoader::PresetTable preset;
+	EXPECT_NO_THROW(preset = AIPresetLoader::load("data/AIPresets.json"));
+
+	EXPECT_EQ(preset.size(), 3);
+
+	Entity aiSnake = Factories::spawnAISnake(registry, {3,0}, 4, {0,0,0,0}, "medium", preset);
+	auto snakeComponent = registry.getComponent<SnakeComponent>(aiSnake);
+	for (auto segment : snakeComponent.segments) {
+		std::cout << segment.position.x << "-" << segment.position.y << std::endl;
+	}
+	std::vector<Vec2> path = {{10,11}, {10,12}, {10,13}, {10, 14}};
+
+	bool b1 = floodFill.canReachTail(registry, blocked, aiSnake, path, 32, 32);
+	EXPECT_TRUE(b1);
 }
