@@ -3,6 +3,10 @@
 ## Table of Contents
 1. [Back to Testlandia](#61---back-to-testlandia)
 2. [Testiary](#62-testiary)
+    - [Unit Tests](#62-unit-tests)
+        - [Core ECS](#621-unit-tests---core-ecs)
+        - [Data Loaders](#622-unit-tests---data-loaders)
+        - [AI Pathfinding](#623-unit-tests---ai-pathfinding--grid)
 
 
 <br>
@@ -51,7 +55,8 @@ It goes without saying that you do you, this is just my humble attempt to lay ou
 # 6.2 Testiary
 *As in Bestiary, heh*. I'll go section by section through my test-to-do list and register any errors they rise. This might be a long log, so buckle up. And if it ends up not being that long, good for me, that means that my code was awesome and prime and fantastic and job-worthy and you should call me so that we work together.
 
-## 6.2.1 Unit Tests - Core ECS
+## 6.2 Unit Tests
+### 6.2.1 Unit Tests - Core ECS
 The first batch of tests will focus on the `Registry` management, stressing the ECS core, and juggling entities and components around.
 
 - [x] Registry: Multiple component types on single entity
@@ -65,7 +70,7 @@ The first batch of tests will focus on the `Registry` management, stressing the 
 - [x] ComponentPool: Capacity growth under stress (many entities)
 - [x] ComponentPool: Copy and move semantics for components
 
-### Issue found:
+#### Issue found:
 - Entity destruction was not thorough. `Registry`'s `destroyEntity()` function was clearing the target entity from the registry's entity list, but not from the component pools. A simple fix to what was a very important bug:
 ```cpp
 void Registry::destroyEntity(Entity entity) {
@@ -78,7 +83,7 @@ void Registry::destroyEntity(Entity entity) {
 }
 ```
 
-## 6.2.2 Unit Tests - Data Loaders
+### 6.2.2 Unit Tests - Data Loaders
 The second batch of tests will target all the data loaders set up for the `JSON` → `struct` pipeline. A lot of parsing, excepcion and edge case stress and missing/corrupted data reactions. This batch will be split in multiple test files, one for each loader.
 
 - [x] ParticleConfigLoader: Direction enum parsing (UP/DOWN/LEFT/RIGHT)
@@ -99,7 +104,7 @@ The second batch of tests will target all the data loaders set up for the `JSON`
 - [x] All Loaders: Missing config file throws appropriate exception
 - [x] All Loaders: Corrupted JSON throws parsing exception
 
-### Issues found:
+#### Issues found:
 - The test regarding the wall matrix dimension validity signaled that something was off in the way I was loading arena presets. While trying to write the test I realized that it wasn´t *making sense* because the definition of the presets was in the side of the code, not in the json file. This instantly made me think that the way I was managing preset coniguration was not in line with all my other loading pipelines. So a refactoring was due.
 	- I took the opportunity to redefine how the presets were set up, now in the `JSON` files. Instead of defining values via accessing and what not, I now set up the presets with specific characters in the config files. Here's an example comparison:
 > BEFORE
@@ -221,3 +226,29 @@ void ArenaPresets::applySpiral1(ArenaGrid& arena) {
 The comparison speaks for it self, I must say. And the beforementioned test case that triggered this transformation now makes completely sense, I must add. And the build passes it with flying colors, I must end this silly sentences with.
 
 Ah, by the way, the rest of the changes in code that carry out this new way of loading arena presets are just your already classic loading, storing, reading, applying actions, all chained together in the same way as every other loading sub-pipeline in this new version of the engine/game.
+
+### 6.2.3 Unit Tests - AI Pathfinding & Grid
+The third batch of tests will stress test the AI pipelines to find its way through the game arena. To that aim, three main targets need to be put under the spotlight: `GridHelper`, `FloodFill` and `PathFinder`. Let's do this!
+
+- [x] GridHelper: Grid coordinate validation (bounds checking)
+- [x] GridHelper: Neighbor generation for interior cell
+- [x] GridHelper: Neighbor generation at grid edges
+- [x] GridHelper: Neighbor generation at grid corners
+- [x] GridHelper: Manhattan distance calculation
+- [ ] FloodFill: Count reachable cells on empty grid
+- [ ] FloodFill: Count reachable cells with obstacles
+- [ ] FloodFill: Count reachable from various start positions
+- [ ] FloodFill: Properly ignores specified positions
+- [ ] FloodFill: Detect unreachable areas (isolated regions)
+- [ ] FloodFill: Zero reachable cells when completely surrounded
+- [ ] FloodFill: canReachTail() returns true when tail reachable
+- [ ] FloodFill: canReachTail() returns false when tail blocked
+- [ ] Pathfinder: Find path on empty grid (straight line)
+- [ ] Pathfinder: Find path with single obstacle (circumnavigate)
+- [ ] Pathfinder: Find path with complex obstacle maze
+- [ ] Pathfinder: No path returns empty vector
+- [ ] Pathfinder: Respects maxDepth limit
+- [ ] Pathfinder: Path is shortest (or near-optimal with A*)
+- [ ] Pathfinder: Properly ignores specified positions
+- [ ] Pathfinder: Start equals goal returns path of length 1
+- [ ] Pathfinder: No backtracking in returned path

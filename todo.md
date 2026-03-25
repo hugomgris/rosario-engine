@@ -45,17 +45,17 @@
 - [x] All Loaders: Corrupted JSON throws parsing exception
 
 ### Unit Tests - AI Pathfinding & Grid
-- [ ] GridHelper: Grid coordinate validation (bounds checking)
-- [ ] GridHelper: Neighbor generation for interior cell
-- [ ] GridHelper: Neighbor generation at grid edges
-- [ ] GridHelper: Neighbor generation at grid corners
-- [ ] GridHelper: Manhattan distance calculation
-- [ ] FloodFill: Count reachable cells on empty grid
-- [ ] FloodFill: Count reachable cells with obstacles
-- [ ] FloodFill: Count reachable from various start positions
-- [ ] FloodFill: Properly ignores specified positions
-- [ ] FloodFill: Detect unreachable areas (isolated regions)
-- [ ] FloodFill: Zero reachable cells when completely surrounded
+- [x] GridHelper: Grid coordinate validation (bounds checking)
+- [x] GridHelper: Neighbor generation for interior cell
+- [x] GridHelper: Neighbor generation at grid edges
+- [x] GridHelper: Neighbor generation at grid corners
+- [x] GridHelper: Manhattan distance calculation
+- [x] FloodFill: Count reachable cells on empty grid
+- [x] FloodFill: Count reachable cells with obstacles
+- [x] FloodFill: Count reachable from various start positions
+- [x] FloodFill: Properly ignores specified positions
+- [x] FloodFill: Detect unreachable areas (isolated regions)
+- [x] Single cell reachable when surrounded (but not blocked itself)
 - [ ] FloodFill: canReachTail() returns true when tail reachable
 - [ ] FloodFill: canReachTail() returns false when tail blocked
 - [ ] Pathfinder: Find path on empty grid (straight line)
@@ -67,7 +67,6 @@
 - [ ] Pathfinder: Properly ignores specified positions
 - [ ] Pathfinder: Start equals goal returns path of length 1
 - [ ] Pathfinder: No backtracking in returned path
-- [ ] GridHelper: Diagonal movement (if applicable to algorithm)
 
 ### Unit Tests - Arena
 - [ ] ArenaGrid: Constructor initializes grid with correct dimensions

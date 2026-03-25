@@ -19,7 +19,7 @@ class AISystem {
 		FloodFill   _floodFill;
 		GridHelper  _gridHelper;
 
-		BlockedGrid buildBlockedGrid(Registry& registry, const ArenaGrid* arena) const;
+		//BlockedGrid buildBlockedGrid(Registry& registry, const ArenaGrid* arena) const;
 
 		Direction decideDirection(Registry& registry, Entity entity, const BlockedGrid& blocked);
 		Direction goToFood      (Registry& registry, Entity entity, const BlockedGrid& blocked);
@@ -35,4 +35,7 @@ class AISystem {
 			: _gridWidth(gridWidth), _gridHeight(gridHeight) {}
 
 		void update(Registry& registry, const FrameContext& ctx);
+
+		// made public for testing
+		BlockedGrid buildBlockedGrid(Registry& registry, const ArenaGrid* arena) const;
 };
