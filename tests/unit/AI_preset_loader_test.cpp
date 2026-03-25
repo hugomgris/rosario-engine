@@ -73,5 +73,6 @@ TEST(AIPresetLoader, InvalidDifficultyThrows) {
 	AIPresetLoader::PresetTable preset;
 	EXPECT_ANY_THROW(AIPresetLoader::load(path));
 	EXPECT_THROW(AIPresetLoader::load(path), std::runtime_error);
+	std::remove(path.c_str());
 }
 

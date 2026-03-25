@@ -7,7 +7,8 @@
 
 // 1 - ArenaPresetLoader: Parse arena preset configurations
 TEST(ArenaPresetLoader, ParseConfigurationCorrecly) {
-	ArenaPresetLoader::PresetList presets = ArenaPresetLoader::load("data/ArenaPresets.json");
+	ArenaPresetLoader::PresetList presets;
+	EXPECT_NO_THROW(presets = ArenaPresetLoader::load("data/ArenaPresets.json"));
 
 	EXPECT_EQ(presets.size(), 10);
 	EXPECT_EQ(presets[0].name, "InterLock1");
@@ -24,7 +25,8 @@ TEST(ArenaPresetLoader, ParseConfigurationCorrecly) {
 
 // 2 ArenaPresetLoader: Wall matrix dimensions valid
 TEST(ArenaPresetLoader, WallMatrixDimensionsValid) {
-	ArenaPresetLoader::PresetList presets = ArenaPresetLoader::load("data/ArenaPresets.json");
+	ArenaPresetLoader::PresetList presets;
+	EXPECT_NO_THROW(presets = ArenaPresetLoader::load("data/ArenaPresets.json"));
 
 	for (const auto& preset : presets) {
 		EXPECT_EQ(preset.height, 32) << "Preset: " << preset.name;

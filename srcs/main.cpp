@@ -69,7 +69,7 @@ int main() {
 	std::srand(static_cast<unsigned>(std::time(nullptr)));
 
 	// Config json load
-	CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/collisionRules.json");
+	CollisionRuleTable ruleTable = CollisionRuleLoader::load("data/CollisionRules.json");
 	AIPresetLoader::PresetTable AIPresets = AIPresetLoader::load("data/AIPresets.json");
 	ParticleConfig particleConfig = ParticleConfigLoader::load("data/ParticleConfig.json");
 	PostProcessConfigLoader::PresetTable ppPresets = PostProcessConfigLoader::load("data/PostProcessConfig.json");

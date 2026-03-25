@@ -418,4 +418,5 @@ TEST(ParticleConfigLoader, RejectsOutOfRangeValues) {
 
 	ParticleConfig config;
 	ASSERT_ANY_THROW(config = ParticleConfigLoader::load(path));
+	std::remove(path.c_str());
 }

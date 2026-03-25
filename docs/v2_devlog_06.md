@@ -90,18 +90,93 @@ The second batch of tests will target all the data loaders set up for the `JSON`
 - [x] AIPresetLoader: AIPreset data structures match config
 - [x] AIPresetLoader: Invalid difficulty level throws exception
 - [x] ArenaPresetLoader: Parse arena preset configurations
-- [ ] ArenaPresetLoader: Wall matrix dimensions valid
-- [ ] CollisionRuleLoader: Parse collision rules from JSON
-- [ ] CollisionRuleLoader: Subject/object pairs correctly stored
-- [ ] CollisionRuleLoader: Malformed rules throw exception
-- [ ] TunnelConfigLoader: Parse tunnel animation config
-- [ ] PostProcessingConfigLoader: Parse post-processing effect settings
-- [ ] All Loaders: Missing config file throws appropriate exception
-- [ ] All Loaders: Corrupted JSON throws parsing exception
+- [x] ArenaPresetLoader: Wall matrix dimensions valid
+- [x] CollisionRuleLoader: Parse collision rules from JSON
+- [x] CollisionRuleLoader: Subject/object pairs correctly stored
+- [x] CollisionRuleLoader: Malformed rules throw exception
+- [x] TunnelConfigLoader: Parse tunnel animation config
+- [x] PostProcessingConfigLoader: Parse post-processing effect settings
+- [x] All Loaders: Missing config file throws appropriate exception
+- [x] All Loaders: Corrupted JSON throws parsing exception
 
 ### Issues found:
 - The test regarding the wall matrix dimension validity signaled that something was off in the way I was loading arena presets. While trying to write the test I realized that it wasn´t *making sense* because the definition of the presets was in the side of the code, not in the json file. This instantly made me think that the way I was managing preset coniguration was not in line with all my other loading pipelines. So a refactoring was due.
-	- I took the opportunity to redefine how the presets were set up, now in the `JSON` files. Instead of defining values via accessing and what not, I now set up the presets with specific characters in the config files. Here's an example"
+	- I took the opportunity to redefine how the presets were set up, now in the `JSON` files. Instead of defining values via accessing and what not, I now set up the presets with specific characters in the config files. Here's an example comparison:
+> BEFORE
+```cpp
+void ArenaPresets::applySpiral1(ArenaGrid& arena) {
+    const int gap = 3;
+
+    int W = arena.getPlayWidth();
+    int H = arena.getPlayHeight();
+
+    int limTop    = -1;
+    int limLeft   = -1;
+    int limBottom = H;
+    int limRight  = W;
+
+    int x = W - 1 - gap;
+    int y = gap;
+
+    auto hline = [&](int x0, int x1, int yy) {
+        if (x0 > x1) std::swap(x0, x1);
+        for (int xx = x0; xx <= x1; ++xx)
+            arena.setCell(xx, yy, CellType::SpawningSolid);
+    };
+    auto vline = [&](int xx, int y0, int y1) {
+        if (y0 > y1) std::swap(y0, y1);
+        for (int yy = y0; yy <= y1; ++yy)
+            arena.setCell(xx, yy, CellType::SpawningSolid);
+    };
+
+    enum Dir { LEFT, DOWN, RIGHT, UP };
+    Dir dir = LEFT;
+
+    for (int iter = 0; iter < 400; ++iter) {
+        switch (dir) {
+            case LEFT: {
+                int target = limLeft + 1 + gap;
+                if (target > x) return;
+                hline(target, x, y);
+                limTop = y;
+                x = target;
+                dir = DOWN;
+                break;
+            }
+            case DOWN: {
+                int target = limBottom - 1 - gap;
+                if (target < y) return;
+                vline(x, y, target);
+                limLeft = x;
+                y = target;
+                dir = RIGHT;
+                break;
+            }
+            case RIGHT: {
+                int target = limRight - 1 - gap;
+                if (target < x) return;
+                hline(x, target, y);
+                limBottom = y;
+                x = target;
+                dir = UP;
+                break;
+            }
+            case UP: {
+                int target = limTop + 1 + gap;
+                if (target > y) return;
+                vline(x, target, y);
+                limRight = x;
+                y = target;
+                dir = LEFT;
+                break;
+            }
+        }
+    }
+}
+```
+
+> AFTER
+
 ```json
 {
 	"name": "Spiral1",
@@ -143,3 +218,6 @@ The second batch of tests will target all the data loaders set up for the `JSON`
 	]
 }
 ```
+The comparison speaks for it self, I must say. And the beforementioned test case that triggered this transformation now makes completely sense, I must add. And the build passes it with flying colors, I must end this silly sentences with.
+
+Ah, by the way, the rest of the changes in code that carry out this new way of loading arena presets are just your already classic loading, storing, reading, applying actions, all chained together in the same way as every other loading sub-pipeline in this new version of the engine/game.

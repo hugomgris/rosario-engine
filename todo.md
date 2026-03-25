@@ -34,15 +34,15 @@
 - [x] AIPresetLoader: Parse AI presets with difficulty levels
 - [x] AIPresetLoader: AIPreset data structures match config
 - [x] AIPresetLoader: Invalid difficulty level throws exception
-- [ ] ArenaPresetLoader: Parse arena preset configurations
-- [ ] ArenaPresetLoader: Wall matrix dimensions valid
-- [ ] CollisionRuleLoader: Parse collision rules from JSON
-- [ ] CollisionRuleLoader: Subject/object pairs correctly stored
-- [ ] CollisionRuleLoader: Malformed rules throw exception
-- [ ] TunnelConfigLoader: Parse tunnel animation config
-- [ ] PostProcessingConfigLoader: Parse post-processing effect settings
-- [ ] All Loaders: Missing config file throws appropriate exception
-- [ ] All Loaders: Corrupted JSON throws parsing exception
+- [x] ArenaPresetLoader: Parse arena preset configurations
+- [x] ArenaPresetLoader: Wall matrix dimensions valid
+- [x] CollisionRuleLoader: Parse collision rules from JSON
+- [x] CollisionRuleLoader: Subject/object pairs correctly stored
+- [x] CollisionRuleLoader: Malformed rules throw exception
+- [x] TunnelConfigLoader: Parse tunnel animation config
+- [x] PostProcessingConfigLoader: Parse post-processing effect settings
+- [x] All Loaders: Missing config file throws appropriate exception
+- [x] All Loaders: Corrupted JSON throws parsing exception
 
 ### Unit Tests - AI Pathfinding & Grid
 - [ ] GridHelper: Grid coordinate validation (bounds checking)
