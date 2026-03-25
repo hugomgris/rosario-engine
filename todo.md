@@ -65,60 +65,56 @@
 - [x] Pathfinder: Respects maxDepth limit
 - [x] Pathfinder: Path is shortest (or near-optimal with A*)
 - [x] Pathfinder: Properly ignores specified positions
-- [ ] Pathfinder: Start equals goal returns path of length 0
-- [ ] Pathfinder: No backtracking in returned path
+- [x] Pathfinder: Start equals goal returns path of length 0
+- [x] Pathfinder: No backtracking in returned path
 
 ### Unit Tests - Arena
-- [ ] ArenaGrid: Constructor initializes grid with correct dimensions
-- [ ] ArenaGrid: setCell/getCell basic get/set operations
-- [ ] ArenaGrid: getCell bounds check (returns error/exception for out-of-bounds)
-- [ ] ArenaGrid: isWalkable() returns correct value for each CellType
-- [ ] ArenaGrid: getAvailableCells() returns only Empty cells
-- [ ] ArenaGrid: getAvailableCells() count matches expected empty cell count
-- [ ] ArenaGrid: clearCell() sets cell to Empty
-- [ ] ArenaGrid: clearArena() empties all cells
-- [ ] ArenaGrid: spawnObstacle() creates rectangular obstacle
-- [ ] ArenaGrid: growWall() adds wall to grid
-- [ ] ArenaGrid: transformArenaWithPreset(InterLock1) layout is correct
-- [ ] ArenaGrid: transformArenaWithPreset(Spiral1) layout is correct
-- [ ] ArenaGrid: transformArenaWithPreset(Columns1) layout is correct
-- [ ] ArenaGrid: transformArenaWithPreset(Maze) layout is correct
-- [ ] ArenaGrid: getAllOutlines() returns correct outline vectors
-- [ ] ArenaGrid: beginSpawn() initiates spawn timer
-- [ ] ArenaGrid: setMenuArena() vs setGameplayArena() produce different layouts
-- [ ] ArenaGrid: Wall preset boundaries (perimeter stays intact)
+- [x] ArenaGrid: Constructor initializes grid with correct dimensions
+- [x] ArenaGrid: setCell/getCell basic get/set operations
+- [x] ArenaGrid: getCell bounds check (returns error/exception for out-of-bounds)
+- [x] ArenaGrid: isWalkable() returns correct value for each CellType
+- [x] ArenaGrid: getAvailableCells() returns only Empty cells
+- [x] ArenaGrid: getAvailableCells() count matches expected empty cell count
+- [x] ArenaGrid: clearCell() sets cell to Empty
+- [x] ArenaGrid: clearArena() empties all cells
+- [x] ArenaGrid: spawnObstacle() creates rectangular obstacle
+- [x] ArenaGrid: growWall() adds wall to grid
+- [x] ArenaGrid: transformArenaWithPreset(InterLock1) layout is correct
+- [x] ArenaGrid: transformArenaWithPreset(Spiral1) layout is correct
+- [x] ArenaGrid: transformArenaWithPreset(Columns1) layout is correct
+- [x] ArenaGrid: transformArenaWithPreset(Maze) layout is correct
+- [x] ArenaGrid: getAllOutlines() returns correct outline vectors
+- [x] ArenaGrid: beginSpawn() initiates spawn timer
+- [x] ArenaGrid: setMenuArena() vs setGameplayArena() produce different layouts
+- [x] ArenaGrid: Wall preset boundaries (perimeter stays intact)
 
 ### Unit Tests - Collision System
-- [ ] CollisionRule struct construction and field assignment
-- [ ] CollisionRuleTable::find() returns correct rule for subject/object pair
-- [ ] CollisionRuleTable::find() returns nullptr for unknown pair
-- [ ] CollisionRuleTable::find() order-independent (subject ≠ object)
-- [ ] CollisionEffectDispatcher::dispatchEffect() applies correct effects
-- [ ] CollisionEffectDispatcher: Multiple effects on single collision
-- [ ] CollisionEffectDispatcher: Invalid effect name throws/logs error
+- [x] CollisionRule struct construction and field assignment
+- [x] CollisionRuleTable::find() returns correct rule for subject/object pair
+- [x] CollisionRuleTable::find() returns nullptr for unknown pair
+- [x] CollisionEffectDispatcher::dispatchEffect() applies correct effects
+- [x] CollisionEffectDispatcher: Multiple effects on single collision
+- [x] CollisionEffectDispatcher: Invalid effect name throws/logs error
 
 ### Unit Tests - Components
-- [ ] SnakeComponent: Add segments to snake
-- [ ] SnakeComponent: Remove segments from snake
-- [ ] SnakeComponent: Segment count matches constructor/modifications
-- [ ] SnakeComponent: Powerup bead assignment (Shield, Speed, Ghost, Ram)
-- [ ] SnakeComponent: BeadType enum values valid
-- [ ] PositionComponent: Grid coordinates within bounds
-- [ ] PositionComponent: Coordinate getters return correct values
-- [ ] ScoreComponent: Increment score correctly
-- [ ] ScoreComponent: Score cannot go negative
-- [ ] MovementComponent: Direction enum assignment (UP/DOWN/LEFT/RIGHT)
-- [ ] MovementComponent: Prevent opposite direction moves (UP ↔ DOWN, LEFT ↔ RIGHT)
-- [ ] InputComponent: Input queue operations
-- [ ] RenderComponent: Sprite/texture assignment
-- [ ] RenderComponent: Tint color assignment
+- [x] SnakeComponent: Add segments to snake
+- [x] SnakeComponent: Remove segments from snake
+- [x] SnakeComponent: Segment count matches constructor/modifications
+- [x] SnakeComponent: Powerup bead assignment (Shield, Speed, Ghost, Ram)
+- [x] SnakeComponent: BeadType enum values valid
+- [x] PositionComponent: Grid coordinates within bounds
+- [x] PositionComponent: Coordinate getters return correct values
+- [x] ScoreComponent: Increment score correctly
+- [x] MovementComponent: Direction enum assignment (UP/DOWN/LEFT/RIGHT)
+- [x] InputComponent: Input queue operations
+- [x] RenderComponent: Tint color assignment
 
 ### Unit Tests - Configuration Structs
-- [ ] ParticleConfig: All sub-configs accessible
-- [ ] ParticleConfig: MenuTrailPreset vector operations
-- [ ] MenuTrailPreset: Color and direction assignment
-- [ ] MenuTrailPreset: Manual position (x, y) handled correctly
-- [ ] ParticleConfig: Default values applied correctly
+- [x] ParticleConfig: All sub-configs accessible
+- [x] ParticleConfig: MenuTrailPreset vector operations
+- [x] MenuTrailPreset: Color and direction assignment
+- [x] MenuTrailPreset: Manual position (x, y) handled correctly
+- [x] ParticleConfig: Default values applied correctly
 
 ---
 

@@ -7,6 +7,12 @@
         - [Core ECS](#621-unit-tests---core-ecs)
         - [Data Loaders](#622-unit-tests---data-loaders)
         - [AI Pathfinding](#623-unit-tests---ai-pathfinding--grid)
+        - [Arena](#624-unit-tests---unit-tests---arena)
+        - [Collision System](#625-unit-tests---collision-system)
+        - [Components](#626-unit-tests---components)
+        - [Configuration Structs](#627-unit-tests---configuration-structs)
+    - [Implementation Tests](#63-integration-tests)
+        - [ECS System](#631-integration-tests---ecs-system)
 
 
 <br>
@@ -343,3 +349,71 @@ Anyway, one (GOOD) side effect is that invalid proposed paths are now rejected e
 
 > *Another side effect is that the game now feels more difficult, or at least that the AI snake seems to be smarter. Maybe it's not true and it's just a biased feeling, who knows*
 
+### 6.2.4 Unit Tests - Unit Tests - Arena
+The fourth batch of tests aims to put the `ArenaGrid` under the microscope. Its setters and getters, cntent checks, preset based transformations and management functions will be thoroughly examined.
+
+- [x] ArenaGrid: Constructor initializes grid with correct dimensions
+- [x] ArenaGrid: setCell/getCell basic get/set operations
+- [x] ArenaGrid: getCell bounds check (returns error/exception for out-of-bounds)
+- [x] ArenaGrid: isWalkable() returns correct value for each CellType
+- [x] ArenaGrid: getAvailableCells() returns only Empty cells
+- [x] ArenaGrid: getAvailableCells() count matches expected empty cell count
+- [x] ArenaGrid: clearCell() sets cell to Empty
+- [x] ArenaGrid: clearArena() empties all cells
+- [x] ArenaGrid: spawnObstacle() creates rectangular obstacle
+- [x] ArenaGrid: growWall() adds wall to grid
+- [x] ArenaGrid: transformArenaWithPreset(InterLock1) layout is correct
+- [x] ArenaGrid: transformArenaWithPreset(Spiral1) layout is correct
+- [x] ArenaGrid: transformArenaWithPreset(Columns1) layout is correct
+- [x] ArenaGrid: transformArenaWithPreset(Maze) layout is correct
+- [x] ArenaGrid: getAllOutlines() returns correct outline vectors
+- [x] ArenaGrid: beginSpawn() initiates spawn timer
+- [x] ArenaGrid: setMenuArena() vs setGameplayArena() produce different layouts
+- [x] ArenaGrid: Wall preset boundaries (perimeter stays intact)
+
+NO issues found!
+
+### 6.2.5 Unit Tests - Collision System
+The fifth batch will be shorter, a handful of handling checks to review rule management, dispatch correctness and different effect presets (multi effects, invalid effect).
+
+- [x] CollisionRule struct construction and field assignment
+- [x] CollisionRuleTable::find() returns correct rule for subject/object pair
+- [x] CollisionRuleTable::find() returns nullptr for unknown pair
+- [x] CollisionEffectDispatcher::dispatchEffect() applies correct effects
+- [x] CollisionEffectDispatcher: Multiple effects on single collision
+- [x] CollisionEffectDispatcher: Invalid effect name throws/logs error
+
+Once more, NO issues found!
+
+### 6.2.6 Unit Tests - Components
+The sixth batch is all about components, specifically those which make sense to put through the suite churn machine: `SnakeComponent`, `PositionComponent`, `ScoreComponent`, `MovementComponent`, `InputComponent`, `RenderComponent`. 
+
+- [x] SnakeComponent: Add segments to snake
+- [x] SnakeComponent: Remove segments from snake
+- [x] SnakeComponent: Segment count matches constructor/modifications
+- [x] SnakeComponent: Powerup bead assignment (Shield, Speed, Ghost, Ram)
+- [x] SnakeComponent: BeadType enum values valid
+- [x] PositionComponent: Grid coordinates within bounds
+- [x] PositionComponent: Coordinate getters return correct values
+- [x] ScoreComponent: Increment score correctly
+- [x] MovementComponent: Direction enum assignment (UP/DOWN/LEFT/RIGHT)
+- [x] InputComponent: Input queue operations
+- [x] RenderComponent: Tint color assignment
+
+Happily enough, NO issues here!
+
+### 6.2.7 Unit Tests - Configuration Structs
+The seventh and final unit test batch could feel redundant, but I wanted to closely look into the construction of configuration structs. We'll go back to that point in which the json based data gets transfromed into code-sided struct data.
+
+- [x] ParticleConfig: All sub-configs accessible
+- [x] ParticleConfig: MenuTrailPreset vector operations
+- [x] MenuTrailPreset: Color and direction assignment
+- [x] MenuTrailPreset: Manual position (x, y) handled correctly
+- [x] ParticleConfig: Default values applied correctly
+
+NO issues and unit tests done!!
+
+<br>
+
+## 6.3 Integration Tests
+### 6.3.1 Integration Tests - ECS System
