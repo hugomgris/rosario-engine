@@ -57,15 +57,15 @@
 - [x] FloodFill: Detect unreachable areas (isolated regions)
 - [x] FloodFill: Single cell reachable when surrounded (but not blocked itself)
 - [x] FloodFill: canReachTail() returns true when tail reachable
-- [ ] FloodFill: canReachTail() returns false when tail blocked
-- [ ] Pathfinder: Find path on empty grid (straight line)
-- [ ] Pathfinder: Find path with single obstacle (circumnavigate)
-- [ ] Pathfinder: Find path with complex obstacle maze
-- [ ] Pathfinder: No path returns empty vector
-- [ ] Pathfinder: Respects maxDepth limit
-- [ ] Pathfinder: Path is shortest (or near-optimal with A*)
-- [ ] Pathfinder: Properly ignores specified positions
-- [ ] Pathfinder: Start equals goal returns path of length 1
+- [x] FloodFill: canReachTail() returns false when tail blocked
+- [x] Pathfinder: Find path on empty grid (straight line)
+- [x] Pathfinder: Find path with single obstacle (circumnavigate)
+- [x] Pathfinder: Find path with complex obstacle maze
+- [x] Pathfinder: No path returns empty vector
+- [x] Pathfinder: Respects maxDepth limit
+- [x] Pathfinder: Path is shortest (or near-optimal with A*)
+- [x] Pathfinder: Properly ignores specified positions
+- [ ] Pathfinder: Start equals goal returns path of length 0
 - [ ] Pathfinder: No backtracking in returned path
 
 ### Unit Tests - Arena

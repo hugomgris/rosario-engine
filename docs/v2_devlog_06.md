@@ -235,20 +235,111 @@ The third batch of tests will stress test the AI pipelines to find its way throu
 - [x] GridHelper: Neighbor generation at grid edges
 - [x] GridHelper: Neighbor generation at grid corners
 - [x] GridHelper: Manhattan distance calculation
-- [ ] FloodFill: Count reachable cells on empty grid
-- [ ] FloodFill: Count reachable cells with obstacles
-- [ ] FloodFill: Count reachable from various start positions
-- [ ] FloodFill: Properly ignores specified positions
-- [ ] FloodFill: Detect unreachable areas (isolated regions)
-- [ ] FloodFill: Zero reachable cells when completely surrounded
-- [ ] FloodFill: canReachTail() returns true when tail reachable
-- [ ] FloodFill: canReachTail() returns false when tail blocked
-- [ ] Pathfinder: Find path on empty grid (straight line)
-- [ ] Pathfinder: Find path with single obstacle (circumnavigate)
-- [ ] Pathfinder: Find path with complex obstacle maze
-- [ ] Pathfinder: No path returns empty vector
-- [ ] Pathfinder: Respects maxDepth limit
-- [ ] Pathfinder: Path is shortest (or near-optimal with A*)
-- [ ] Pathfinder: Properly ignores specified positions
-- [ ] Pathfinder: Start equals goal returns path of length 1
-- [ ] Pathfinder: No backtracking in returned path
+- [x] FloodFill: Count reachable cells on empty grid
+- [x] FloodFill: Count reachable cells with obstacles
+- [x] FloodFill: Count reachable from various start positions
+- [x] FloodFill: Properly ignores specified positions
+- [x] FloodFill: Detect unreachable areas (isolated regions)
+- [x] FloodFill: Single cell reachable when surrounded (but not blocked itself)
+- [x] FloodFill: canReachTail() returns true when tail reachable
+- [x] FloodFill: canReachTail() returns false when tail blocked
+- [x] Pathfinder: Find path on empty grid (straight line)
+- [x] Pathfinder: Find path with single obstacle (circumnavigate)
+- [x] Pathfinder: Find path with complex obstacle maze
+- [x] Pathfinder: No path returns empty vector
+- [x] Pathfinder: Respects maxDepth limit
+- [x] Pathfinder: Path is shortest (or near-optimal with A*)
+- [x] Pathfinder: Properly ignores specified positions
+- [x] Pathfinder: Start equals goal returns path of length 0
+- [x] Pathfinder: No backtracking in returned path
+
+#### Issues found:
+- While writing a test that returned/forced a `false` return in my `canReachTail()` function, the only way I could come across was to completely enclose the `aiSnake` in obstacles. This lead me to the good old feeling of *uhm, this is fishy*. Looking into the function, the way that I was calculating the reachable tail status was by amount comparisson between the needed space and available space, which is... not ideal, lol. This is what I was doing:
+```cpp
+bool FloodFill::canReachTail(const Registry& registry,
+                              const std::vector<std::vector<bool>>& blocked,
+                              Entity aiEntity,
+                              const std::vector<Vec2>& proposedPath,
+                              int gridWidth,
+                              int gridHeight) const {
+    if (proposedPath.empty())
+        return false;
+
+    const auto& snake = registry.getComponent<SnakeComponent>(aiEntity);
+    if (snake.segments.empty())
+        return false;
+
+    const Vec2 newHead     = proposedPath.back();
+    const Vec2 currentTail = snake.segments.back().position;
+
+    int reachable     = countReachable(blocked, newHead, gridWidth, gridHeight, { currentTail });
+    const int required = static_cast<int>(snake.segments.size()) + 1;
+    return reachable >= required;
+}
+```
+
+This needed a full refactor, and a plunge into higher depths of complexity.
+
+The conceptual issue was simple to phrase: I was answering a geometric/topological question (*"can head still reach tail after this move?"*) with a volumetric proxy (*"is there enough free space around head?"*). Useful, sure, even practical, but not sufficient. So a new strategy was due, which I wanted to base on a two-gate validation:
+1. **Truth gate**: simulate the future snake state and explicitly check head->tail connectivity.
+2. **Quality gate**: if connectivity exists, verify there is enough maneuver room (the old amount check, but now in the simulated state, not the current one).
+
+In other words: no more "big area therefore safe" shortcutting. It was fun while it lasted. The resulting flow in `canReachTail()` now looks like this:
+
+```cpp
+bool FloodFill::canReachTail(/* ... */) const {
+    if (proposedPath.empty())
+        return false;
+
+    const auto& snake = registry.getComponent<SnakeComponent>(aiEntity);
+    if (snake.segments.empty())
+        return false;
+
+    // 1) simulate future body over proposedPath
+    std::deque<Segment> futureSegments = snake.segments;
+    bool growsThisStep = snake.growing;
+    for (const Vec2& nextHead : proposedPath) {
+        if (!isAdjacentCardinal(futureSegments.front().position, nextHead))
+            return false;
+
+        futureSegments.push_front({ nextHead, BeadType::None });
+        if (growsThisStep) growsThisStep = false;
+        else futureSegments.pop_back();
+    }
+
+    // 2) rebuild blocked map for that simulated snake
+    // 3) Breadth-First Search (BFS) from future head, treating future tail as reachable target
+    // 4) if tail is found, run secondary reachable-space threshold
+}
+```
+
+The key thing here is **simulation**. Instead of looking at what exists *now*, we construct what would exist *if that path is committed*. That includes body shift and growth behavior (`snake.growing`) matching the movement system's logic.
+
+Then comes another important detail: when rebuilding the temporary blocked grid, the function clears current snake occupancy and writes the simulated occupancy. This avoids stale body coordinates polluting the check.
+
+And then, the central check itself is now explicit Breadth-First Search (BFS) connectivity:
+- start from simulated head
+- explore cardinal neighbors
+- use `isWalkable(..., {futureTail})` so the tail can be stepped into as the target
+- if BFS never reaches tail, return `false`
+
+Only after the tail is proven reachable do we run the second gate:
+
+```cpp
+const int reachable = countReachable(
+    futureBlocked,
+    futureHead,
+    gridWidth,
+    gridHeight,
+    { futureTail }
+);
+const int required = static_cast<int>(futureSegments.size()) + 1;
+return reachable >= required;
+```
+
+So, in reality, the old amount comparison wasn't deleted, but demoted from "truth criterion" to "quality safeguard". Which, frankly, is exactly where it should have been from day one, but day one stuff is never done on day one, right? That's just a backwards evaluation, right???
+
+Anyway, one (GOOD) side effect is that invalid proposed paths are now rejected early. If a path includes non-adjacent steps, the function returns `false` immediately. That gave me stricter behavior and cleaner intent.And because tests are merciless and beautiful, this also forced me to revisit the blocked-tail test expectation and remove debug leftovers. After alignment, the whole suite passed again, and the final behavior now matches the real question we wanted to ask in the first place: *can the snake reach its own tail?*
+
+> *Another side effect is that the game now feels more difficult, or at least that the AI snake seems to be smarter. Maybe it's not true and it's just a biased feeling, who knows*
+

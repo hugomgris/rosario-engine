@@ -148,12 +148,8 @@ TEST(FloodFill, CanReachTailReturnsFalse_WhenTailBlocked) {
 	EXPECT_EQ(preset.size(), 3);
 
 	Entity aiSnake = Factories::spawnAISnake(registry, {3,0}, 4, {0,0,0,0}, "medium", preset);
-	auto snakeComponent = registry.getComponent<SnakeComponent>(aiSnake);
-	for (auto segment : snakeComponent.segments) {
-		std::cout << segment.position.x << "-" << segment.position.y << std::endl;
-	}
 	std::vector<Vec2> path = {{10,11}, {10,12}, {10,13}, {10, 14}};
 
 	bool b1 = floodFill.canReachTail(registry, blocked, aiSnake, path, 32, 32);
-	EXPECT_TRUE(b1);
+	EXPECT_FALSE(b1);
 }
