@@ -142,3 +142,23 @@ std::vector<Entity> UIInteractionSystem::getOrderedButtonsForMenu(Registry& regi
 
 	return ordered;
 }
+
+void UIInteractionSystem::setHoveredForTests(Registry& registry, ButtonMenu activeMenu, std::optional<Entity> entity) {
+	auto ordered = getOrderedButtonsForMenu(registry, activeMenu);
+	clearInactiveMenuHover(registry, activeMenu);
+
+	if (ordered.empty()) {
+		_hoveredButton.reset();
+		return;
+	}
+
+	if (entity.has_value()) {
+		auto it = std::find(ordered.begin(), ordered.end(), *entity);
+		if (it == ordered.end()) {
+			setHoveredEntity(registry, ordered, std::nullopt);
+			return;
+		}
+	}
+
+	setHoveredEntity(registry, ordered, entity);
+}

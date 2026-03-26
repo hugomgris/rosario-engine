@@ -427,3 +427,58 @@ We'll start the integration tests by going to the first execution steps and chec
 NO issues!
 
 ### 6.3.2 Integration tests - UI + Pixel Text + Menu Particles
+Writing integration tests is proving to be difficult. The process of isolating, first, and targetting very specific interactions between program chunks, then, is menacing my mental sanity, and even though the sub-sections in this 6.3 are way shorter than in the unit test one, it's taking quite a lot of time. The trade off is that writing this tests requires a deep thought process following the execution flow, so there's a progressive in depth control of the code building suite after suite. At least that's how I'm feeling it, as it seems that having a general mind scheme about how a program works, i.e. the sum of its parts, and about those parts themselves is not self-guaranteed. What I mean by this is that reproducing micro-behaviours and interrogating them is a battle. And I'm fighting it. AND WINNING IT.
+
+- [x] Menu keyboard/mouse co-navigation preserves single hover source of truth across frames
+- [x] State-scoped pixel text visibility toggles correctly between Menu and GameOver
+- [x] Menu logo trail requests follow text visibility and stop when logo is hidden
+- [x] Multiple menuTrail emitters run independently with per-emitter 
+
+ZERO issues. Heck yeah.
+
+### 6.3.3 Integration tests - Rendering and Frame Pipeline
+These tests will check the system update sequence at each frame generation in the game loop. Because the game has different states, what will follow will be different versions of a same test in each of those states, closed by a frame consistency check.
+
+- [x] One full frame in Menu state runs update+render with no crashes
+- [x] One full frame in Playing state runs update+render with no crashes
+- [x] One full frame in GameOver state runs update+render with no crashes
+- [x] Multiple consecutive frames maintain state consistency
+
+NO issues. No celebration, either, as it is starting to be the norm. YEAAAAAAAAAH
+
+### 6.3.4 Integration tests - State Transitions and World Rehydration
+Now is the turn for the `StateMachine` and `Registry` content juggling when navigating through game states. How the world resets its content, how elements that need clearing are flushed during transitions, how elements that need to be kept are saved from wipes, and a close look at the possibility of unwanted duplication of entities.
+
+- [x] Menu -> Playing transition resets world and spawns expected gameplay entities
+- [x] Playing -> GameOver transition swaps UI layout and state-visible text correctly
+- [x] ReturnToMenu action clears gameplay entities and restores menu entities cleanly
+- [x] Registry reset during transition does not leave stale references in UI/pixel text helpers
+- [x] Re-entering Playing multiple times does not duplicate persistent entities
+
+Issues = 0
+
+### 6.3.5 Integration tests - Input -> Decision -> Movement Chain
+These are somewhat easier tests to deploy. Shorter, more straight forward, centered around input buffering and consuming. The main idea here is that the buffering works, the user-game interaction should do too.
+
+- [x] Player input buffering is consumed across frames in deterministic order
+- [x] Opposite-direction rejection remains correct across multiple buffered inputs
+- [x] VS-AI mode: AI decision output is reflected in movement on the next tick
+
+Total Abscence of Issues
+
+### 6.3.6 Integration tests - Collision -> Effects -> Gameplay Outcome
+These are sort of straight forward too, but require a handful of parts to be setup, as it is an array of wide interaction cases. Nothing too complicated, thankfully, as the collision logic setup was already checked in its respective unit test and what really needs to be tested now is the handling, dispatching and resulting effects of their management.
+
+- [x] Snake-Food collision applies full effect chain (grow + score + relocate food)
+- [x] Snake-Wall collision transitions gameplay to death/gameover path
+- [x] Snake-Self collision transitions gameplay to death/gameover path
+- [x] Multi-effect collision dispatch is idempotent per tick (no double application)
+
+Everything seems to be issueless
+
+
+### 6.3.7 Integration tests - Arena + AI Coherence
+- [ ] Arena preset application is reflected in AI blocked-grid view within same update cycle
+- [ ] Path selected by AI remains walkable after movement step validation
+- [ ] Flood-fill safety check and pathfinder decision stay consistent on identical board state
+- [ ] AI repaths after dynamic arena changes (spawn/despawn solids) without freezing

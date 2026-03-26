@@ -27,4 +27,5 @@ class UIInteractionSystem {
 
 		void update(Registry& registry, EventQueue& eventQueue, ButtonMenu activeMenu);
 		std::vector<Entity> getOrderedButtonsForMenu(Registry& registry, ButtonMenu activeMenu);
+		void setHoveredForTests(Registry& registry, ButtonMenu activeMenu, std::optional<Entity> entity);
 };
