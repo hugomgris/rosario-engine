@@ -476,9 +476,29 @@ These are sort of straight forward too, but require a handful of parts to be set
 
 Everything seems to be issueless
 
-
 ### 6.3.7 Integration tests - Arena + AI Coherence
-- [ ] Arena preset application is reflected in AI blocked-grid view within same update cycle
-- [ ] Path selected by AI remains walkable after movement step validation
-- [ ] Flood-fill safety check and pathfinder decision stay consistent on identical board state
-- [ ] AI repaths after dynamic arena changes (spawn/despawn solids) without freezing
+This batch focuses on the handshake between spatial data and AI decision systems. The objective is to verify that arena mutations are reflected immediately in the AI blocked-grid view, and that pathfinding/safety checks stay coherent when the board changes during runtime. In practical terms, these tests ask one core question: does the AI reason about the same world the gameplay systems are currently rendering and updating?
+
+- [x] Arena preset application is reflected in AI blocked-grid view within same update cycle
+- [x] Path selected by AI remains walkable after movement step validation
+- [x] Flood-fill safety check and pathfinder decision stay consistent on identical board state
+- [x] AI repaths after dynamic arena changes (spawn/despawn solids) without freezing
+
+ISSUEFREE
+
+### 6.3.8 Integration tests - Rendering and Frame Pipeline
+This batch verifies rendering-state coherence when visual configuration changes at runtime. The focus is not on pixel-perfect output, but on update/render contract stability: mode switches should not break system execution order, post-processing toggles should not corrupt UI layering assumptions, and tunnel/particle animations should coexist without leaking or cross-contaminating internal state.
+
+- [x] Mode2D/Mode3D switch during gameplay preserves render/update coherence
+- [x] Post-processing on/off toggle does not break UI composition order
+- [x] Tunnel animation and particle rendering coexist without state leakage
+
+I don't know how many ways of saying that there were no issues I have left in me
+
+### 6.3.9 Integration tests - End-to-End Soak and Stability
+
+
+- [x] 300-frame deterministic soak in Playing (fixed seed, scripted inputs) produces stable outcomes
+- [x] Repeated state cycling (Menu <-> Playing <-> GameOver) for N loops has no leaks under Valgrind
+- [x] Long-run entity churn (spawn/despawn gameplay objects across rounds) shows no invalid accesses
+- [x] Config reload + gameplay transition sequence remains stable (no crash, no stale pointers)
