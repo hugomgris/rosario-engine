@@ -416,4 +416,14 @@ NO issues and unit tests done!!
 <br>
 
 ## 6.3 Integration Tests
-### 6.3.1 Integration Tests - ECS System
+### 6.3.1 Integration Tests - Config + Runtime Wiring
+We'll start the integration tests by going to the first execution steps and checking out how the config loading and its wiring with different gameplay system answers to different cases. The general idea when attempting to write integration tests is to think about *chunks* of the whole program that can be isolated to make them work independently. This is going to be the way I'm going to think about these, at least, all across the 6.3 subsections, which in this particular first one translates into taking out the initial preparation steps of the game execution and asserting that all the critical points are correctly managed.
+
+- [x] Boot loads all runtime JSON files together and binds them to systems (no cross-loader interference)
+- [x] Hot reload glyph presets updates visible UI text entities without restarting
+- [x] Hot reload fallback path works when a preset is removed (template fallback still renders)
+- [x] Reloading particle config updates menu trail behavior on next frame (direction/color/interval)
+
+NO issues!
+
+### 6.3.2 Integration tests - UI + Pixel Text + Menu Particles

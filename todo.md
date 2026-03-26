@@ -118,111 +118,65 @@
 
 ---
 
-## Integration Tests - ECS System
-- [ ] Registry: Create 100+ entities with mixed components
-- [ ] Registry: Query with multiple component types returns correct entities
-- [ ] Registry: forEach() on empty pool
-- [ ] Registry: forEach() on pool with one entity
-- [ ] Registry: View after adding/removing entities updates correctly
-- [ ] Registry: Multiple views with different component sets work independently
+## Integration Tests
 
-### Integration Tests - Config Loading Pipeline
-- [ ] Load ParticleConfig.json: All top-level sections populated
-- [ ] Load ParticleConfig.json: MenuTrail presets count and values correct
-- [ ] Load AIPreset: Difficulty settings accessible and correct
-- [ ] Load ArenaPreset: Wall matrices are valid and proper dimensions
-- [ ] Load CollisionRules: Rule table fully populated
-- [ ] Load all configs simultaneously (no interference)
-- [ ] Config reload: Old data properly replaced
-- [ ] Partial config load (subset of fields): Non-specified fields use defaults
+#### Config + Runtime Wiring
+- [ ] Boot loads all runtime JSON files together and binds them to systems (no cross-loader interference)
+- [ ] Hot reload glyph presets updates visible UI text entities without restarting
+- [ ] Hot reload fallback path works when a preset is removed (template fallback still renders)
+- [ ] Reloading particle config updates menu trail behavior on next frame (direction/color/interval)
 
-### Integration Tests - Pathfinding + Arena
-- [ ] Pathfind on InterLock1 arena layout
-- [ ] Pathfind on Spiral1 arena layout
-- [ ] Pathfind on Maze arena layout
-- [ ] Pathfinder output walkable on actual arena (all cells empty/walkable)
-- [ ] FloodFill on generated arena matches pathfinder reachability
-- [ ] FloodFill countReachable() includes all cells reachable by pathfinder
-- [ ] Arena with spawn/despawn obstacles: Pathfind avoids moving obstacles
-- [ ] Pathfinding performance: Find path in 100×100 grid under time limit
+#### UI + Pixel Text + Menu Particles
+- [ ] Menu keyboard/mouse co-navigation preserves single hover source of truth across frames
+- [ ] State-scoped pixel text visibility toggles correctly between Menu and GameOver
+- [ ] Menu logo trail requests follow text visibility and stop when logo is hidden
+- [ ] Multiple menuTrail emitters run independently with per-emitter interval gating
 
-### Integration Tests - Collision System
-- [ ] Load collisionRules.json into CollisionRuleTable
-- [ ] Add snakes to registry, query by collision rule
-- [ ] Dispatch collision effect chain (multiple effects from one collision)
-- [ ] Collision with different pairs (Snake-Food, Snake-Wall, Snake-Snake)
-- [ ] No collision when entities don't meet conditions
+#### Rendering and Frame Pipeline (Smoke)
+- [ ] One full frame in each state (Menu, Playing, GameOver) runs update+render with no crashes
 
-### Integration Tests - Game State & Entity Lifecycle
-- [ ] MenuArena: Create arena, load wall preset, verify no walkable cells for gameplay
-- [ ] MenuArena → GameplayArena: Transition creates proper arena layout
-- [ ] Create player snake with full components (Position, Render, Movement, Snake)
-- [ ] Create AI snake with full components (Position, Render, Movement, AI, Snake)
-- [ ] Create food entity and verify it's renderable
-- [ ] Create button UI entities and verify layout
-- [ ] Destroy entity: All components properly cleaned up
+#### State Transitions and World Rehydration
+- [ ] Menu -> Playing transition resets world and spawns expected gameplay entities
+- [ ] Playing -> GameOver transition swaps UI layout and state-visible text correctly
+- [ ] ReturnToMenu action clears gameplay entities and restores menu entities cleanly
+- [ ] Registry reset during transition does not leave stale references in UI/pixel text helpers
+- [ ] Re-entering Playing multiple times does not duplicate persistent entities
 
-### Integration Tests - AI + Pathfinding + Movement
-- [ ] AI system generates path on arena
-- [ ] Path generated is walkable on arena
-- [ ] Movement system applies first direction from AI path
-- [ ] Snake moves along computed path over multiple frames
-- [ ] AI recalculates path when blocked
-- [ ] AI prefers longer safe path over short dangerous path (if applicable)
+#### Input -> Decision -> Movement Chain
+- [ ] Player input buffering is consumed across frames in deterministic order
+- [ ] Opposite-direction rejection remains correct across multiple buffered inputs
+- [ ] VS-AI mode: AI decision output is reflected in movement on the next tick
 
-### Integration Tests - Particle System + Config
-- [ ] Load ParticleConfig with menu trails
-- [ ] Enqueue multiple ParticleSpawnRequests
-- [ ] Particle system respects spawnInterval (time-gated emission)
-- [ ] Menu trails emit from configured positions (x, y)
-- [ ] Trail particles use configured color and direction
-- [ ] Multiple trail types (yellow, blue) emit independently
-- [ ] Dust particles emit with correct density and size
-- [ ] Explosion particles spawn with correct count and scatter
+#### Collision -> Effects -> Gameplay Outcome
+- [ ] Snake-Food collision applies full effect chain (grow + score + relocate food)
+- [ ] Snake-Wall collision transitions gameplay to death/gameover path
+- [ ] Snake-Self collision transitions gameplay to death/gameover path
+- [ ] Multi-effect collision dispatch is idempotent per tick (no double application)
 
-### Integration Tests - Input → Movement → Rendering
-- [ ] InputSystem processes direction input
-- [ ] MovementComponent receives direction from input
-- [ ] MovementSystem applies direction to SnakeComponent
-- [ ] RenderSystem renders snake at updated position
-- [ ] Invalid moves (opposite direction) are rejected
-- [ ] Input queue processes multiple frames of buffered input
+#### Arena + AI Coherence
+- [ ] Arena preset application is reflected in AI blocked-grid view within same update cycle
+- [ ] Path selected by AI remains walkable after movement step validation
+- [ ] Flood-fill safety check and pathfinder decision stay consistent on identical board state
+- [ ] AI repaths after dynamic arena changes (spawn/despawn solids) without freezing
 
-### Integration Tests - Render System
-- [ ] Load all image assets and verify non-null
-- [ ] Render arena with walls (getAllOutlines generates valid geometry)
-- [ ] Render single snake segment
-- [ ] Render multi-segment snake with correct ordering
-- [ ] Render food at correct position
-- [ ] Render UI buttons in correct positions
-- [ ] Render particles with correct lifetime and size
+#### Rendering and Frame Pipeline
+- [ ] Mode2D/Mode3D switch during gameplay preserves render/update coherence
+- [ ] Post-processing on/off toggle does not break UI composition order
+- [ ] Tunnel animation and particle rendering coexist without state leakage
 
-### Integration Tests - Complete Frame Updates
-- [ ] Single frame: Load config → Create entities → Update all systems → No crash
-- [ ] 100 frames: Game loop stability test
-- [ ] Rapid input: Queue multiple directions, verify correct sequence applied
-- [ ] Snake collision with wall: Movement stopped, score/health affected
-- [ ] Snake collision with food: Score increased, new food spawned
-- [ ] Snake collision with self: Game over triggered
-- [ ] Snake collision with AI snake: Collision effect applied (if applicable)
-- [ ] Post-processing effect toggle: Visual effect applies/removes correctly
-- [ ] Tunnel animation plays correctly on configured frames
+#### Collision Edge Case (Current Known Risk)
+- [ ] Head-to-head snake collision resolves deterministically and does not crash
 
-### Integration Tests - Memory & Performance
-- [ ] Valgrind: No memory leaks during full game loop (100+ frames)
-- [ ] Valgrind: No invalid heap accesses during gameplay
-- [ ] Load and unload config repeatedly: Memory stable
-- [ ] Create and destroy 1000 entities: Proper cleanup
-- [ ] Arena transform timing: All wall presets apply without stall
-- [ ] Large pathfind (150×150 grid): Completes in < 100ms
+#### End-to-End Soak and Stability
+- [ ] 300-frame deterministic soak in Playing (fixed seed, scripted inputs) produces stable outcomes
+- [ ] Repeated state cycling (Menu <-> Playing <-> GameOver) for N loops has no leaks under Valgrind
+- [ ] Long-run entity churn (spawn/despawn gameplay objects across rounds) shows no invalid accesses
+- [ ] Config reload + gameplay transition sequence remains stable (no crash, no stale pointers)
 
-### Integration Tests - Edge Cases & Error Recovery
-- [ ] Invalid config format: Graceful error message, game continues
-- [ ] Missing asset file: Graceful fallback or error, no crash
-- [ ] Corrupted save/preset: Recovery attempted, sensible defaults applied
-- [ ] Snake out of bounds (shouldn't happen): Safely clamped or wrapped
-- [ ] Extreme grid sizes (1×1, 500×500): Handled without crash
-- [ ] Zero playable cells in arena: Detected and handled gracefully
+#### Performance Gates (Integration Level)
+- [ ] 95th percentile frame time stays under target during stress scenario (particles + AI + postFX)
+- [ ] AI tick time stays under target on heavy arena preset during active gameplay
+- [ ] Particle system update time stays bounded with concurrent menu trail emitters
 
 ---
 
