@@ -23,14 +23,12 @@ void MarkSnakeGrowing(Registry& registry, Entity subject, Entity, FrameContext&)
 
 // 1 - Head-to-head snake collision triggers appropriate collision effects
 TEST(CollisionEdgeCases, HeadToHeadSnakeCollisionResolvesWithoutCrash) {
-	// This is a known edge case: two snakes moving toward each other and colliding simultaneously
 	Registry registry;
 	CollisionSystem collisionSystem;
 	CollisionEffectDispatcher dispatcher;
 	
 	dispatcher.registerEffect("GrowSnake", MarkSnakeGrowing);
 	
-	// Create collision rules
 	CollisionRuleTable rules;
 	CollisionRule selfCollisionRule;
 	selfCollisionRule.subject = "Snake";
@@ -38,7 +36,6 @@ TEST(CollisionEdgeCases, HeadToHeadSnakeCollisionResolvesWithoutCrash) {
 	selfCollisionRule.effects = { "GrowSnake" };
 	rules.rules.push_back(selfCollisionRule);
 	
-	// Create two AI-controlled snakes
 	Entity snake1 = registry.createEntity();
 	SnakeComponent snake1Comp;
 	snake1Comp.segments.push_back({ { 15, 15 }, BeadType::None });
@@ -55,24 +52,20 @@ TEST(CollisionEdgeCases, HeadToHeadSnakeCollisionResolvesWithoutCrash) {
 	registry.addComponent<SnakeComponent>(snake2, snake2Comp);
 	registry.addComponent<PositionComponent>(snake2, PositionComponent{ { 17, 15 } });
 	
-	// Simulate movement: both snakes move toward each other
 	auto& pos1 = registry.getComponent<PositionComponent>(snake1);
 	auto& pos2 = registry.getComponent<PositionComponent>(snake2);
 	
 	pos1.position.x += 1;  // Snake1 moves right (toward snake2)
 	pos2.position.x -= 1;  // Snake2 moves left (toward snake1)
 	
-	// Both snakes now occupy adjacent cells
 	EXPECT_EQ(pos1.position.x, 16);
 	EXPECT_EQ(pos2.position.x, 16);
 	
-	// Collision detection should not crash
 	FrameContext ctx;
 	EXPECT_NO_THROW({
 		collisionSystem.update(registry, rules, dispatcher, ctx);
 	});
 	
-	// Verify snakes still exist
 	EXPECT_TRUE(registry.hasComponent<SnakeComponent>(snake1));
 	EXPECT_TRUE(registry.hasComponent<SnakeComponent>(snake2));
 }
@@ -99,7 +92,6 @@ TEST(CollisionEdgeCases, SimultaneousCollisionsHandledWithoutDuplication) {
 	dispatcher.registerEffect("GrowSnake", growSnake);
 	dispatcher.registerEffect("AddScore", addScore);
 	
-	// Create snake at position that collides with both food and wall
 	Entity snake = registry.createEntity();
 	SnakeComponent snakeComp;
 	snakeComp.segments.push_back({ { 15, 15 }, BeadType::None });
@@ -113,13 +105,11 @@ TEST(CollisionEdgeCases, SimultaneousCollisionsHandledWithoutDuplication) {
 	
 	FrameContext ctx;
 	
-	// Apply both effects
 	EXPECT_NO_THROW({
 		dispatcher.execute("GrowSnake", registry, snake, snake, ctx);
 		dispatcher.execute("AddScore", registry, snake, snake, ctx);
 	});
 	
-	// Both effects should be applied
 	auto& snakeAfter = registry.getComponent<SnakeComponent>(snake);
 	EXPECT_TRUE(snakeAfter.growing);
 }
@@ -128,11 +118,9 @@ TEST(CollisionEdgeCases, SimultaneousCollisionsHandledWithoutDuplication) {
 TEST(CollisionEdgeCases, SelfCollisionOnTightCurveConsistent) {
 	Registry registry;
 	
-	// Create a snake that forms a tight curve
 	Entity snake = registry.createEntity();
 	SnakeComponent snakeComp;
 	
-	// Snake arranged in a tight square pattern
 	snakeComp.segments.push_back({ { 15, 15 }, BeadType::None });  // Head
 	snakeComp.segments.push_back({ { 15, 16 }, BeadType::None });
 	snakeComp.segments.push_back({ { 16, 16 }, BeadType::None });
@@ -142,15 +130,11 @@ TEST(CollisionEdgeCases, SelfCollisionOnTightCurveConsistent) {
 	registry.addComponent<SnakeComponent>(snake, snakeComp);
 	registry.addComponent<PositionComponent>(snake, PositionComponent{ { 15, 15 } });
 	
-	// Verify segments exist
 	EXPECT_EQ(snakeComp.segments.size(), 4);
 	
-	// Simulate head moving into body (tight curve collision)
-	// This should trigger self-collision logic
 	auto& snakeComp2 = registry.getComponent<SnakeComponent>(snake);
 	EXPECT_GE(snakeComp2.segments.size(), 2);
 	
-	// The test verifies no crash occurs with tight configuration
 	EXPECT_NO_THROW({
 		auto headPos = snakeComp2.segments[0].position;
 		for (size_t i = 1; i < snakeComp2.segments.size(); ++i) {
@@ -167,7 +151,6 @@ TEST(CollisionEdgeCases, SelfCollisionOnTightCurveConsistent) {
 TEST(CollisionEdgeCases, MultipleEntitiesCollideWithSameTargetConsistently) {
 	Registry registry;
 	
-	// Create two snakes and one food item
 	Entity snake1 = registry.createEntity();
 	Entity snake2 = registry.createEntity();
 	Entity food = registry.createEntity();
@@ -188,7 +171,6 @@ TEST(CollisionEdgeCases, MultipleEntitiesCollideWithSameTargetConsistently) {
 	registry.addComponent<PositionComponent>(snake2, PositionComponent{ { 16, 15 } });
 	registry.addComponent<PositionComponent>(food, PositionComponent{ { 15, 15 } });
 	
-	// Both snakes are adjacent to food but not colliding
 	auto& pos1 = registry.getComponent<PositionComponent>(snake1);
 	auto& pos2 = registry.getComponent<PositionComponent>(snake2);
 	auto& posFood = registry.getComponent<PositionComponent>(food);
@@ -196,16 +178,11 @@ TEST(CollisionEdgeCases, MultipleEntitiesCollideWithSameTargetConsistently) {
 	EXPECT_NE(pos1.position.x, posFood.position.x);  // Not colliding
 	EXPECT_NE(pos2.position.x, posFood.position.x);  // Not colliding
 	
-	// Move both snakes
 	pos1.position.x += 1;
 	pos2.position.x -= 1;
 	
-	// Now both are at same position as food
 	EXPECT_EQ(pos1.position.x, posFood.position.x);
 	EXPECT_EQ(pos2.position.x, posFood.position.x);
-	
-	// Collision system should handle both collisions
-	// (typically first wins or effects apply to both)
 }
 
 // 5 - Collision with fast-moving entity doesn't get missed (no tunneling)
@@ -221,16 +198,13 @@ TEST(CollisionEdgeCases, FastMovingEntityCollisionNotMissed) {
 	auto& movingPos = registry.getComponent<PositionComponent>(movingEntity);
 	auto& targetPos = registry.getComponent<PositionComponent>(target);
 	
-	// Simulate fast movement
 	int speed = 10;  // Very fast
 	for (int tick = 0; tick < 2; ++tick) {
 		int prevX = movingPos.position.x;
 		movingPos.position.x += speed;
 		
-		// Check if collision would occur in trajectory
 		if ((prevX < targetPos.position.x && movingPos.position.x >= targetPos.position.x) ||
 			(prevX > targetPos.position.x && movingPos.position.x <= targetPos.position.x)) {
-			// Collision in trajectory detected
 			EXPECT_TRUE(true);
 			return;
 		}

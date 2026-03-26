@@ -12,7 +12,17 @@
         - [Components](#626-unit-tests---components)
         - [Configuration Structs](#627-unit-tests---configuration-structs)
     - [Implementation Tests](#63-integration-tests)
-        - [ECS System](#631-integration-tests---ecs-system)
+        - [Config + Runtime Wiring](#631-integration-tests---config--runtime-wiring)
+        - [UI + Pixel Text + Menu Particles](#632-integration-tests---ui--pixel-text--menu-particles)
+        - [Rendering and Frame Pipeline](#633-integration-tests---rendering-and-frame-pipeline)
+        - [State Transitions and World Rehydration](#634-integration-tests---state-transitions-and-world-rehydration)
+        - [Input -> Decision -> Movement Chain](#635-integration-tests---input----decision----movement-chain)
+        - [Collision -> Effects -> Gameplay Outcome](#636-integration-tests---collision----effects----gameplay-outcome)
+        - [Arena + AI Coherence](#637-integration-tests---arena--ai-coherence)
+        - [Rendering and Frame Pipeline (Modes)](#638-integration-tests---rendering-and-frame-pipeline-1)
+        - [End-to-End Soak and Stability](#639-integration-tests---end-to-end-soak-and-stability)
+        - [Performance Gates](#6310-integration-tests---performance-gates)
+        - [Collision Edge Cases](#6311-integration-tests---collision-edge-cases)
 
 
 <br>
@@ -496,9 +506,29 @@ This batch verifies rendering-state coherence when visual configuration changes 
 I don't know how many ways of saying that there were no issues I have left in me
 
 ### 6.3.9 Integration tests - End-to-End Soak and Stability
-
+This integration batch stress-tests temporal stability rather than feature correctness in isolation. The goal is to validate that long frame sequences, repeated state transitions, and heavy spawn/despawn churn keep the world coherent over time, with no crashes, stale references, leaks, or invalid accesses under Valgrind.
 
 - [x] 300-frame deterministic soak in Playing (fixed seed, scripted inputs) produces stable outcomes
 - [x] Repeated state cycling (Menu <-> Playing <-> GameOver) for N loops has no leaks under Valgrind
 - [x] Long-run entity churn (spawn/despawn gameplay objects across rounds) shows no invalid accesses
 - [x] Config reload + gameplay transition sequence remains stable (no crash, no stale pointers)
+
+My code? Issues? Never
+
+### 6.3.10 Integration tests - Performance Gates
+This batch introduces timing guardrails to catch regressions in frame-critical systems before they become visible stutter in gameplay. The objective is not to benchmark absolute release performance, but to enforce stable upper bounds under the current test environment, validating that frame orchestration, AI ticks, and particle-heavy updates remain within acceptable envelopes.
+
+- [x] 95th percentile frame time stays under target during stress scenario (particles + AI + postFX)
+- [x] AI tick time stays under target on heavy arena preset during active gameplay
+- [x] Particle system update time stays bounded with concurrent menu trail emitters
+
+Begone, Issues
+
+### 6.3.11 Integration tests - Collision Edge Cases
+This last batch focuses on collision-side boundary behaviors where multiple interactions can overlap in the same tick. The purpose is to validate deterministic handling in tight and ambiguous scenarios: head-to-head contact, stacked collision effects, self-contact geometry, multi-entity target contention, and fast movement crossing checks. In short: no crashy chaos when collisions get weird.
+
+- [x] Head-to-head snake collision resolves deterministically and does not crash
+- [x] Simultaneous collisions (snake-food + competing effects) are handled without duplicate/unstable state
+- [x] Self-collision on tight curve remains consistent frame-to-frame
+- [x] Multiple entities colliding with the same target resolve coherently
+- [x] Fast-moving entity collision crossing is not silently missed (no tunneling path)
